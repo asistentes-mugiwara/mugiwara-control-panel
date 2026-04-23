@@ -55,13 +55,7 @@ export default function HealthcheckPage() {
 
       <SurfaceCard title="Resumen de salud" elevated eyebrow="Puesto médico" accent="danger">
         <div style={{ display: 'grid', gap: '14px' }}>
-          <div
-            style={{
-              display: 'grid',
-              gap: '12px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            }}
-          >
+          <div className="layout-grid layout-grid--cards-180" style={{ gap: '12px' }}>
             <div style={{ display: 'grid', gap: '8px' }}>
               <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Estado general</span>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -103,14 +97,7 @@ export default function HealthcheckPage() {
         </div>
       </SurfaceCard>
 
-      <section
-        style={{
-          marginTop: '14px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        }}
-      >
+      <section className="section-block layout-grid layout-grid--cards-240">
         {workspace.modules.map((module) => (
           <SurfaceCard key={module.module_id} title={module.label} elevated eyebrow="Check" accent={module.status === 'fail' ? 'danger' : module.status === 'warn' ? 'warning' : module.status === 'stale' ? 'gold' : 'sky'}>
             <div style={{ display: 'grid', gap: '10px' }}>
@@ -133,15 +120,7 @@ export default function HealthcheckPage() {
         ))}
       </section>
 
-      <section
-        style={{
-          marginTop: '14px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'minmax(0, 1.3fr) minmax(280px, 0.7fr)',
-          alignItems: 'start',
-        }}
-      >
+      <section className="section-block layout-grid layout-grid--content-aside">
         <SurfaceCard title="Eventos recientes" elevated eyebrow="Bitácora" accent="gold">
           {workspace.events.length > 0 ? (
             <div style={{ display: 'grid', gap: '10px' }}>

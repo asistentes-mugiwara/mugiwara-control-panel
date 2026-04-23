@@ -35,7 +35,7 @@ export function Topbar({ navId, menuButtonRef, isMobileNavOpen, onToggleNavigati
           gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="topbar__brand">
           <button
             type="button"
             className="topbar__menu-button"
@@ -56,7 +56,7 @@ export function Topbar({ navId, menuButtonRef, isMobileNavOpen, onToggleNavigati
             ☰
           </button>
 
-          <div>
+          <div className="topbar__identity">
             <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '12px' }}>Control plane privado</p>
             <strong style={{ display: 'block', marginTop: '2px' }}>Mugiwara / Hermes</strong>
           </div>

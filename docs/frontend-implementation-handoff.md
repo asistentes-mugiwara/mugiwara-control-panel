@@ -239,6 +239,7 @@ Responsabilidades:
 - última actualización
 - estado global resumido
 - placeholder de búsqueda/comando
+- en móvil, permitir wrap y degradar primero chips secundarios antes que identidad/estado
 
 ### `PageHeader`
 - `title`
@@ -246,6 +247,7 @@ Responsabilidades:
 - `actions`
 - `breadcrumbs?`
 - puede usar un heading editorial visible distinto del nombre canónico de ruta si la spec lo permite (ej. `Dashboard` -> `Estado del barco`)
+- en responsive, apilar bloque principal y acciones; pills y metadatos deben envolver sin cortar el contenido
 
 ## 5.2 Foundation
 ### `SurfaceCard`
@@ -254,6 +256,7 @@ Card base con variantes:
 - elevated
 - interactive
 - accented
+- títulos largos, `code` y bloques densos deben degradar bien en widths estrechos
 
 ### `StatusBadge`
 Props:

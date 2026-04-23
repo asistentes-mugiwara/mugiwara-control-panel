@@ -237,12 +237,14 @@ Contiene layout principal.
 - timestamp / última actualización
 - placeholder para búsqueda/comando
 - estado global resumido
+- en anchos estrechos puede envolver y priorizar identidad + estado antes que chips secundarios
 
 ### `PageHeader`
 - título
 - subtítulo
 - acciones contextuales si aplican
 - opcional: breadcrumbs
+- en tablet/mobile debe apilar cuerpo y acciones sin provocar overflow; pills y badges deben poder envolver
 
 ## 4.2 Foundation components
 ### `SurfaceCard`
@@ -252,6 +254,7 @@ Props sugeridas:
 - `interactive?: boolean`
 - `accentColor?: string`
 - `status?: semantic`
+- títulos, metadatos y bloques `code/pre` deben romper con dignidad en anchos estrechos
 
 ### `StatusBadge`
 Estados universales.
@@ -781,6 +784,7 @@ Sin renombrar conceptos técnicos principales.
 - sidebar colapsable
 - grids de 2 columnas
 - paneles laterales pueden pasar a stacked layout
+- `memory`, `skills`, `healthcheck` y `vault` deben poder bajar paneles auxiliares debajo del contenido principal
 
 ## 6.3 Mobile
 - prioridad absoluta a lectura
@@ -788,6 +792,7 @@ Sin renombrar conceptos técnicos principales.
 - cards en una columna
 - tablas convertidas en bloques o listas resumidas
 - evitar layouts de tres columnas en `vault`
+- `PageHeader`, topbar, badges y chips deben envolver sin micro-overflows
 
 ---
 

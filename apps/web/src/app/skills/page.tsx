@@ -434,10 +434,10 @@ export default function SkillsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '8px', minWidth: '240px' }}>
+            <div style={{ display: 'grid', gap: '8px' }}>
               <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Skill activa</span>
-              <strong style={{ fontSize: '18px' }}>{selectedSkill?.display_name ?? 'Ninguna seleccionada'}</strong>
-              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+              <strong className="text-break" style={{ fontSize: '18px' }}>{selectedSkill?.display_name ?? 'Ninguna seleccionada'}</strong>
+              <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
                 {selectedSkill?.editable
                   ? 'Lista para edición controlada cuando haya cambios y actor visible.'
                   : selectedSkill
@@ -447,13 +447,7 @@ export default function SkillsPage() {
             </div>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gap: '10px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            }}
-          >
+          <div className="layout-grid layout-grid--cards-180" style={{ gap: '10px' }}>
             {[
               {
                 label: 'Actor visible',
@@ -546,13 +540,7 @@ export default function SkillsPage() {
         </div>
       </SurfaceCard>
 
-      <section
-        style={{
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        }}
-      >
+      <section className="layout-grid layout-grid--cards-280">
         <SurfaceCard title="Frontera de edición" elevated eyebrow="Contrato" accent="gold">
           <div id="edit-boundary" style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
@@ -614,15 +602,7 @@ export default function SkillsPage() {
         </SurfaceCard>
       </section>
 
-      <section
-        style={{
-          marginTop: '14px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'minmax(280px, 360px) minmax(0, 1fr)',
-          alignItems: 'start',
-        }}
-      >
+      <section className="section-block layout-grid layout-grid--sidebar-detail">
         <SurfaceCard title="Catálogo real" elevated eyebrow="Allowlist" accent="sky">
           <div style={{ display: 'grid', gap: '10px' }}>
             {sourceNotice ? (
@@ -664,7 +644,7 @@ export default function SkillsPage() {
                     <strong>{skill.display_name}</strong>
                     <StatusBadge status={mapCatalogSkillToBadgeStatus(skill)} />
                   </div>
-                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{skill.skill_id}</span>
+                  <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{skill.skill_id}</span>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
@@ -786,12 +766,12 @@ export default function SkillsPage() {
                 <div style={{ display: 'grid', gap: '6px' }}>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>repo_path allowlisted</span>
                   <code
+                    className="responsive-code"
                     style={{
                       padding: '10px',
                       borderRadius: '12px',
                       background: appTheme.colors.bgSurface1,
                       color: appTheme.colors.textSecondary,
-                      overflowX: 'auto',
                     }}
                   >
                     {selectedSkill.repo_path}
@@ -1081,15 +1061,14 @@ export default function SkillsPage() {
                     </span>
                   </div>
                   <pre
+                    className="responsive-code"
                     style={{
                       margin: 0,
                       padding: '14px',
                       borderRadius: '12px',
                       background: appTheme.colors.bgSurface1,
                       color: appTheme.colors.textSecondary,
-                      overflowX: 'auto',
                       maxHeight: '260px',
-                      whiteSpace: 'pre-wrap',
                     }}
                   >
                     {previewResponse.diff_summary.preview.join('\n') || 'Sin preview textual disponible.'}

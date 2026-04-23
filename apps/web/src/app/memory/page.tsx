@@ -98,14 +98,7 @@ export default function MemoryPage() {
         detailPills={['Continuidad viva', 'Fuentes separadas', 'Sin canon curado']}
       />
 
-      <section
-        style={{
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'minmax(280px, 360px) minmax(0, 1fr)',
-          alignItems: 'start',
-        }}
-      >
+      <section className="layout-grid layout-grid--sidebar-detail">
         <div style={{ display: 'grid', gap: '14px' }}>
           <SurfaceCard title="Memoria operativa" elevated eyebrow="Contexto" accent="sky">
             <div style={{ display: 'grid', gap: '10px' }}>

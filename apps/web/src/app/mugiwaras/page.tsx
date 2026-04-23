@@ -30,14 +30,7 @@ export default function MugiwarasPage() {
         <StatusBadge status="operativo" />
       </SurfaceCard>
 
-      <section
-        style={{
-          marginTop: '14px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        }}
-      >
+      <section className="section-block layout-grid layout-grid--cards-280">
         {mugiwaraCardFixture.map((mugiwara) => {
           const profile = getMugiwaraProfile(mugiwara.slug)
 

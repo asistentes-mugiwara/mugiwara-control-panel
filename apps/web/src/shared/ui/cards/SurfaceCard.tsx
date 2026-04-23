@@ -25,6 +25,7 @@ export function SurfaceCard({ children, title, eyebrow, elevated = false, accent
 
   return (
     <article
+      className="surface-card"
       style={{
         background: elevated ? appTheme.colors.bgSurface2 : appTheme.colors.bgSurface1,
         border: `1px solid ${accentColor ?? appTheme.colors.borderSubtle}`,
@@ -47,7 +48,7 @@ export function SurfaceCard({ children, title, eyebrow, elevated = false, accent
           {eyebrow}
         </p>
       ) : null}
-      {title ? <h2 style={{ marginTop: 0, marginBottom: '12px', fontSize: '18px' }}>{title}</h2> : null}
+      {title ? <h2 className="surface-card__title">{title}</h2> : null}
       {children}
     </article>
   )

@@ -15,16 +15,8 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, detailPills = [] }: PageHeaderProps) {
   return (
-    <section
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        gap: '16px',
-        marginBottom: '18px',
-      }}
-    >
-      <div style={{ display: 'grid', gap: '12px' }}>
+    <section className="page-header">
+      <div className="page-header__body">
         <div>
           {eyebrow || mugiwaraSlug ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -46,10 +38,10 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
             </div>
           ) : null}
 
-          <h1 style={{ margin: 0, fontSize: '34px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>{title}</h1>
+          <h1 className="page-header__title">{title}</h1>
 
           {subtitle ? (
-            <p style={{ margin: '10px 0 0', color: appTheme.colors.textSecondary, maxWidth: '72ch', lineHeight: 1.6 }}>
+            <p className="page-header__subtitle" style={{ color: appTheme.colors.textSecondary }}>
               {subtitle}
             </p>
           ) : null}
@@ -77,7 +69,7 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
         ) : null}
       </div>
 
-      {actions ? <div>{actions}</div> : null}
+      {actions ? <div className="page-header__actions">{actions}</div> : null}
     </section>
   )
 }

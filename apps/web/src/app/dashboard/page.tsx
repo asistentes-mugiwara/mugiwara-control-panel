@@ -36,26 +36,13 @@ export default function DashboardPage() {
         detailPills={['Puente de mando', 'Lectura saneada', 'Módulos propietarios']}
       />
 
-      <section
-        style={{
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        }}
-      >
+      <section className="layout-grid layout-grid--cards-260">
         {summary.counts.map((count) => (
           <CountGridItem key={count.label} count={count} />
         ))}
       </section>
 
-      <section
-        style={{
-          marginTop: '14px',
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        }}
-      >
+      <section className="section-block layout-grid layout-grid--cards-280">
         <SurfaceCard title="Severidad más alta" eyebrow="Radar" accent="warning">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>
             Nivel actual: <strong>{getDashboardSeverityLabel(summary.highest_severity)}</strong>
@@ -82,7 +69,7 @@ export default function DashboardPage() {
         </SurfaceCard>
       </section>
 
-      <section style={{ marginTop: '14px' }}>
+      <section className="section-block">
         <SurfaceCard title="Accesos rápidos" eyebrow="Rumbo" accent="gold">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {summary.links.map((link) => (

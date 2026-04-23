@@ -17,6 +17,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 
   return (
     <span
+      className="status-badge"
       style={{
         border: `1px solid ${color}`,
         color,
@@ -26,7 +27,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         fontWeight: 700,
         letterSpacing: '0.01em',
         background: appTheme.colors.bgSurface2,
-        whiteSpace: 'nowrap',
       }}
       aria-label={`Estado ${statusLabelMap[status]}`}
     >

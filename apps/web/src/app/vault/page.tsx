@@ -55,14 +55,7 @@ export default function VaultPage() {
         detailPills={['Canon curado', 'Lectura editorial', 'Sin memoria viva']}
       />
 
-      <section
-        style={{
-          display: 'grid',
-          gap: '14px',
-          gridTemplateColumns: 'minmax(260px, 320px) minmax(0, 1fr) minmax(260px, 320px)',
-          alignItems: 'start',
-        }}
-      >
+      <section className="layout-grid layout-grid--vault">
         <div style={{ display: 'grid', gap: '14px' }}>
           <SurfaceCard title="Canon curado" elevated eyebrow="Archivo" accent="gold">
             <div style={{ display: 'grid', gap: '10px' }}>
@@ -230,12 +223,12 @@ export default function VaultPage() {
                 <div style={{ display: 'grid', gap: '6px' }}>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Path</span>
                   <code
+                    className="responsive-code"
                     style={{
                       padding: '10px',
                       borderRadius: '12px',
                       background: appTheme.colors.bgSurface1,
                       color: appTheme.colors.textSecondary,
-                      overflowX: 'auto',
                     }}
                   >
                     {activeDocument.meta.path}
