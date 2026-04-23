@@ -20,5 +20,6 @@ Cualquier cambio estructural debe actualizar `README.md`, `docs/` y `AGENTS.md` 
 ## Runtime SDD desde Hermes/OpenCode
 - Para prompts complejos, usar fichero de prompt + invocación segura; referencia: `scripts/opencode-safe-run.sh`.
 - No forzar `sdd-init` en cada mini-fase corta si el proyecto ya está rehidratado.
+- En continuaciones headless, pasar explícitamente `--agent sdd-orchestrator-zoro` junto con `--session` para evitar deriva de la sesión raíz al agente `build`.
 - No declarar éxito de persistencia en Engram sin comprobar observaciones reales además de sesiones/prompts.
 - Evidencia y criterio operativo actual: `docs/sdd-runtime-validation.md`.
