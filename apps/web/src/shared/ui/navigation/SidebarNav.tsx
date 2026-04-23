@@ -14,18 +14,22 @@ const routes = [
   { href: '/healthcheck', label: 'Healthcheck', icon: '✓' },
 ] as const
 
-export function SidebarNav() {
+type SidebarNavProps = {
+  isMobileOpen?: boolean
+  onNavigate?: () => void
+}
+
+export function SidebarNav({ isMobileOpen = false, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
     <aside
+      className={`sidebar-nav${isMobileOpen ? ' sidebar-nav--mobile-open' : ''}`}
       style={{
         background: appTheme.colors.bgSidebar,
         borderRight: `1px solid ${appTheme.colors.borderSubtle}`,
         padding: '20px 14px',
-        position: 'sticky',
         top: 0,
-        height: '100vh',
       }}
       aria-label="Navegación principal"
     >
@@ -44,14 +48,13 @@ export function SidebarNav() {
       <nav>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '8px' }}>
           {routes.map((route) => {
-            const isActive =
-              pathname === route.href ||
-              (route.href !== '/dashboard' && pathname.startsWith(`${route.href}/`))
+            const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(`${route.href}/`))
 
             return (
               <li key={route.href}>
                 <Link
                   href={route.href}
+                  onClick={onNavigate}
                   style={{
                     display: 'flex',
                     gap: '10px',

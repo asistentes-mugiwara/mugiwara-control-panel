@@ -1,18 +1,26 @@
+'use client'
+
 import { appTheme } from '@/shared/theme/tokens'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 
-export function Topbar() {
+type TopbarProps = {
+  isMobileNavOpen: boolean
+  onToggleNavigation: () => void
+}
+
+export function Topbar({ isMobileNavOpen, onToggleNavigation }: TopbarProps) {
   return (
     <header
       style={{
         position: 'sticky',
         top: 0,
-        zIndex: 10,
+        zIndex: 30,
         borderBottom: `1px solid ${appTheme.colors.borderSubtle}`,
         background: appTheme.colors.bgApp,
       }}
     >
       <div
+        className="topbar"
         style={{
           margin: '0 auto',
           maxWidth: `calc(${appTheme.layout.maxContentWidth} + 48px)`,
@@ -23,15 +31,34 @@ export function Topbar() {
           gap: '12px',
         }}
       >
-        <div>
-          <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '12px' }}>
-            Control plane privado
-          </p>
-          <strong style={{ display: 'block', marginTop: '2px' }}>Mugiwara / Hermes</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            className="topbar__menu-button"
+            aria-label={isMobileNavOpen ? 'Cerrar navegación principal' : 'Abrir navegación principal'}
+            aria-expanded={isMobileNavOpen}
+            onClick={onToggleNavigation}
+            style={{
+              border: `1px solid ${appTheme.colors.borderSubtle}`,
+              borderRadius: appTheme.radius.md,
+              background: appTheme.colors.bgSurface1,
+              color: appTheme.colors.textPrimary,
+              padding: '8px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            ☰
+          </button>
+
+          <div>
+            <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '12px' }}>Control plane privado</p>
+            <strong style={{ display: 'block', marginTop: '2px' }}>Mugiwara / Hermes</strong>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="topbar__status-group" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span
+            className="topbar__command-chip"
             style={{
               border: `1px solid ${appTheme.colors.borderSubtle}`,
               borderRadius: appTheme.radius.md,
