@@ -441,7 +441,7 @@ export default function SkillsPage() {
                 {selectedSkill?.editable
                   ? 'Lista para edición controlada cuando haya cambios y actor visible.'
                   : selectedSkill
-                    ? 'Se muestra como referencia: sin preview ni guardado.'
+                    ? 'Se muestra como referencia documental: sin escritura productiva.'
                     : 'Selecciona una entrada del catálogo para abrir el workspace.'}
               </span>
             </div>
@@ -692,7 +692,12 @@ export default function SkillsPage() {
         </SurfaceCard>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Editor allowlisted" elevated eyebrow="Forja" accent="success">
+          <SurfaceCard
+            title={selectedSkill?.editable ? 'Editor allowlisted' : selectedSkill ? 'Detalle de referencia' : 'Editor allowlisted'}
+            elevated
+            eyebrow={selectedSkill?.editable ? 'Forja' : selectedSkill ? 'Referencia' : 'Forja'}
+            accent={selectedSkill?.editable ? 'success' : selectedSkill ? 'sky' : 'success'}
+          >
             {selectedSkill ? (
               <div style={{ display: 'grid', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
@@ -728,7 +733,7 @@ export default function SkillsPage() {
                   <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
                     {selectedSkill.editable
                       ? 'Este panel funciona como editor productivo: permite tocar el borrador, calcular preview y guardar con auditoría visible.'
-                      : 'Esta vista conserva la lectura del contenido, pero deja explícito que no abre escritura productiva.'}
+                      : 'Esta vista conserva la lectura del contenido y el rastro auditado, pero no abre escritura productiva.'}
                   </p>
                   {selectedSkill.editable ? (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -736,7 +741,13 @@ export default function SkillsPage() {
                       <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Draft: <strong style={{ color: appTheme.colors.textSecondary }}>{hasDraftChanges ? 'cambios pendientes' : 'sin cambios'}</strong></span>
                       <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Guardar: <strong style={{ color: appTheme.colors.textSecondary }}>{canSave ? 'habilitado' : 'bloqueado'}</strong></span>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Lectura: <strong style={{ color: appTheme.colors.textSecondary }}>solo referencia</strong></span>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Preview: <strong style={{ color: appTheme.colors.textSecondary }}>no aplica</strong></span>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Guardado: <strong style={{ color: appTheme.colors.textSecondary }}>deshabilitado por diseño</strong></span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -766,8 +777,8 @@ export default function SkillsPage() {
                   </span>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
                     {selectedSkill.editable
-                      ? 'Guardado productivo habilitado en 9.4 con actor visible y control de fingerprint.'
-                      : 'Skill de solo referencia: sin preview ni guardado.'}
+                      ? 'Guardado productivo habilitado con actor visible y control de fingerprint.'
+                      : 'Skill de solo referencia: se consulta y se puede recargar, pero no abre preview ni guardado.'}
                   </span>
                 </div>
 
@@ -786,154 +797,213 @@ export default function SkillsPage() {
                   </code>
                 </div>
 
-                <div style={{ display: 'grid', gap: '6px' }}>
-                  <label htmlFor="skills-actor-input" style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                    Actor visible del guardado
-                  </label>
-                  <input
-                    id="skills-actor-input"
-                    type="text"
-                    value={actorInput}
-                    onChange={(event) => setActorInput(event.target.value)}
-                    placeholder="zoro"
-                    disabled={!selectedSkill.editable || saveState === 'saving'}
-                    style={{
-                      borderRadius: '12px',
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      background: selectedSkill.editable ? appTheme.colors.bgSurface1 : appTheme.colors.bgSurface2,
-                      color: appTheme.colors.textPrimary,
-                      padding: '12px 14px',
-                    }}
-                  />
-                </div>
+                {selectedSkill.editable ? (
+                  <>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      <label htmlFor="skills-actor-input" style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
+                        Actor visible del guardado
+                      </label>
+                      <input
+                        id="skills-actor-input"
+                        type="text"
+                        value={actorInput}
+                        onChange={(event) => setActorInput(event.target.value)}
+                        placeholder="zoro"
+                        disabled={saveState === 'saving'}
+                        style={{
+                          borderRadius: '12px',
+                          border: `1px solid ${appTheme.colors.borderSubtle}`,
+                          background: appTheme.colors.bgSurface1,
+                          color: appTheme.colors.textPrimary,
+                          padding: '12px 14px',
+                        }}
+                      />
+                    </div>
 
-                <div style={{ display: 'grid', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Editor del borrador</span>
-                    {draftSummary ? (
-                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
-                        líneas {formatSignedDelta(draftSummary.lineDelta)} · chars {formatSignedDelta(draftSummary.charDelta)}
-                      </span>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Editor del borrador</span>
+                        {draftSummary ? (
+                          <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
+                            líneas {formatSignedDelta(draftSummary.lineDelta)} · chars {formatSignedDelta(draftSummary.charDelta)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <textarea
+                        value={draftContent}
+                        onChange={(event) => handleDraftChange(event.target.value)}
+                        disabled={saveState === 'saving'}
+                        style={{
+                          minHeight: '240px',
+                          borderRadius: '12px',
+                          border: `1px solid ${appTheme.colors.borderSubtle}`,
+                          background: appTheme.colors.bgSurface1,
+                          color: appTheme.colors.textSecondary,
+                          padding: '14px',
+                          resize: 'vertical',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: '10px',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        background: appTheme.colors.bgSurface1,
+                        border: `1px solid ${appTheme.colors.stateSuccess}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '14px' }}>Acciones de edición</strong>
+                        <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Preview antes de guardar</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={handlePreviewDiff}
+                          disabled={!hasDraftChanges || previewState === 'loading' || saveState === 'saving'}
+                          style={{
+                            borderRadius: '999px',
+                            border: 'none',
+                            padding: '10px 16px',
+                            cursor: !hasDraftChanges ? 'not-allowed' : 'pointer',
+                            background: appTheme.colors.brandBlue700,
+                            color: appTheme.colors.textPrimary,
+                            fontWeight: 700,
+                            opacity: !hasDraftChanges ? 0.55 : 1,
+                          }}
+                        >
+                          {previewState === 'loading' ? 'Calculando diff…' : 'Preview de diff'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveSkill}
+                          disabled={!canSave}
+                          style={{
+                            borderRadius: '999px',
+                            border: 'none',
+                            padding: '10px 16px',
+                            cursor: canSave ? 'pointer' : 'not-allowed',
+                            background: appTheme.colors.stateSuccess,
+                            color: appTheme.colors.textPrimary,
+                            fontWeight: 700,
+                            opacity: canSave ? 1 : 0.55,
+                          }}
+                        >
+                          {saveState === 'saving' ? 'Guardando…' : 'Guardar skill'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResetDraft}
+                          disabled={!hasDraftChanges || saveState === 'saving'}
+                          style={{
+                            borderRadius: '999px',
+                            border: `1px solid ${appTheme.colors.borderSubtle}`,
+                            padding: '10px 16px',
+                            cursor: !hasDraftChanges ? 'not-allowed' : 'pointer',
+                            background: appTheme.colors.bgSurface1,
+                            color: appTheme.colors.textSecondary,
+                            fontWeight: 700,
+                            opacity: !hasDraftChanges ? 0.55 : 1,
+                          }}
+                        >
+                          Reset borrador
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleReloadSkill}
+                          disabled={saveState === 'saving'}
+                          style={{
+                            borderRadius: '999px',
+                            border: `1px solid ${appTheme.colors.borderSubtle}`,
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            background: appTheme.colors.bgSurface2,
+                            color: appTheme.colors.textSecondary,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Recargar skill
+                        </button>
+                      </div>
+                    </div>
+
+                    {!hasDraftChanges ? (
+                      <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+                        Modifica el borrador para habilitar preview y guardado controlado.
+                      </p>
+                    ) : !normalizedActor ? (
+                      <p style={{ margin: 0, color: appTheme.colors.stateDanger }}>
+                        El actor visible es obligatorio para poder guardar y auditar la operación.
+                      </p>
                     ) : null}
-                  </div>
-                  <textarea
-                    value={draftContent}
-                    onChange={(event) => handleDraftChange(event.target.value)}
-                    disabled={!selectedSkill.editable || saveState === 'saving'}
-                    style={{
-                      minHeight: '240px',
-                      borderRadius: '12px',
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      background: selectedSkill.editable ? appTheme.colors.bgSurface1 : appTheme.colors.bgSurface2,
-                      color: appTheme.colors.textSecondary,
-                      padding: '14px',
-                      resize: 'vertical',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    }}
-                  />
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Contenido de referencia</span>
+                      <textarea
+                        value={draftContent}
+                        readOnly
+                        style={{
+                          minHeight: '240px',
+                          borderRadius: '12px',
+                          border: `1px solid ${appTheme.colors.borderSubtle}`,
+                          background: appTheme.colors.bgSurface2,
+                          color: appTheme.colors.textSecondary,
+                          padding: '14px',
+                          resize: 'vertical',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}
+                      />
+                    </div>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gap: '10px',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    background: appTheme.colors.bgSurface1,
-                    border: `1px solid ${selectedSkill.editable ? appTheme.colors.stateSuccess : appTheme.colors.borderSubtle}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                    <strong style={{ fontSize: '14px' }}>Acciones de edición</strong>
-                    <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
-                      {selectedSkill.editable ? 'Preview antes de guardar' : 'Acciones bloqueadas en modo referencia'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={handlePreviewDiff}
-                    disabled={!selectedSkill.editable || !hasDraftChanges || previewState === 'loading' || saveState === 'saving'}
-                    style={{
-                      borderRadius: '999px',
-                      border: 'none',
-                      padding: '10px 16px',
-                      cursor: !selectedSkill.editable || !hasDraftChanges ? 'not-allowed' : 'pointer',
-                      background: appTheme.colors.brandBlue700,
-                      color: appTheme.colors.textPrimary,
-                      fontWeight: 700,
-                      opacity: !selectedSkill.editable || !hasDraftChanges ? 0.55 : 1,
-                    }}
-                  >
-                    {previewState === 'loading' ? 'Calculando diff…' : 'Preview de diff'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveSkill}
-                    disabled={!canSave}
-                    style={{
-                      borderRadius: '999px',
-                      border: 'none',
-                      padding: '10px 16px',
-                      cursor: canSave ? 'pointer' : 'not-allowed',
-                      background: appTheme.colors.stateSuccess,
-                      color: appTheme.colors.textPrimary,
-                      fontWeight: 700,
-                      opacity: canSave ? 1 : 0.55,
-                    }}
-                  >
-                    {saveState === 'saving' ? 'Guardando…' : 'Guardar skill'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetDraft}
-                    disabled={!selectedSkill.editable || !hasDraftChanges || saveState === 'saving'}
-                    style={{
-                      borderRadius: '999px',
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      padding: '10px 16px',
-                      cursor: !selectedSkill.editable || !hasDraftChanges ? 'not-allowed' : 'pointer',
-                      background: appTheme.colors.bgSurface1,
-                      color: appTheme.colors.textSecondary,
-                      fontWeight: 700,
-                      opacity: !selectedSkill.editable || !hasDraftChanges ? 0.55 : 1,
-                    }}
-                  >
-                    Reset borrador
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleReloadSkill}
-                    disabled={!selectedSkill.editable || saveState === 'saving'}
-                    style={{
-                      borderRadius: '999px',
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      padding: '10px 16px',
-                      cursor: !selectedSkill.editable ? 'not-allowed' : 'pointer',
-                      background: appTheme.colors.bgSurface2,
-                      color: appTheme.colors.textSecondary,
-                      fontWeight: 700,
-                      opacity: !selectedSkill.editable ? 0.55 : 1,
-                    }}
-                  >
-                    Recargar skill
-                  </button>
-                  </div>
-                </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: '10px',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        background: appTheme.colors.bgSurface1,
+                        border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '14px' }}>Acciones disponibles</strong>
+                        <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Lectura y sincronización</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={handleReloadSkill}
+                          disabled={saveState === 'saving'}
+                          style={{
+                            borderRadius: '999px',
+                            border: `1px solid ${appTheme.colors.borderSubtle}`,
+                            padding: '10px 16px',
+                            cursor: saveState === 'saving' ? 'not-allowed' : 'pointer',
+                            background: appTheme.colors.bgSurface2,
+                            color: appTheme.colors.textSecondary,
+                            fontWeight: 700,
+                            opacity: saveState === 'saving' ? 0.55 : 1,
+                          }}
+                        >
+                          Recargar skill
+                        </button>
+                      </div>
+                    </div>
 
-                {!selectedSkill.editable ? (
-                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                    Esta skill es de solo referencia: la UI muestra el contenido, pero no ofrece preview de diff ni guardado.
-                  </p>
-                ) : !hasDraftChanges ? (
-                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                    Modifica el borrador para habilitar preview y guardado controlado.
-                  </p>
-                ) : !normalizedActor ? (
-                  <p style={{ margin: 0, color: appTheme.colors.stateDanger }}>
-                    El actor visible es obligatorio para poder guardar y auditar la operación.
-                  </p>
-                ) : null}
+                    <StatePanel
+                      status="revision"
+                      title="Skill de referencia"
+                      description="Este detalle forma parte del catálogo visible, pero no pertenece a la frontera productiva de edición del MVP."
+                      eyebrow="Solo lectura"
+                    />
+                  </>
+                )}
               </div>
             ) : viewState === 'ready' ? (
               <StatePanel
@@ -981,7 +1051,7 @@ export default function SkillsPage() {
                 ) : null}
                 {lastSavedAudit ? (
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                    Último guardado 9.4: {formatTimestamp(lastSavedAudit.timestamp)} · resultado {lastSavedAudit.result}
+                    Último guardado: {formatTimestamp(lastSavedAudit.timestamp)} · resultado {lastSavedAudit.result}
                   </span>
                 ) : null}
               </div>

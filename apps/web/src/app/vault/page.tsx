@@ -71,6 +71,21 @@ export default function VaultPage() {
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <StatusBadge status={getVaultFreshnessStatus(workspace.freshness.state)} />
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    borderRadius: '999px',
+                    padding: '4px 10px',
+                    background: appTheme.colors.bgSurface1,
+                    border: `1px solid ${appTheme.colors.borderSubtle}`,
+                    color: appTheme.colors.brandSky500,
+                    fontSize: '12px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Solo lectura documental
+                </span>
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{workspace.freshness.label}</span>
               </div>
               <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
