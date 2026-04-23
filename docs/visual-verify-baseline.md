@@ -45,5 +45,9 @@ Además de `typecheck`, `build` y `git diff --check`, en cierres UI relevantes c
 2. revisar la consola del navegador en las rutas tocadas
 3. dejar nota breve de incidencias o confirmación en `.engram/phase-XX-closeout.md`
 
+## Dev server local
+Para inspección local desde navegador se permite usar `http://127.0.0.1:3000` o `http://localhost:3000`.
+Ambos orígenes están declarados en `apps/web/next.config.ts` mediante `allowedDevOrigins` para evitar ruido de consola en `next dev`.
+
 ## Nota
 Esta baseline es **manual y deny-by-default**: fija qué revisar siempre. La automatización visual futura podrá partir de esta misma matriz de viewports/rutas en vez de improvisar nuevas listas.
