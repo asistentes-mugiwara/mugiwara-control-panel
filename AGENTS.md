@@ -60,3 +60,10 @@
 - No dejar directorios importantes sin `AGENTS.md`.
 - Documentar decisiones de arquitectura antes o junto con cambios no triviales.
 - Mantener ejemplos saneados y seguros para repositorio público.
+
+## Referencia obligatoria para frontend
+- La especificación fuente de UI/UX del MVP vive en `docs/frontend-ui-spec.md`.
+- El handoff técnico complementario para implementación frontend vive en `docs/frontend-implementation-handoff.md`.
+- Cualquier trabajo sobre frontend en `apps/web` debe alinearse con ese documento salvo decisión explícita documentada que lo sustituya o lo enmiende.
+- Cualquier trabajo sobre frontend en `apps/web` debe consultar también el handoff técnico cuando haya que traducir la spec a estructura, componentes, tokens o assets.
+- Si cambian sitemap, componentes compartidos, wireframes de pantalla o reglas visuales del shell, actualizar `docs/frontend-ui-spec.md` en el mismo cambio.

@@ -8,3 +8,5 @@ Documentación viva del proyecto.
 - No dejar ADRs, mapas o guías desactualizadas.
 - **Vigilar `.gitignore`** y no colar exportaciones, capturas o adjuntos sensibles.
 - Cualquier cambio estructural relevante debe venir acompañado de actualización documental.
+- Mantener `docs/frontend-ui-spec.md` como documento vivo de referencia para el frontend MVP.
+- Mantener `docs/frontend-implementation-handoff.md` alineado con la spec cuando cambie la estrategia de implementación frontend.
