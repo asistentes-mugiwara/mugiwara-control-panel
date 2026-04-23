@@ -61,6 +61,10 @@ reports/
 playwright-report/
 test-results/
 
+# Private frontend assets kept only in local/private runtime
+apps/web/public/assets/brand/
+apps/web/public/assets/mugiwaras/
+
 # Host-sensitive or ephemeral content
 runtime/
 .local/
