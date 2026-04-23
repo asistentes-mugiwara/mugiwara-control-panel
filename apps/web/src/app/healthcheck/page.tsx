@@ -32,14 +32,14 @@ export default function HealthcheckPage() {
           status: 'incidencia' as const,
           title: 'Hay incidencias abiertas en el perímetro',
           description: 'El resumen general ya no se limita a métricas: la página hace explícito que existen checks degradados que requieren atención prioritaria antes de considerar el sistema estable.',
-          detail: `${workspace.summary_bar.incidents} incidencia(s) · ${workspace.summary_bar.warnings} warning(s) activas`,
+          detail: `${workspace.summary_bar.incidents} incidencia(s) · ${workspace.summary_bar.warnings} advertencia(s) activas`,
         }
       : workspace.summary_bar.warnings > 0 || workspace.summary_bar.overall_status === 'stale'
         ? {
             status: workspace.summary_bar.overall_status === 'stale' ? ('stale' as const) : ('revision' as const),
             title: 'Hay advertencias operativas pendientes',
             description: 'La superficie sigue siendo utilizable, pero conviene revisar los módulos marcados antes de cerrar la ventana de observación.',
-            detail: `${workspace.summary_bar.warnings} warning(s) activas`,
+            detail: `${workspace.summary_bar.warnings} advertencia(s) activas`,
           }
         : null
 
@@ -53,7 +53,7 @@ export default function HealthcheckPage() {
         detailPills={['Perímetro', 'Señales saneadas', 'Respuesta priorizada']}
       />
 
-      <SurfaceCard title="Health summary bar" elevated eyebrow="Puesto médico" accent="danger">
+      <SurfaceCard title="Resumen de salud" elevated eyebrow="Puesto médico" accent="danger">
         <div style={{ display: 'grid', gap: '14px' }}>
           <div
             style={{
@@ -71,12 +71,12 @@ export default function HealthcheckPage() {
             </div>
 
             <div style={{ display: 'grid', gap: '8px' }}>
-              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Checks</span>
+              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Comprobaciones</span>
               <strong style={{ fontSize: '24px' }}>{workspace.summary_bar.checks_total}</strong>
             </div>
 
             <div style={{ display: 'grid', gap: '8px' }}>
-              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Warnings</span>
+              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Advertencias</span>
               <strong style={{ fontSize: '24px' }}>{workspace.summary_bar.warnings}</strong>
             </div>
 
@@ -86,7 +86,7 @@ export default function HealthcheckPage() {
             </div>
 
             <div style={{ display: 'grid', gap: '8px' }}>
-              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Updated at</span>
+              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Actualizado</span>
               <span style={{ color: appTheme.colors.textSecondary }}>{formatTimestamp(workspace.summary_bar.updated_at)}</span>
             </div>
           </div>

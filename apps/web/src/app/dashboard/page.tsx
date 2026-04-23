@@ -31,7 +31,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Dashboard"
         title="Estado del barco"
-        subtitle="Resumen de observabilidad read-only con contadores, severidad visible y accesos a módulos propietarios."
+        subtitle="Resumen de observabilidad de solo lectura con contadores, severidad visible y accesos a módulos propietarios."
         mugiwaraSlug="luffy"
         detailPills={['Puente de mando', 'Lectura saneada', 'Módulos propietarios']}
       />
@@ -56,17 +56,17 @@ export default function DashboardPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
-        <SurfaceCard title="Highest severity" eyebrow="Radar" accent="warning">
+        <SurfaceCard title="Severidad más alta" eyebrow="Radar" accent="warning">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>
             Nivel actual: <strong>{getDashboardSeverityLabel(summary.highest_severity)}</strong>
           </p>
           <StatusBadge status={mapDashboardSeverityToStatus(summary.highest_severity)} />
         </SurfaceCard>
 
-        <SurfaceCard title="Freshness" elevated eyebrow="Bitácora" accent="gold">
+        <SurfaceCard title="Frescura" elevated eyebrow="Bitácora" accent="gold">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>{summary.freshness.label}</p>
           <p style={{ marginTop: 0, marginBottom: '8px', color: appTheme.colors.textSecondary }}>
-            Último update: {summary.freshness.updated_at}
+            Última actualización: {summary.freshness.updated_at}
           </p>
           <StatusBadge status={mapDashboardFreshnessToStatus(summary.freshness)} />
         </SurfaceCard>

@@ -29,14 +29,14 @@ export function StatePanel({ status, title, description, detail, eyebrow, childr
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: '4px' }}>
-          {eyebrow ? <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>{eyebrow}</span> : null}
-          <strong style={{ fontSize: '15px' }}>{title}</strong>
+          {eyebrow ? <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{eyebrow}</span> : null}
+          <strong style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</strong>
         </div>
         <StatusBadge status={status} />
       </div>
 
       <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>{description}</p>
-      {detail ? <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>{detail}</span> : null}
+      {detail ? <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{detail}</span> : null}
 
       {children ? (
         <div

@@ -21,10 +21,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         border: `1px solid ${color}`,
         color,
         borderRadius: '999px',
-        padding: '3px 10px',
+        padding: '4px 10px',
         fontSize: '12px',
-        fontWeight: 600,
-        background: appTheme.colors.bgSurface1,
+        fontWeight: 700,
+        letterSpacing: '0.01em',
+        background: appTheme.colors.bgSurface2,
         whiteSpace: 'nowrap',
       }}
       aria-label={`Estado ${statusLabelMap[status]}`}

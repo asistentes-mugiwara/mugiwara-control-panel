@@ -24,7 +24,7 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
         marginBottom: '18px',
       }}
     >
-      <div style={{ display: 'grid', gap: '10px' }}>
+      <div style={{ display: 'grid', gap: '12px' }}>
         <div>
           {eyebrow || mugiwaraSlug ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -34,7 +34,7 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
                   style={{
                     margin: 0,
                     color: appTheme.colors.brandSky500,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '12px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
@@ -46,10 +46,10 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
             </div>
           ) : null}
 
-          <h1 style={{ margin: 0, fontSize: '32px', lineHeight: 1.2 }}>{title}</h1>
+          <h1 style={{ margin: 0, fontSize: '34px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>{title}</h1>
 
           {subtitle ? (
-            <p style={{ margin: '10px 0 0', color: appTheme.colors.textSecondary, maxWidth: '72ch' }}>
+            <p style={{ margin: '10px 0 0', color: appTheme.colors.textSecondary, maxWidth: '72ch', lineHeight: 1.6 }}>
               {subtitle}
             </p>
           ) : null}
@@ -65,9 +65,9 @@ export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, de
                   padding: '4px 10px',
                   border: `1px solid ${appTheme.colors.borderSubtle}`,
                   background: appTheme.colors.bgSurface1,
-                  color: appTheme.colors.textSecondary,
+                  color: appTheme.colors.textPrimary,
                   fontSize: '12px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                 }}
               >
                 {pill}

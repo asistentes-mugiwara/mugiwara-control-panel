@@ -243,7 +243,7 @@ export default function VaultPage() {
                 </div>
 
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                  Updated at: {formatTimestamp(activeDocument.meta.updated_at)}
+                  Actualizado: {formatTimestamp(activeDocument.meta.updated_at)}
                 </span>
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{activeDocument.meta.context}</span>
               </div>

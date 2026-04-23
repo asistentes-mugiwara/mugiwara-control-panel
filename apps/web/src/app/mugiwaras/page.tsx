@@ -18,7 +18,7 @@ export default function MugiwarasPage() {
       <PageHeader
         eyebrow="Mugiwaras"
         title="Tripulación"
-        subtitle="Vista read-only de identidad, estado, skills enlazadas y señales de memoria por Mugiwara."
+        subtitle="Vista de solo lectura de identidad, estado, skills enlazadas y señales de memoria por Mugiwara."
         mugiwaraSlug="luffy"
         detailPills={['Crew index', 'Crests activos', 'Identidad visible']}
       />

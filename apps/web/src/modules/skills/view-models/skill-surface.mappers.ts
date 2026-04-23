@@ -17,7 +17,7 @@ export function mapSkillSurfaceStatusToBadgeStatus(status: SkillSurfaceCardStatu
 }
 
 export function getSkillExposureLabel(exposure: SkillExposureMode) {
-  return exposure === 'allowlisted-edit' ? 'Editable por allowlist' : 'Solo referencia read-only'
+  return exposure === 'allowlisted-edit' ? 'Editable por allowlist' : 'Solo referencia de lectura'
 }
 
 export function mapRiskToBadgeStatus(risk: SkillCatalogItem['public_repo_risk']): AppStatus {
