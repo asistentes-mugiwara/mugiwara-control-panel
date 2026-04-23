@@ -25,7 +25,7 @@ Este repo será público en GitHub.
 - Mantener `AGENTS.md` y documentación actualizados al ritmo del código.
 
 ## Estructura inicial
-- `apps/web` — bootstrap real de Next.js en progreso; ver `openspec/phase-8-1-web-tooling-bootstrap.md`
+- `apps/web` — shell base de Next.js ya arrancado; ver `openspec/phase-8-1-web-tooling-bootstrap.md` y `openspec/phase-8-2-web-shell-foundation.md`
 - `apps/api`
 - `packages/contracts`
 - `packages/ui`

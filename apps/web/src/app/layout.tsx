@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+
+import { AppShell } from '@/shared/ui/app-shell/AppShell'
+
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -13,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   )
 }

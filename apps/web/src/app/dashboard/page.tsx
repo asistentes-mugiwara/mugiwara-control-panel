@@ -1,36 +1,40 @@
-import { appTheme } from '@/shared/theme/tokens'
+import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
+import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
+import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 
 export default function DashboardPage() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: appTheme.colors.bgApp,
-        color: appTheme.colors.textPrimary,
-        padding: '32px',
-        fontFamily: 'Inter, Arial, sans-serif',
-      }}
-    >
+    <>
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Estado del barco"
+        subtitle="Vista inicial del control plane con señales de navegación y salud general del sistema."
+      />
+
       <section
         style={{
-          maxWidth: '960px',
-          margin: '0 auto',
-          border: `1px solid ${appTheme.colors.borderSubtle}`,
-          borderRadius: '16px',
-          background: appTheme.colors.bgSurface,
-          padding: '24px',
+          display: 'grid',
+          gap: '14px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         }}
       >
-        <p style={{ color: appTheme.colors.brandGold, margin: 0 }}>Fase 8.1</p>
-        <h1 style={{ marginTop: '12px', marginBottom: '12px' }}>
-          Web tooling bootstrap listo para shell foundation
-        </h1>
-        <p style={{ color: appTheme.colors.textSecondary, marginTop: 0 }}>
-          Este placeholder confirma que `apps/web` ya arranca como base Next.js y que
-          la siguiente microfase puede centrarse en `layout`, navegación y componentes
-          del shell sin volver a improvisar el tooling.
-        </p>
+        <SurfaceCard title="Señales del sistema" elevated>
+          <p style={{ marginTop: 0 }}>Backend principal en monitoreo interno. API pública sin exposición.</p>
+          <StatusBadge status="operativo" />
+        </SurfaceCard>
+
+        <SurfaceCard title="Incidencias recientes">
+          <p style={{ marginTop: 0 }}>Sin incidencias críticas en esta fase.</p>
+          <StatusBadge status="sin-datos" />
+        </SurfaceCard>
+
+        <SurfaceCard title="Tripulación activa">
+          <p style={{ marginTop: 0, marginBottom: '8px' }}>
+            Shell base activo para Dashboard, Mugiwaras, Skills, Memory, Vault y Healthcheck.
+          </p>
+          <StatusBadge status="revision" />
+        </SurfaceCard>
       </section>
-    </main>
+    </>
   )
 }
