@@ -16,3 +16,9 @@ Trabajar siempre desde la raíz del proyecto para OpenCode, tooling y Engram.
 
 ## Regla documental
 Cualquier cambio estructural debe actualizar `README.md`, `docs/` y `AGENTS.md` relevantes.
+
+## Runtime SDD desde Hermes/OpenCode
+- Para prompts complejos, usar fichero de prompt + invocación segura; referencia: `scripts/opencode-safe-run.sh`.
+- No forzar `sdd-init` en cada mini-fase corta si el proyecto ya está rehidratado.
+- No declarar éxito de persistencia en Engram sin comprobar observaciones reales además de sesiones/prompts.
+- Evidencia y criterio operativo actual: `docs/sdd-runtime-validation.md`.
