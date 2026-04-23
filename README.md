@@ -25,13 +25,20 @@ Este repo será público en GitHub.
 - Mantener `AGENTS.md` y documentación actualizados al ritmo del código.
 
 ## Estructura inicial
-- `apps/web`
+- `apps/web` — bootstrap real de Next.js en progreso; ver `openspec/phase-8-1-web-tooling-bootstrap.md`
 - `apps/api`
 - `packages/contracts`
 - `packages/ui`
 - `docs`
 - `openspec`
 - `.engram`
+
+## Scripts útiles actuales
+```bash
+npm run dev:web
+npm run build:web
+npm run typecheck:web
+```
 
 ## OpenCode + Engram
 Siempre abrir OpenCode desde la raíz del proyecto:
