@@ -545,7 +545,15 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 - affordances de edición visibles solo si aplica
 - badge `Editable` inequívoco y principio de `edición controlada` dentro de la propia pantalla
 
-## 9.4 Memory
+## 9.4 Skills save
+### Entregar
+- campo de actor visible en la UI
+- envío real a `PUT /api/v1/skills/{skill_id}`
+- gestión de conflicto `stale` por fingerprint
+- feedback final de operación (`success` / `rejected` / `failed`)
+- cierre del flujo de edición permitida sin abrir escritura libre
+
+## 9.5 Memory
 ### Entregar
 - selector de Mugiwara
 - tabs `Built-in` / `Honcho`
@@ -554,7 +562,7 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 - badge o callout `Solo lectura`
 - copy de `memoria operativa` para reforzar la separación respecto a `vault`
 
-## 9.5 Vault
+## 9.6 Vault
 ### Entregar
 - layout índice / documento / metadatos
 - breadcrumbs
@@ -562,7 +570,7 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 - callout o framing de `canon curado`
 - contraste visual suficiente frente a `memory`
 
-## 9.6 Healthcheck
+## 9.7 Healthcheck
 ### Entregar
 - summary bar
 - grid de módulos
