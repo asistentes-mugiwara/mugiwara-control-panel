@@ -3,6 +3,16 @@ name = "mugiwara-control-panel-api"
 version = "0.1.0"
 description = "FastAPI backend for Mugiwara Control Panel"
 requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "uvicorn>=0.35,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1.0",
+  "pytest>=8.4,<9.0",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
