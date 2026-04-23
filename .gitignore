@@ -63,7 +63,11 @@ test-results/
 
 # Private frontend assets kept only in local/private runtime
 apps/web/public/assets/brand/
-apps/web/public/assets/mugiwaras/
+apps/web/public/assets/mugiwaras/*
+!apps/web/public/assets/mugiwaras/crests/
+!apps/web/public/assets/mugiwaras/crests/**
+!apps/web/public/assets/mugiwaras/crests-png/
+!apps/web/public/assets/mugiwaras/crests-png/**
 
 # Host-sensitive or ephemeral content
 runtime/
