@@ -1,0 +1,74 @@
+# Public repo hardening
+# IMPORTANT: this repository is public. Review this file whenever new tooling or local outputs appear.
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node / frontend
+node_modules/
+.next/
+out/
+dist/
+.npm/
+.pnpm-store/
+.turbo/
+coverage/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local data / runtime artifacts
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+tmp/
+.cache/
+
+# Screenshots / exports / artifacts
+artifacts/
+reports/
+playwright-report/
+test-results/
+
+# Host-sensitive or ephemeral content
+runtime/
+.local/
+.snapshots/
+
+# OpenCode / agent artifacts to review carefully before ever whitelisting
+.atl/
+.opencode/
+
+# Build metadata
+*.tsbuildinfo

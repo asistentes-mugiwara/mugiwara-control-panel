@@ -1,0 +1,12 @@
+{
+  "name": "mugiwara-control-panel",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Private Mugiwara/Hermes control plane monorepo",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "echo 'Scaffold only: wire web and api dev commands next'",
+    "lint": "echo 'Pending lint setup'",
+    "test": "echo 'Pending test setup'"
+  }
+}

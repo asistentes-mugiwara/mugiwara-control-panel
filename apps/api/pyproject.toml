@@ -1,0 +1,9 @@
+[project]
+name = "mugiwara-control-panel-api"
+version = "0.1.0"
+description = "FastAPI backend for Mugiwara Control Panel"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,13 @@
+project:
+  name: mugiwara-control-panel
+  type: software-project
+  visibility: public
+  architecture: modular-monolith
+  frontend: nextjs
+  backend: fastapi
+  access: tailscale
+  repo_root: /srv/crew-core/projects/mugiwara-control-panel
+  notes:
+    - Read-only by default
+    - Skills are the only editable surface in MVP
+    - Always run OpenCode from repo root for correct SDD and Engram context
