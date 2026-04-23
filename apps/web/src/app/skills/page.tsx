@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import type { SkillAuditRecord, SkillCatalogItem, SkillDetail } from '@contracts/skills'
+import type { SkillAuditRecord, SkillCatalogItem, SkillDetail, SkillPreviewResponse } from '@contracts/skills'
 
 import {
   fetchSkillDetail,
+  fetchSkillPreview,
   fetchSkillsAudit,
   fetchSkillsCatalog,
   getSkillsApiBaseUrl,
@@ -23,6 +24,8 @@ import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme } from '@/shared/theme/tokens'
 
 type SkillsViewState = 'loading' | 'ready' | 'empty' | 'error' | 'not_configured'
+
+type PreviewState = 'idle' | 'loading' | 'ready' | 'error'
 
 function formatTimestamp(value: string) {
   const date = new Date(value)
@@ -50,6 +53,10 @@ export default function SkillsPage() {
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [selectedSkill, setSelectedSkill] = useState<SkillDetail | null>(null)
   const [audit, setAudit] = useState<SkillAuditRecord[]>([])
+  const [draftContent, setDraftContent] = useState('')
+  const [previewState, setPreviewState] = useState<PreviewState>('idle')
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewResponse, setPreviewResponse] = useState<SkillPreviewResponse['data'] | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -139,6 +146,21 @@ export default function SkillsPage() {
     }
   }, [apiBaseUrl, selectedSkillId, viewState])
 
+  useEffect(() => {
+    if (!selectedSkill) {
+      setDraftContent('')
+      setPreviewState('idle')
+      setPreviewError(null)
+      setPreviewResponse(null)
+      return
+    }
+
+    setDraftContent(selectedSkill.content)
+    setPreviewState('idle')
+    setPreviewError(null)
+    setPreviewResponse(null)
+  }, [selectedSkill])
+
   const latestAudit = useMemo(() => {
     if (!selectedSkill) {
       return null
@@ -147,12 +169,48 @@ export default function SkillsPage() {
     return getLatestAuditForSkill(audit, selectedSkill.skill_id)
   }, [audit, selectedSkill])
 
+  const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
+
+  async function handlePreviewDiff() {
+    if (!selectedSkill) {
+      return
+    }
+
+    setPreviewState('loading')
+    setPreviewError(null)
+
+    try {
+      const response = await fetchSkillPreview(selectedSkill.skill_id, {
+        content: draftContent,
+        expected_sha256: selectedSkill.fingerprint.sha256,
+      })
+
+      setPreviewResponse(response.data)
+      setPreviewState('ready')
+    } catch (error) {
+      setPreviewResponse(null)
+      setPreviewState('error')
+      setPreviewError(error instanceof Error ? error.message : 'No se pudo calcular el preview de diff.')
+    }
+  }
+
+  function handleResetDraft() {
+    if (!selectedSkill) {
+      return
+    }
+
+    setDraftContent(selectedSkill.content)
+    setPreviewState('idle')
+    setPreviewError(null)
+    setPreviewResponse(null)
+  }
+
   return (
     <>
       <PageHeader
         eyebrow="Skills"
         title="Skills"
-        subtitle="Catálogo conectado a backend real con lectura controlada, detalle visible y frontera deny-by-default aún intacta."
+        subtitle="Catálogo conectado a backend real con detalle, preview de diff y affordances de edición controlada sin abrir guardado productivo."
       />
 
       <section
@@ -165,8 +223,8 @@ export default function SkillsPage() {
         <SurfaceCard title="Frontera de edición" elevated>
           <div id="edit-boundary" style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-              La UI ya consume catálogo y detalle reales, pero la edición sigue cerrada en frontend hasta que el flujo de
-              preview/guardado quede expuesto con affordances seguros.
+              La UI ya expone affordances claros de edición controlada, pero el guardado definitivo sigue fuera de esta fase.
+              Solo se permite preparar cambios y solicitar preview de diff sobre skills allowlisted.
             </p>
             <StatusBadge status="operativo" />
             <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, display: 'grid', gap: '8px' }}>
@@ -196,8 +254,7 @@ export default function SkillsPage() {
         <SurfaceCard title="Auditoría mínima" elevated>
           <div id="audit-minimum" style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-              La respuesta real del backend ya puede enseñar trazabilidad resumida sin abrir todavía el flujo visible de
-              guardado al usuario final.
+              La respuesta real del backend ya puede enseñar trazabilidad resumida y preview de diff antes de habilitar el guardado final.
             </p>
             <StatusBadge status={audit.length > 0 ? 'operativo' : 'revision'} />
             <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, display: 'grid', gap: '8px' }}>
@@ -287,7 +344,7 @@ export default function SkillsPage() {
         </SurfaceCard>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Detalle real" elevated>
+          <SurfaceCard title="Detalle y edición controlada" elevated>
             {selectedSkill ? (
               <div style={{ display: 'grid', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
@@ -307,6 +364,24 @@ export default function SkillsPage() {
                   </span>
                 </div>
 
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      borderRadius: '999px',
+                      padding: '4px 10px',
+                      border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      color: selectedSkill.editable ? appTheme.colors.stateSuccess : appTheme.colors.textSecondary,
+                      fontSize: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {getSkillExposureLabel(selectedSkill.editable ? 'allowlisted-edit' : 'read-only-reference')}
+                  </span>
+                  <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
+                    Guardado final aún no disponible en 9.3
+                  </span>
+                </div>
+
                 <div style={{ display: 'grid', gap: '6px' }}>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>repo_path allowlisted</span>
                   <code
@@ -323,22 +398,70 @@ export default function SkillsPage() {
                 </div>
 
                 <div style={{ display: 'grid', gap: '6px' }}>
-                  <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Contenido actual</span>
-                  <pre
+                  <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Borrador controlado</span>
+                  <textarea
+                    value={draftContent}
+                    onChange={(event) => setDraftContent(event.target.value)}
+                    disabled={!selectedSkill.editable}
                     style={{
-                      margin: 0,
-                      padding: '14px',
+                      minHeight: '240px',
                       borderRadius: '12px',
-                      background: appTheme.colors.bgSurface1,
+                      border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      background: selectedSkill.editable ? appTheme.colors.bgSurface1 : appTheme.colors.bgSurface2,
                       color: appTheme.colors.textSecondary,
-                      overflowX: 'auto',
-                      maxHeight: '420px',
-                      whiteSpace: 'pre-wrap',
+                      padding: '14px',
+                      resize: 'vertical',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handlePreviewDiff}
+                    disabled={!selectedSkill.editable || !hasDraftChanges || previewState === 'loading'}
+                    style={{
+                      borderRadius: '999px',
+                      border: 'none',
+                      padding: '10px 16px',
+                      cursor: !selectedSkill.editable || !hasDraftChanges ? 'not-allowed' : 'pointer',
+                      background: appTheme.colors.brandBlue700,
+                      color: appTheme.colors.textPrimary,
+                      fontWeight: 700,
+                      opacity: !selectedSkill.editable || !hasDraftChanges ? 0.55 : 1,
                     }}
                   >
-                    {selectedSkill.content}
-                  </pre>
+                    {previewState === 'loading' ? 'Calculando diff…' : 'Preview de diff'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetDraft}
+                    disabled={!selectedSkill.editable || !hasDraftChanges}
+                    style={{
+                      borderRadius: '999px',
+                      border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      padding: '10px 16px',
+                      cursor: !selectedSkill.editable || !hasDraftChanges ? 'not-allowed' : 'pointer',
+                      background: appTheme.colors.bgSurface1,
+                      color: appTheme.colors.textSecondary,
+                      fontWeight: 700,
+                      opacity: !selectedSkill.editable || !hasDraftChanges ? 0.55 : 1,
+                    }}
+                  >
+                    Reset borrador
+                  </button>
                 </div>
+
+                {!selectedSkill.editable ? (
+                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+                    Esta skill es de solo referencia: la UI muestra el contenido, pero no ofrece preview de diff ni guardado.
+                  </p>
+                ) : !hasDraftChanges ? (
+                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+                    Modifica el borrador para habilitar el preview de diff controlado.
+                  </p>
+                ) : null}
               </div>
             ) : viewState === 'ready' ? (
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>Selecciona una skill para cargar su detalle real.</p>
@@ -349,24 +472,25 @@ export default function SkillsPage() {
             )}
           </SurfaceCard>
 
-          <SurfaceCard title="Auditoría real resumida" elevated>
+          <SurfaceCard title="Preview de diff y auditoría" elevated>
             <div style={{ display: 'grid', gap: '10px' }}>
-              {latestAudit ? (
+              {previewState === 'error' && previewError ? (
+                <p style={{ margin: 0, color: appTheme.colors.stateDanger }}>No se pudo calcular el preview: {previewError}</p>
+              ) : null}
+
+              {previewResponse ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                      Último actor: <strong>{latestAudit.actor}</strong>
+                      Diff: +{previewResponse.diff_summary.lines_added} / -{previewResponse.diff_summary.lines_removed}
+                    </span>
+                    <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                      hunks: {previewResponse.diff_summary.hunks}
                     </span>
                     <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                      {formatTimestamp(latestAudit.timestamp)}
+                      after: {previewResponse.after.sha256.slice(0, 12)}…
                     </span>
                   </div>
-                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                    Resultado: <strong>{latestAudit.result}</strong>
-                  </span>
-                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                    Diff: +{latestAudit.diff_summary.lines_added} / -{latestAudit.diff_summary.lines_removed} · hunks {latestAudit.diff_summary.hunks}
-                  </span>
                   <pre
                     style={{
                       margin: 0,
@@ -375,18 +499,50 @@ export default function SkillsPage() {
                       background: appTheme.colors.bgSurface1,
                       color: appTheme.colors.textSecondary,
                       overflowX: 'auto',
-                      maxHeight: '220px',
+                      maxHeight: '260px',
                       whiteSpace: 'pre-wrap',
                     }}
                   >
-                    {latestAudit.diff_summary.preview.join('\n') || 'Sin preview de diff disponible.'}
+                    {previewResponse.diff_summary.preview.join('\n') || 'Sin preview textual disponible.'}
                   </pre>
                 </>
               ) : (
                 <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                  Todavía no hay auditoría resumida para la skill seleccionada o la fuente sigue vacía.
+                  El preview de diff aparecerá aquí cuando prepares cambios sobre una skill editable y lo solicites al backend.
                 </p>
               )}
+
+              <div
+                style={{
+                  borderTop: `1px solid ${appTheme.colors.borderSubtle}`,
+                  paddingTop: '10px',
+                  display: 'grid',
+                  gap: '10px',
+                }}
+              >
+                {latestAudit ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                        Último actor: <strong>{latestAudit.actor}</strong>
+                      </span>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
+                        {formatTimestamp(latestAudit.timestamp)}
+                      </span>
+                    </div>
+                    <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                      Resultado auditado: <strong>{latestAudit.result}</strong>
+                    </span>
+                    <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                      Último diff: +{latestAudit.diff_summary.lines_added} / -{latestAudit.diff_summary.lines_removed} · hunks {latestAudit.diff_summary.hunks}
+                    </span>
+                  </>
+                ) : (
+                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+                    Todavía no hay auditoría resumida para la skill seleccionada o la fuente sigue vacía.
+                  </p>
+                )}
+              </div>
             </div>
           </SurfaceCard>
         </div>

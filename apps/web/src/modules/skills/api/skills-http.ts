@@ -1,6 +1,7 @@
 import type {
   SkillAuditResponse,
   SkillDetailResponse,
+  SkillPreviewResponse,
   SkillsCatalogResponse,
 } from '@contracts/skills'
 
@@ -13,7 +14,7 @@ export function getSkillsApiBaseUrl() {
   return value ? trimTrailingSlash(value) : null
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = getSkillsApiBaseUrl()
 
   if (!baseUrl) {
@@ -21,8 +22,11 @@ async function fetchJson<T>(path: string): Promise<T> {
   }
 
   const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
     headers: {
       Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...init?.headers,
     },
   })
 
@@ -43,4 +47,11 @@ export function fetchSkillDetail(skillId: string) {
 
 export function fetchSkillsAudit() {
   return fetchJson<SkillAuditResponse>('/api/v1/skills/audit')
+}
+
+export function fetchSkillPreview(skillId: string, payload: { content: string; expected_sha256: string }) {
+  return fetchJson<SkillPreviewResponse>(`/api/v1/skills/${skillId}/preview`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
