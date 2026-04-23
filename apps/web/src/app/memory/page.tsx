@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react'
 
-import { memoryAgentDetailFixture, type MemorySourceKey, type MemorySourceState } from '@/modules/memory/view-models/memory-agent-detail.fixture'
+import { memoryAgentDetailFixture, type MemorySourceKey, type MemorySourceSnapshot, type MemorySourceState } from '@/modules/memory/view-models/memory-agent-detail.fixture'
 import { memoryAgentSummaryFixture } from '@/modules/memory/view-models/memory-agent-summary.fixture'
 import { getMugiwaraProfile, MUGIWARA_SLUGS, type MugiwaraSlug } from '@/shared/mugiwara/crest-map'
 import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
+import { StatePanel } from '@/shared/ui/state/StatePanel'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -43,6 +44,35 @@ function mapSourceStateToStatus(state: MemorySourceState): AppStatus {
   }
 }
 
+function getMemoryStateNotice(snapshot: MemorySourceSnapshot, sourceLabel: string, mugiwaraName: string) {
+  switch (snapshot.state) {
+    case 'stale':
+      return {
+        status: 'stale' as const,
+        title: `${sourceLabel} disponible pero desactualizada`,
+        description: `La fuente sigue siendo legible para ${mugiwaraName}, pero conviene refrescarla antes de usarla como referencia operativa fuerte.`,
+        detail: snapshot.availability,
+      }
+    case 'error':
+      return {
+        status: 'incidencia' as const,
+        title: `${sourceLabel} con incidencia activa`,
+        description: `La última sincronización de ${sourceLabel} falló para ${mugiwaraName}. La lectura actual no debe tomarse como síntesis fiable hasta reintentar la generación.`,
+        detail: snapshot.availability,
+      }
+    case 'unavailable':
+      return {
+        status: 'sin-datos' as const,
+        title: `${sourceLabel} todavía no inicializada`,
+        description: `No hay contexto suficiente para mostrar una vista completa de ${sourceLabel} en ${mugiwaraName}. El resto del workspace debe seguir siendo navegable sin romper la superficie.`,
+        detail: snapshot.availability,
+      }
+    case 'initialized':
+    default:
+      return null
+  }
+}
+
 export default function MemoryPage() {
   const [selectedMugiwara, setSelectedMugiwara] = useState<MugiwaraSlug>('zoro')
   const [selectedSource, setSelectedSource] = useState<MemorySourceKey>('built-in')
@@ -54,6 +84,9 @@ export default function MemoryPage() {
 
   const selectedSnapshot = selectedSource === 'built-in' ? selectedDetail.built_in : selectedDetail.honcho
   const selectedProfile = getMugiwaraProfile(selectedMugiwara)
+  const selectedSummary = memoryAgentSummaryFixture.find((item) => item.mugiwara_slug === selectedMugiwara)
+  const selectedBadges = selectedSummary?.badges ?? []
+  const sourceNotice = getMemoryStateNotice(selectedSnapshot, sourceLabelMap[selectedSource], selectedProfile.name)
 
   return (
     <>
@@ -207,6 +240,16 @@ export default function MemoryPage() {
                 </div>
                 <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{selectedSnapshot.summary}</p>
               </div>
+
+              {sourceNotice ? (
+                <StatePanel
+                  status={sourceNotice.status}
+                  title={sourceNotice.title}
+                  description={sourceNotice.description}
+                  detail={sourceNotice.detail}
+                  eyebrow="Estado de fuente"
+                />
+              ) : null}
             </div>
           </SurfaceCard>
 
@@ -216,39 +259,58 @@ export default function MemoryPage() {
                 Vista legible y resumida de la memoria {sourceLabelMap[selectedSource]} para {selectedProfile.name}. El detalle sigue siendo operacional y no documental.
               </p>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {(memoryAgentSummaryFixture.find((item) => item.mugiwara_slug === selectedMugiwara)?.badges ?? []).map((badge) => (
-                  <span
-                    key={badge}
-                    style={{
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      borderRadius: '999px',
-                      padding: '4px 10px',
-                      color: appTheme.colors.textSecondary,
-                      fontSize: '12px',
-                      background: appTheme.colors.bgSurface1,
-                    }}
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
+              {selectedBadges.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {selectedBadges.map((badge) => (
+                    <span
+                      key={badge}
+                      style={{
+                        border: `1px solid ${appTheme.colors.borderSubtle}`,
+                        borderRadius: '999px',
+                        padding: '4px 10px',
+                        color: appTheme.colors.textSecondary,
+                        fontSize: '12px',
+                        background: appTheme.colors.bgSurface1,
+                      }}
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <StatePanel
+                  status="sin-datos"
+                  title="Sin etiquetas visibles"
+                  description={`Todavía no hay badges resumidos para ${selectedProfile.name}. La ausencia de etiquetas no debe romper la lectura del resto del contenido.`}
+                  eyebrow="Estado vacío"
+                />
+              )}
 
               <div style={{ display: 'grid', gap: '8px' }}>
-                {selectedSnapshot.facts.map((fact) => (
-                  <div
-                    key={fact}
-                    style={{
-                      borderRadius: '12px',
-                      border: `1px solid ${appTheme.colors.borderSubtle}`,
-                      padding: '12px',
-                      background: appTheme.colors.bgSurface1,
-                      color: appTheme.colors.textSecondary,
-                    }}
-                  >
-                    {fact}
-                  </div>
-                ))}
+                {selectedSnapshot.facts.length > 0 ? (
+                  selectedSnapshot.facts.map((fact) => (
+                    <div
+                      key={fact}
+                      style={{
+                        borderRadius: '12px',
+                        border: `1px solid ${appTheme.colors.borderSubtle}`,
+                        padding: '12px',
+                        background: appTheme.colors.bgSurface1,
+                        color: appTheme.colors.textSecondary,
+                      }}
+                    >
+                      {fact}
+                    </div>
+                  ))
+                ) : (
+                  <StatePanel
+                    status={sourceNotice?.status ?? 'sin-datos'}
+                    title="Sin facts resumidos"
+                    description={`No hay hechos operativos visibles para la combinación ${selectedProfile.name} + ${sourceLabelMap[selectedSource]}.`}
+                    detail={selectedSnapshot.availability}
+                    eyebrow="Estado vacío"
+                  />
+                )}
               </div>
             </div>
           </SurfaceCard>

@@ -22,6 +22,7 @@ import {
 import { skillSurfaceFixture } from '@/modules/skills/view-models/skill-surface.fixture'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
+import { StatePanel } from '@/shared/ui/state/StatePanel'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -60,6 +61,42 @@ function getSaveStateStatus(state: SaveState): AppStatus {
       return 'incidencia'
     default:
       return 'sin-datos'
+  }
+}
+
+function getSkillsViewNotice(state: SkillsViewState, apiBaseUrl: string | null, errorMessage: string | null) {
+  switch (state) {
+    case 'loading':
+      return {
+        status: 'revision' as const,
+        title: 'Conectando con el backend real de skills',
+        description: 'La UI está cargando catálogo, detalle y auditoría allowlisted sin romper el shell durante la espera.',
+        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null,
+      }
+    case 'not_configured':
+      return {
+        status: 'sin-datos' as const,
+        title: 'API base URL no configurada',
+        description: 'Configura `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` para conectar esta vista al backend real sin caer en estados ambiguos.',
+        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : 'Variable ausente en el runtime actual.',
+      }
+    case 'error':
+      return {
+        status: 'incidencia' as const,
+        title: 'No se pudo cargar la fuente real de skills',
+        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta del backend impiden mostrar catálogo y detalle con garantías.',
+        detail: errorMessage ?? 'Sin detalle adicional.',
+      }
+    case 'empty':
+      return {
+        status: 'sin-datos' as const,
+        title: 'La allowlist no devolvió skills visibles',
+        description: 'El backend respondió correctamente, pero no hay entradas disponibles para esta selección allowlisted.',
+        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null,
+      }
+    case 'ready':
+    default:
+      return null
   }
 }
 
@@ -198,6 +235,7 @@ export default function SkillsPage() {
     return getLatestAuditForSkill(audit, selectedSkill.skill_id)
   }, [audit, selectedSkill])
 
+  const sourceNotice = getSkillsViewNotice(viewState, apiBaseUrl, errorMessage)
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
   const normalizedActor = actorInput.trim()
   const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && normalizedActor && saveState !== 'saving')
@@ -351,9 +389,23 @@ export default function SkillsPage() {
             <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
               {apiBaseUrl ? `API base URL: ${apiBaseUrl}` : 'API base URL no configurada'}
             </span>
-            {errorMessage ? (
-              <span style={{ color: appTheme.colors.stateDanger, fontSize: '13px' }}>Detalle: {errorMessage}</span>
-            ) : null}
+            {sourceNotice ? (
+              <StatePanel
+                status={sourceNotice.status}
+                title={sourceNotice.title}
+                description={sourceNotice.description}
+                detail={sourceNotice.detail}
+                eyebrow="Estado de fuente"
+              />
+            ) : (
+              <StatePanel
+                status="operativo"
+                title="Fuente real conectada"
+                description="Catálogo, detalle y auditoría están listos para operar sobre la allowlist activa sin recurrir a estados implícitos."
+                detail={apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null}
+                eyebrow="Estado de fuente"
+              />
+            )}
           </div>
         </SurfaceCard>
 
@@ -384,21 +436,14 @@ export default function SkillsPage() {
       >
         <SurfaceCard title="Catálogo real" elevated>
           <div style={{ display: 'grid', gap: '10px' }}>
-            {viewState === 'loading' ? <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>Cargando skills reales…</p> : null}
-            {viewState === 'not_configured' ? (
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                Configura `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` para conectar esta vista al backend real.
-              </p>
-            ) : null}
-            {viewState === 'error' ? (
-              <p style={{ margin: 0, color: appTheme.colors.stateDanger }}>
-                No se pudo cargar el catálogo real. Revisa la conectividad con el backend.
-              </p>
-            ) : null}
-            {viewState === 'empty' ? (
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                El backend respondió, pero no hay skills visibles para esta allowlist.
-              </p>
+            {sourceNotice ? (
+              <StatePanel
+                status={sourceNotice.status}
+                title={sourceNotice.title}
+                description={sourceNotice.description}
+                detail={sourceNotice.detail}
+                eyebrow="Catálogo"
+              />
             ) : null}
 
             {catalog.map((skill) => {
@@ -632,11 +677,20 @@ export default function SkillsPage() {
                 ) : null}
               </div>
             ) : viewState === 'ready' ? (
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>Selecciona una skill para cargar su detalle real.</p>
+              <StatePanel
+                status="sin-datos"
+                title="Sin skill seleccionada"
+                description="Selecciona una entrada del catálogo allowlisted para cargar su detalle real y habilitar el flujo controlado de preview/guardado."
+                eyebrow="Estado vacío"
+              />
             ) : (
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                El detalle aparecerá aquí cuando la fuente real esté disponible.
-              </p>
+              <StatePanel
+                status={sourceNotice?.status ?? 'revision'}
+                title={sourceNotice?.title ?? 'Detalle pendiente de fuente real'}
+                description={sourceNotice?.description ?? 'El detalle aparecerá aquí cuando la fuente real esté disponible.'}
+                detail={sourceNotice?.detail ?? null}
+                eyebrow="Estado de detalle"
+              />
             )}
           </SurfaceCard>
 
@@ -674,7 +728,13 @@ export default function SkillsPage() {
               </div>
 
               {previewState === 'error' && previewError ? (
-                <p style={{ margin: 0, color: appTheme.colors.stateDanger }}>No se pudo calcular el preview: {previewError}</p>
+                <StatePanel
+                  status="incidencia"
+                  title="Preview no disponible"
+                  description="El backend no pudo calcular el diff solicitado. La UI mantiene el estado explícito para evitar errores silenciosos."
+                  detail={previewError}
+                  eyebrow="Estado de preview"
+                />
               ) : null}
 
               {previewResponse ? (
@@ -705,10 +765,17 @@ export default function SkillsPage() {
                     {previewResponse.diff_summary.preview.join('\n') || 'Sin preview textual disponible.'}
                   </pre>
                 </>
-              ) : (
-                <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                  El preview de diff aparecerá aquí cuando prepares cambios sobre una skill editable y lo solicites al backend.
-                </p>
+              ) : previewState === 'error' ? null : (
+                <StatePanel
+                  status={selectedSkill?.editable ? 'sin-datos' : 'revision'}
+                  title={selectedSkill?.editable ? 'Sin preview solicitado todavía' : 'Preview deshabilitado para esta skill'}
+                  description={
+                    selectedSkill?.editable
+                      ? 'El preview de diff aparecerá aquí cuando prepares cambios sobre una skill editable y lo solicites al backend.'
+                      : 'Las skills de solo referencia muestran contenido, pero no exponen preview de diff ni guardado productivo.'
+                  }
+                  eyebrow="Estado vacío"
+                />
               )}
 
               <div
@@ -742,9 +809,12 @@ export default function SkillsPage() {
                     ) : null}
                   </>
                 ) : (
-                  <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                    Todavía no hay auditoría resumida para la skill seleccionada o la fuente sigue vacía.
-                  </p>
+                  <StatePanel
+                    status="sin-datos"
+                    title="Sin auditoría resumida visible"
+                    description="Todavía no hay rastro auditado para la skill seleccionada o la fuente sigue vacía. La ausencia se expresa de forma explícita para no confundirla con un fallo silencioso."
+                    eyebrow="Estado vacío"
+                  />
                 )}
               </div>
             </div>
