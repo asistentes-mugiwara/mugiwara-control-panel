@@ -641,3 +641,31 @@ La implementación frontend debe seguir esta fórmula:
 **shell operativo claro + diseño dark premium + identidad Mugiwara basada en calaveras y acentos por agente.**
 
 Si hay conflicto entre fantasía y claridad, gana la claridad.
+
+---
+
+# 14. Siguiente bloque recomendado tras 10.x
+Con 10.x cerrado, el siguiente bloque recomendado es **quality/accessibility hardening** en microfases pequeñas:
+
+## 11.1 Focus and keyboard states
+- focus visible consistente
+- navegación por teclado sin affordance perdida
+- contraste suficiente en controles interactivos
+
+## 11.2 Contrast and semantic hierarchy
+- revisar texto secundario, badges, pills y labels
+- endurecer legibilidad y jerarquía visual
+- mantener tono dark premium sin lavar el contenido
+
+## 11.3 Responsive fine-tuning
+- revisar wraps, densidad y micro-overflows en móvil/tablet
+- ajustar headers, cards, chips y barras densas
+
+## 11.4 Visual verify baseline
+- checklist visual canónica por rutas clave
+- base repetible para futuros cierres
+
+Regla del bloque:
+- no abrir nuevas capacidades de producto
+- no abrir nuevas superficies de escritura
+- si identidad y claridad compiten, gana claridad
