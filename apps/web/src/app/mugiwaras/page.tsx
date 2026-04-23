@@ -19,9 +19,11 @@ export default function MugiwarasPage() {
         eyebrow="Mugiwaras"
         title="Tripulación"
         subtitle="Vista read-only de identidad, estado, skills enlazadas y señales de memoria por Mugiwara."
+        mugiwaraSlug="luffy"
+        detailPills={['Crew index', 'Crests activos', 'Identidad visible']}
       />
 
-      <SurfaceCard title="Superficie de lectura">
+      <SurfaceCard title="Superficie de lectura" eyebrow="Roster" accent="gold">
         <p style={{ marginTop: 0, marginBottom: '10px', color: appTheme.colors.textSecondary }}>
           Esta vista agrega solo resúmenes saneados por agente. No abre detalle por ruta ni expone controles de edición.
         </p>
@@ -40,7 +42,7 @@ export default function MugiwarasPage() {
           const profile = getMugiwaraProfile(mugiwara.slug)
 
           return (
-            <SurfaceCard key={mugiwara.slug} title={mugiwara.name} elevated>
+            <SurfaceCard key={mugiwara.slug} title={mugiwara.name} elevated eyebrow="Agente" accent="sky">
               <div style={{ display: 'grid', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

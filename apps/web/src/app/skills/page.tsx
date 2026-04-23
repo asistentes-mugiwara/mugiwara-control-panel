@@ -392,9 +392,11 @@ export default function SkillsPage() {
         eyebrow="Skills"
         title="Skills"
         subtitle="Catálogo conectado a backend real con preview y guardado controlado: actor visible, PUT allowlisted y manejo explícito de conflicto stale."
+        mugiwaraSlug="zoro"
+        detailPills={["Edición allowlisted", "Diff explícito", "Auditoría visible"]}
       />
 
-      <SurfaceCard title="Workspace de edición" elevated>
+      <SurfaceCard title="Workspace de edición" elevated eyebrow="Dojo" accent="success">
         <div style={{ display: 'grid', gap: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', alignItems: 'start' }}>
             <div style={{ display: 'grid', gap: '8px', maxWidth: '720px' }}>
@@ -551,7 +553,7 @@ export default function SkillsPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
-        <SurfaceCard title="Frontera de edición" elevated>
+        <SurfaceCard title="Frontera de edición" elevated eyebrow="Contrato" accent="gold">
           <div id="edit-boundary" style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               La UI ya cierra el flujo permitido de edición controlada: solo skills allowlisted, actor visible, fingerprint esperado
@@ -566,7 +568,7 @@ export default function SkillsPage() {
           </div>
         </SurfaceCard>
 
-        <SurfaceCard title="Estado del origen" elevated>
+        <SurfaceCard title="Estado del origen" elevated eyebrow="Enlace" accent="sky">
           <div style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               El frontend usa backend real cuando la base URL está configurada; si no, cae a un estado explícito de fuente no
@@ -596,7 +598,7 @@ export default function SkillsPage() {
           </div>
         </SurfaceCard>
 
-        <SurfaceCard title="Auditoría mínima" elevated>
+        <SurfaceCard title="Auditoría mínima" elevated eyebrow="Rastro" accent="gold">
           <div id="audit-minimum" style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               La respuesta real del backend ya enseña trazabilidad resumida antes y después del guardado: actor, timestamp,
@@ -621,7 +623,7 @@ export default function SkillsPage() {
           alignItems: 'start',
         }}
       >
-        <SurfaceCard title="Catálogo real" elevated>
+        <SurfaceCard title="Catálogo real" elevated eyebrow="Allowlist" accent="sky">
           <div style={{ display: 'grid', gap: '10px' }}>
             {sourceNotice ? (
               <StatePanel
@@ -690,7 +692,7 @@ export default function SkillsPage() {
         </SurfaceCard>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Editor allowlisted" elevated>
+          <SurfaceCard title="Editor allowlisted" elevated eyebrow="Forja" accent="success">
             {selectedSkill ? (
               <div style={{ display: 'grid', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
@@ -951,7 +953,7 @@ export default function SkillsPage() {
             )}
           </SurfaceCard>
 
-          <SurfaceCard title="Preview, conflicto y auditoría" elevated>
+          <SurfaceCard title="Preview, conflicto y auditoría" elevated eyebrow="Cierre" accent="gold">
             <div style={{ display: 'grid', gap: '10px' }}>
               <div
                 style={{

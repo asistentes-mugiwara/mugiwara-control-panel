@@ -94,6 +94,8 @@ export default function MemoryPage() {
         eyebrow="Memory"
         title="Memoria operativa"
         subtitle="Selector por Mugiwara, tabs Built-in/Honcho y lectura resumida de fuente, manteniendo separación explícita respecto a Vault."
+        mugiwaraSlug="robin"
+        detailPills={['Continuidad viva', 'Fuentes separadas', 'Sin canon curado']}
       />
 
       <section
@@ -105,7 +107,7 @@ export default function MemoryPage() {
         }}
       >
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Memoria operativa" elevated>
+          <SurfaceCard title="Memoria operativa" elevated eyebrow="Contexto" accent="sky">
             <div style={{ display: 'grid', gap: '10px' }}>
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
                 Memory muestra continuidad por Mugiwara y estado resumido de fuentes. No es una superficie editable ni se mezcla con el canon curado del Vault.
@@ -131,7 +133,7 @@ export default function MemoryPage() {
             </div>
           </SurfaceCard>
 
-          <SurfaceCard title="Selector de Mugiwara" elevated>
+          <SurfaceCard title="Selector de Mugiwara" elevated eyebrow="Tripulación" accent="gold">
             <div style={{ display: 'grid', gap: '10px' }}>
               {MUGIWARA_SLUGS.map((slug) => {
                 const profile = getMugiwaraProfile(slug)
@@ -183,7 +185,7 @@ export default function MemoryPage() {
         </div>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Fuentes de memoria" elevated>
+          <SurfaceCard title="Fuentes de memoria" elevated eyebrow="Fuentes" accent="sky">
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -253,7 +255,7 @@ export default function MemoryPage() {
             </div>
           </SurfaceCard>
 
-          <SurfaceCard title="Contenido resumido" elevated>
+          <SurfaceCard title="Contenido resumido" elevated eyebrow="Lectura viva" accent="gold">
             <div style={{ display: 'grid', gap: '12px' }}>
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
                 Vista legible y resumida de la memoria {sourceLabelMap[selectedSource]} para {selectedProfile.name}. El detalle sigue siendo operacional y no documental.

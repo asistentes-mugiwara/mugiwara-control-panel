@@ -49,9 +49,11 @@ export default function HealthcheckPage() {
         eyebrow="Healthcheck"
         title="Salud del sistema"
         subtitle="Resumen operativo del perímetro: estado general, módulos, eventos recientes y señales saneadas sin exponer metadata sensible del host."
+        mugiwaraSlug="chopper"
+        detailPills={['Perímetro', 'Señales saneadas', 'Respuesta priorizada']}
       />
 
-      <SurfaceCard title="Health summary bar" elevated>
+      <SurfaceCard title="Health summary bar" elevated eyebrow="Puesto médico" accent="danger">
         <div style={{ display: 'grid', gap: '14px' }}>
           <div
             style={{
@@ -110,7 +112,7 @@ export default function HealthcheckPage() {
         }}
       >
         {workspace.modules.map((module) => (
-          <SurfaceCard key={module.module_id} title={module.label} elevated>
+          <SurfaceCard key={module.module_id} title={module.label} elevated eyebrow="Check" accent={module.status === 'fail' ? 'danger' : module.status === 'warn' ? 'warning' : module.status === 'stale' ? 'gold' : 'sky'}>
             <div style={{ display: 'grid', gap: '10px' }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <StatusBadge status={mapHealthcheckStatusToBadgeStatus(module.status)} />
@@ -140,7 +142,7 @@ export default function HealthcheckPage() {
           alignItems: 'start',
         }}
       >
-        <SurfaceCard title="Eventos recientes" elevated>
+        <SurfaceCard title="Eventos recientes" elevated eyebrow="Bitácora" accent="gold">
           {workspace.events.length > 0 ? (
             <div style={{ display: 'grid', gap: '10px' }}>
               {workspace.events.map((event) => (
@@ -174,7 +176,7 @@ export default function HealthcheckPage() {
         </SurfaceCard>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Señales del sistema" elevated>
+          <SurfaceCard title="Señales del sistema" elevated eyebrow="Diagnóstico" accent="sky">
             {workspace.signals.length > 0 ? (
               <div style={{ display: 'grid', gap: '10px' }}>
                 {workspace.signals.map((check) => (
@@ -213,7 +215,7 @@ export default function HealthcheckPage() {
             )}
           </SurfaceCard>
 
-          <SurfaceCard title="Principios de seguridad" elevated>
+          <SurfaceCard title="Principios de seguridad" elevated eyebrow="Doctrina" accent="gold">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {workspace.principles.map((principle) => (
                 <span

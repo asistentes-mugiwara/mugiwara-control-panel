@@ -51,6 +51,8 @@ export default function VaultPage() {
         eyebrow="Vault"
         title="Vault"
         subtitle="Lectura documental y editorial del canon curado, con árbol allowlisted, documento legible y metadatos visibles."
+        mugiwaraSlug="robin"
+        detailPills={['Canon curado', 'Lectura editorial', 'Sin memoria viva']}
       />
 
       <section
@@ -62,7 +64,7 @@ export default function VaultPage() {
         }}
       >
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Canon curado" elevated>
+          <SurfaceCard title="Canon curado" elevated eyebrow="Archivo" accent="gold">
             <div style={{ display: 'grid', gap: '10px' }}>
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
                 Vault es una capa editorial y navegable. Resume decisiones duraderas y project summaries; no funciona como memoria operativa por fuente.
@@ -86,7 +88,7 @@ export default function VaultPage() {
             </div>
           </SurfaceCard>
 
-          <SurfaceCard title="Índice allowlisted" elevated>
+          <SurfaceCard title="Índice allowlisted" elevated eyebrow="Mapa" accent="sky">
             <div id="vault-tree" style={{ display: 'grid', gap: '8px' }}>
               {workspace.tree.length > 0 ? (
                 workspace.tree.map((entry) => {
@@ -139,7 +141,7 @@ export default function VaultPage() {
         </div>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Documento" elevated>
+          <SurfaceCard title="Documento" elevated eyebrow="Pieza canónica" accent="gold">
             {activeDocument ? (
               <div style={{ display: 'grid', gap: '14px' }}>
                 <nav aria-label="Breadcrumbs de Vault" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -206,7 +208,7 @@ export default function VaultPage() {
         </div>
 
         <div style={{ display: 'grid', gap: '14px' }}>
-          <SurfaceCard title="Metadatos" elevated>
+          <SurfaceCard title="Metadatos" elevated eyebrow="Ficha" accent="sky">
             {activeDocument ? (
               <div style={{ display: 'grid', gap: '10px' }}>
                 <div style={{ display: 'grid', gap: '6px' }}>
@@ -239,7 +241,7 @@ export default function VaultPage() {
             )}
           </SurfaceCard>
 
-          <SurfaceCard title="TOC" elevated>
+          <SurfaceCard title="TOC" elevated eyebrow="Índice" accent="gold">
             {activeDocument && activeDocument.meta.toc.length > 0 ? (
               <div style={{ display: 'grid', gap: '8px' }}>
                 {activeDocument.meta.toc.map((item) => (

@@ -16,7 +16,7 @@ import { appTheme } from '@/shared/theme/tokens'
 
 function CountGridItem({ count }: { count: DashboardCount }) {
   return (
-    <SurfaceCard title={count.label} elevated>
+    <SurfaceCard title={count.label} elevated accent="sky" eyebrow="Lectura operativa">
       <p style={{ margin: '0 0 6px', fontSize: '30px', fontWeight: 700 }}>{count.value}</p>
       <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{count.note}</p>
     </SurfaceCard>
@@ -32,6 +32,8 @@ export default function DashboardPage() {
         eyebrow="Dashboard"
         title="Estado del barco"
         subtitle="Resumen de observabilidad read-only con contadores, severidad visible y accesos a módulos propietarios."
+        mugiwaraSlug="luffy"
+        detailPills={['Puente de mando', 'Lectura saneada', 'Módulos propietarios']}
       />
 
       <section
@@ -54,14 +56,14 @@ export default function DashboardPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
-        <SurfaceCard title="Highest severity">
+        <SurfaceCard title="Highest severity" eyebrow="Radar" accent="warning">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>
             Nivel actual: <strong>{getDashboardSeverityLabel(summary.highest_severity)}</strong>
           </p>
           <StatusBadge status={mapDashboardSeverityToStatus(summary.highest_severity)} />
         </SurfaceCard>
 
-        <SurfaceCard title="Freshness" elevated>
+        <SurfaceCard title="Freshness" elevated eyebrow="Bitácora" accent="gold">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>{summary.freshness.label}</p>
           <p style={{ marginTop: 0, marginBottom: '8px', color: appTheme.colors.textSecondary }}>
             Último update: {summary.freshness.updated_at}
@@ -69,7 +71,7 @@ export default function DashboardPage() {
           <StatusBadge status={mapDashboardFreshnessToStatus(summary.freshness)} />
         </SurfaceCard>
 
-        <SurfaceCard title="Módulos monitoreados">
+        <SurfaceCard title="Módulos monitoreados" eyebrow="Cubierta" accent="sky">
           <ul style={{ marginTop: 0, marginBottom: '8px', paddingLeft: '18px' }}>
             {summary.sections.map((section) => (
               <li key={section.id} style={{ marginBottom: '4px' }}>
@@ -81,7 +83,7 @@ export default function DashboardPage() {
       </section>
 
       <section style={{ marginTop: '14px' }}>
-        <SurfaceCard title="Accesos rápidos">
+        <SurfaceCard title="Accesos rápidos" eyebrow="Rumbo" accent="gold">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {summary.links.map((link) => (
               <Link
