@@ -5,6 +5,8 @@ import {
   mapMugiwaraStatusToBadgeStatus,
 } from '@/modules/mugiwaras/view-models/mugiwara-card.mappers'
 import { mugiwaraCardFixture } from '@/modules/mugiwaras/view-models/mugiwara-card.fixture'
+import { getMugiwaraProfile } from '@/shared/mugiwara/crest-map'
+import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
@@ -34,71 +36,81 @@ export default function MugiwarasPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}
       >
-        {mugiwaraCardFixture.map((mugiwara) => (
-          <SurfaceCard key={mugiwara.slug} title={mugiwara.name} elevated>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>slug: {mugiwara.slug}</span>
-                <StatusBadge status={mapMugiwaraStatusToBadgeStatus(mugiwara.status)} />
-              </div>
+        {mugiwaraCardFixture.map((mugiwara) => {
+          const profile = getMugiwaraProfile(mugiwara.slug)
 
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                Estado visible: <strong>{getMugiwaraStatusLabel(mugiwara.status)}</strong>
-              </p>
+          return (
+            <SurfaceCard key={mugiwara.slug} title={mugiwara.name} elevated>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <MugiwaraCrest slug={mugiwara.slug} size="md" accent />
+                    <div style={{ display: 'grid', gap: '2px' }}>
+                      <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>slug: {mugiwara.slug}</span>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{profile.role}</span>
+                    </div>
+                  </div>
+                  <StatusBadge status={mapMugiwaraStatusToBadgeStatus(mugiwara.status)} />
+                </div>
 
-              <div>
-                <p style={{ margin: '0 0 8px', fontSize: '13px', color: appTheme.colors.textMuted }}>Skills enlazadas</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {mugiwara.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      style={{
-                        border: `1px solid ${appTheme.colors.borderSubtle}`,
-                        borderRadius: '999px',
-                        padding: '4px 10px',
-                        fontSize: '12px',
-                        color: appTheme.colors.textSecondary,
-                      }}
+                <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+                  Estado visible: <strong>{getMugiwaraStatusLabel(mugiwara.status)}</strong>
+                </p>
+
+                <div>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: appTheme.colors.textMuted }}>Skills enlazadas</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {mugiwara.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        style={{
+                          border: `1px solid ${appTheme.colors.borderSubtle}`,
+                          borderRadius: '999px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          color: appTheme.colors.textSecondary,
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: appTheme.colors.textMuted }}>Memory badge</p>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      borderRadius: '999px',
+                      padding: '4px 10px',
+                      background: appTheme.colors.bgSurface1,
+                      border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      color: appTheme.colors.brandSky500,
+                      fontSize: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {mugiwara.memory_badge}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {mugiwara.links.map((link) => (
+                    <Link
+                      key={`${mugiwara.slug}-${link.href}`}
+                      href={link.href}
+                      style={{ color: appTheme.colors.brandSky500, textDecoration: 'none', fontWeight: 600 }}
                     >
-                      {skill}
-                    </span>
+                      {link.label}
+                    </Link>
                   ))}
                 </div>
               </div>
-
-              <div>
-                <p style={{ margin: '0 0 8px', fontSize: '13px', color: appTheme.colors.textMuted }}>Memory badge</p>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    padding: '4px 10px',
-                    background: appTheme.colors.bgSurface1,
-                    border: `1px solid ${appTheme.colors.borderSubtle}`,
-                    color: appTheme.colors.brandSky500,
-                    fontSize: '12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {mugiwara.memory_badge}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {mugiwara.links.map((link) => (
-                  <Link
-                    key={`${mugiwara.slug}-${link.href}`}
-                    href={link.href}
-                    style={{ color: appTheme.colors.brandSky500, textDecoration: 'none', fontWeight: 600 }}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </SurfaceCard>
-        ))}
+            </SurfaceCard>
+          )
+        })}
       </section>
     </>
   )

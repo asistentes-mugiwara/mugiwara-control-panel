@@ -1,3 +1,5 @@
+import type { MugiwaraSlug } from '@/shared/mugiwara/crest-map'
+
 export type MugiwaraCardStatus = 'healthy' | 'warning' | 'degraded'
 
 export type MugiwaraCardLink = {
@@ -6,7 +8,7 @@ export type MugiwaraCardLink = {
 }
 
 export type MugiwaraCard = {
-  slug: string
+  slug: MugiwaraSlug
   name: string
   status: MugiwaraCardStatus
   skills: string[]
