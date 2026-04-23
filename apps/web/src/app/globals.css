@@ -109,3 +109,30 @@ button {
     justify-content: flex-end;
   }
 }
+
+
+.app-shell__skip-link {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 80;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #18243d;
+  color: var(--color-text-primary);
+  border: 1px solid #5a9ddb;
+  transition: top 160ms ease;
+}
+
+.app-shell__skip-link:focus-visible {
+  top: 16px;
+}
+
+:where(a, button, input, textarea, select, [role='button'], [role='tab']):focus-visible {
+  outline: 3px solid #5a9ddb;
+  outline-offset: 2px;
+}
+
+:where(button, input, textarea, select):disabled {
+  cursor: not-allowed;
+}

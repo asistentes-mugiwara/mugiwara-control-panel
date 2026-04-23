@@ -1,14 +1,18 @@
 'use client'
 
+import type { RefObject } from 'react'
+
 import { appTheme } from '@/shared/theme/tokens'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 
 type TopbarProps = {
+  navId: string
+  menuButtonRef: RefObject<HTMLButtonElement | null>
   isMobileNavOpen: boolean
   onToggleNavigation: () => void
 }
 
-export function Topbar({ isMobileNavOpen, onToggleNavigation }: TopbarProps) {
+export function Topbar({ navId, menuButtonRef, isMobileNavOpen, onToggleNavigation }: TopbarProps) {
   return (
     <header
       style={{
@@ -35,8 +39,10 @@ export function Topbar({ isMobileNavOpen, onToggleNavigation }: TopbarProps) {
           <button
             type="button"
             className="topbar__menu-button"
+            ref={menuButtonRef}
             aria-label={isMobileNavOpen ? 'Cerrar navegación principal' : 'Abrir navegación principal'}
             aria-expanded={isMobileNavOpen}
+            aria-controls={navId}
             onClick={onToggleNavigation}
             style={{
               border: `1px solid ${appTheme.colors.borderSubtle}`,

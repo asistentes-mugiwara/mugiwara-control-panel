@@ -112,7 +112,7 @@ export default function MemoryPage() {
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
                 Memory muestra continuidad por Mugiwara y estado resumido de fuentes. No es una superficie editable ni se mezcla con el canon curado del Vault.
               </p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div role="tablist" aria-label="Fuentes de memoria" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <StatusBadge status="operativo" />
                 <span
                   style={{
@@ -145,6 +145,7 @@ export default function MemoryPage() {
                     key={slug}
                     type="button"
                     onClick={() => setSelectedMugiwara(slug)}
+                    aria-pressed={isSelected}
                     style={{
                       textAlign: 'left',
                       borderRadius: '12px',
@@ -205,6 +206,8 @@ export default function MemoryPage() {
                     <button
                       key={source}
                       type="button"
+                      role="tab"
+                      aria-selected={active}
                       onClick={() => setSelectedSource(source)}
                       style={{
                         borderRadius: '999px',

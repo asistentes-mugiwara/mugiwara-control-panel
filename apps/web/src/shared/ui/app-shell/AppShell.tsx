@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 import { appTheme } from '@/shared/theme/tokens'
 import { SidebarNav } from '@/shared/ui/navigation/SidebarNav'
@@ -13,10 +13,17 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(true)
+  const navId = useId()
+  const navRef = useRef<HTMLElement | null>(null)
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth >= 960) {
+      const nextIsDesktop = window.innerWidth >= 960
+      setIsDesktop(nextIsDesktop)
+
+      if (nextIsDesktop) {
         setIsMobileNavOpen(false)
       }
     }
@@ -25,6 +32,31 @@ export function AppShell({ children }: AppShellProps) {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  useEffect(() => {
+    if (isDesktop || !isMobileNavOpen) {
+      return
+    }
+
+    const firstFocusable = navRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])')
+    firstFocusable?.focus()
+  }, [isDesktop, isMobileNavOpen])
+
+  useEffect(() => {
+    if (isDesktop || !isMobileNavOpen) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsMobileNavOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isDesktop, isMobileNavOpen])
 
   return (
     <div
@@ -35,14 +67,29 @@ export function AppShell({ children }: AppShellProps) {
         color: appTheme.colors.textPrimary,
       }}
     >
-      <SidebarNav isMobileOpen={isMobileNavOpen} onNavigate={() => setIsMobileNavOpen(false)} />
+      <SidebarNav
+        navId={navId}
+        navRef={navRef}
+        isDesktop={isDesktop}
+        isMobileOpen={isMobileNavOpen}
+        onNavigate={() => setIsMobileNavOpen(false)}
+      />
 
       {isMobileNavOpen ? <button className="app-shell__overlay" aria-label="Cerrar navegación" onClick={() => setIsMobileNavOpen(false)} /> : null}
 
       <div className="app-shell__content" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Topbar isMobileNavOpen={isMobileNavOpen} onToggleNavigation={() => setIsMobileNavOpen((current) => !current)} />
+        <Topbar
+          menuButtonRef={menuButtonRef}
+          navId={navId}
+          isMobileNavOpen={isMobileNavOpen}
+          onToggleNavigation={() => setIsMobileNavOpen((current) => !current)}
+        />
+
+        <a href="#app-shell-main" className="app-shell__skip-link">Saltar al contenido</a>
 
         <main
+          id="app-shell-main"
+          tabIndex={-1}
           className="app-shell__main"
           style={{
             padding: '24px',

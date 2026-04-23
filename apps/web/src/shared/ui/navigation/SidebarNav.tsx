@@ -1,5 +1,7 @@
 'use client'
 
+import type { RefObject } from 'react'
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -15,15 +17,20 @@ const routes = [
 ] as const
 
 type SidebarNavProps = {
+  navId: string
+  navRef?: RefObject<HTMLElement | null>
+  isDesktop?: boolean
   isMobileOpen?: boolean
   onNavigate?: () => void
 }
 
-export function SidebarNav({ isMobileOpen = false, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ navId, navRef, isDesktop = true, isMobileOpen = false, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
     <aside
+      id={navId}
+      ref={navRef}
       className={`sidebar-nav${isMobileOpen ? ' sidebar-nav--mobile-open' : ''}`}
       style={{
         background: appTheme.colors.bgSidebar,
@@ -32,6 +39,7 @@ export function SidebarNav({ isMobileOpen = false, onNavigate }: SidebarNavProps
         top: 0,
       }}
       aria-label="Navegación principal"
+      aria-hidden={!isDesktop && !isMobileOpen}
     >
       <p
         style={{
@@ -67,6 +75,7 @@ export function SidebarNav({ isMobileOpen = false, onNavigate }: SidebarNavProps
                     border: `1px solid ${isActive ? appTheme.colors.brandBlue700 : 'transparent'}`,
                   }}
                   aria-current={isActive ? 'page' : undefined}
+                  tabIndex={!isDesktop && !isMobileOpen ? -1 : 0}
                 >
                   <span
                     style={{

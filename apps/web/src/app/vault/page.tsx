@@ -119,6 +119,7 @@ export default function VaultPage() {
                           setSelectedDocumentId(entry.id)
                         }
                       }}
+                      aria-pressed={isSelectable ? isActive : undefined}
                       disabled={!isSelectable}
                       style={{
                         textAlign: 'left',

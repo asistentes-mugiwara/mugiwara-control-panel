@@ -646,6 +646,7 @@ export default function SkillsPage() {
                     setSelectedSkillId(skill.skill_id)
                     setSelectedSkill(null)
                   }}
+                  aria-pressed={isSelected}
                   style={{
                     textAlign: 'left',
                     borderRadius: '12px',
