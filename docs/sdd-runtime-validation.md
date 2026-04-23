@@ -68,10 +68,11 @@ No hay evidencia suficiente de que cada subagente SDD esté dejando su observaci
 ## Conclusión operativa
 La operación más sana a partir de aquí es:
 1. usar prompt seguro en fichero siempre que Hermes invoque `opencode run`
-2. no forzar `sdd-init` en cada mini-fase documental o de diseño
-3. reservar `sdd-init` para bootstrap, rehidratación o cambio material de contexto
-4. para validar flujo completo headless, separar `sdd-init` en una ejecución dedicada con timeout generoso
-5. no declarar éxito de persistencia en Engram hasta verificar observaciones reales, no solo sesiones o prompts
+2. tratar `sdd-init` como fase de bootstrap/rehidratación: una vez por proyecto y, después, una vez por sesión de trabajo cuando haga falta recuperar contexto
+3. no relanzar `sdd-init` por cada fase si la continuidad de la sesión sigue vigente
+4. si Hermes crea runs headless frescos para cada mini-fase, asumir que puede volver a pagar `init` y distorsionar el método
+5. para validar flujo completo headless, separar `sdd-init` en una ejecución dedicada con timeout generoso o usar continuación explícita de sesión
+6. no declarar éxito de persistencia en Engram hasta verificar observaciones reales, no solo sesiones o prompts
 
 ## Recomendación para siguientes fases
 - Si se sigue desde Hermes/headless: arrancar desde la fase coherente posterior a init cuando el contexto del proyecto ya esté rehidratado.
