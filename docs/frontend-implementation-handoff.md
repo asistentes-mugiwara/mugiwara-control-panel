@@ -667,6 +667,7 @@ Con 10.x cerrado, el siguiente bloque recomendado es **quality/accessibility har
 ## 11.4 Visual verify baseline
 - checklist visual canónica por rutas clave
 - base repetible para futuros cierres
+- comando canónico: `npm run verify:visual-baseline`
 
 Regla del bloque:
 - no abrir nuevas capacidades de producto
