@@ -3,7 +3,7 @@
 ## Frontend/API integration
 - [x] `npm --prefix apps/web run typecheck`
 - [x] `npm --prefix apps/web run build`
-- [x] API-backed smoke with `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011`.
+- [x] API-backed smoke with `MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011` after Phase 12.3c server-only hardening.
 - [x] `/memory` renders `API read-only` and API-backed Zoro built-in/Honcho content.
 - [x] Browser console clean after initial load and Honcho tab interaction.
 

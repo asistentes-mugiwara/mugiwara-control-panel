@@ -8,7 +8,7 @@ Integrate `/memory` with the Phase 12.3a read-only Memory API while preserving t
 - Split the route into:
   - `page.tsx` server loader: fetches `GET /api/v1/memory` and safe details for all known Mugiwara slugs when API URL is configured.
   - `MemoryClient.tsx` client component: owns only UI state (`selectedMugiwara`, `selectedSource`) and receives sanitized initial data.
-- Preserve fixture fallback when `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` is absent, unavailable or partially degraded.
+- Preserve fixture fallback when `MUGIWARA_CONTROL_PANEL_API_URL` is absent, invalid, unavailable or partially degraded. This server-only env replaced the earlier `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` Memory smoke variable in Phase 12.3c.
 - Keep payloads limited to existing contracts: summaries, counts, badges, freshness, links and allowlisted facts.
 
 ## Tasks
