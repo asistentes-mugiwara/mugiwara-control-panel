@@ -41,14 +41,17 @@ npm run typecheck:web
 npm run verify:memory-server-only
 npm run verify:mugiwaras-server-only
 npm run verify:skills-server-only
+npm run verify:vault-server-only
+npm run verify:health-dashboard-server-only
 ```
 
 ## Configuración runtime
 Ver `docs/runtime-config.md`.
 
 Resumen actual:
-- `/memory`, `/mugiwaras` y `/skills` usan `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
+- `/memory`, `/mugiwaras`, `/skills`, `/vault`, `/dashboard` y `/healthcheck` usan `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
 - `/skills` expone al navegador solo endpoints BFF same-origin bajo `/api/control-panel/skills/**`; la URL real del backend no entra en el bundle cliente.
+- `/vault`, `/dashboard` y `/healthcheck` mantienen fallback saneado visible si la API no está configurada o falla.
 
 
 ## OpenCode + Engram

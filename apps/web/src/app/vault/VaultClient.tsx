@@ -28,11 +28,31 @@ function formatTimestamp(value: string) {
 
 type VaultClientProps = {
   initialWorkspace: VaultWorkspace
+  apiState: 'ready' | 'fallback'
+  apiErrorCode?: string
 }
 
-export function VaultClient({ initialWorkspace }: VaultClientProps) {
+function getVaultApiNotice(apiState: VaultClientProps['apiState'], apiErrorCode?: string) {
+  if (apiState === 'ready') {
+    return null
+  }
+
+  const isNotConfigured = apiErrorCode === 'not_configured'
+
+  return {
+    status: isNotConfigured ? ('sin-datos' as const) : ('incidencia' as const),
+    title: isNotConfigured ? 'Vault API no configurada' : 'Vault en fallback saneado',
+    description: isNotConfigured
+      ? 'La página muestra fixture documental local porque falta la configuración server-only de la API. No se exponen rutas internas ni detalles del backend.'
+      : 'La carga real del Vault no está disponible y la página muestra un fallback documental local. Este estado degradado queda visible para no ocultar misconfiguración operativa.',
+    detail: apiErrorCode ? `Estado controlado: ${apiErrorCode}` : null,
+  }
+}
+
+export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultClientProps) {
   const workspace = initialWorkspace
   const [selectedDocumentId, setSelectedDocumentId] = useState(workspace.active_document_id)
+  const apiNotice = getVaultApiNotice(apiState, apiErrorCode)
 
   const activeDocument = useMemo(
     () => workspace.documents.find((document) => document.id === selectedDocumentId) ?? workspace.documents[0],
@@ -61,6 +81,16 @@ export function VaultClient({ initialWorkspace }: VaultClientProps) {
 
       <section className="layout-grid layout-grid--vault">
         <div style={{ display: 'grid', gap: '14px' }}>
+          {apiNotice ? (
+            <StatePanel
+              status={apiNotice.status}
+              title={apiNotice.title}
+              description={apiNotice.description}
+              detail={apiNotice.detail}
+              eyebrow="Estado de API"
+            />
+          ) : null}
+
           <SurfaceCard title="Canon curado" elevated eyebrow="Archivo" accent="gold">
             <div style={{ display: 'grid', gap: '10px' }}>
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>

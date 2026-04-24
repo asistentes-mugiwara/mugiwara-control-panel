@@ -8,6 +8,13 @@ type VaultWorkspaceResponse = {
   data: VaultWorkspace
 }
 
+export class VaultApiError extends Error {
+  constructor(readonly code: 'not_configured' | `http_${number}` | 'invalid_payload') {
+    super(code)
+    this.name = 'VaultApiError'
+  }
+}
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, '')
 }
@@ -38,7 +45,7 @@ export async function fetchVaultWorkspace(): Promise<VaultWorkspace> {
   const baseUrl = getVaultApiBaseUrl()
 
   if (!baseUrl) {
-    throw new Error('not_configured')
+    throw new VaultApiError('not_configured')
   }
 
   const response = await fetch(`${baseUrl}/api/v1/vault`, {
@@ -49,9 +56,14 @@ export async function fetchVaultWorkspace(): Promise<VaultWorkspace> {
   })
 
   if (!response.ok) {
-    throw new Error(`http_${response.status}`)
+    throw new VaultApiError(`http_${response.status}`)
   }
 
   const payload = (await response.json()) as VaultWorkspaceResponse
+
+  if (!payload.data) {
+    throw new VaultApiError('invalid_payload')
+  }
+
   return payload.data
 }

@@ -34,8 +34,14 @@ if (!vaultPage.includes("export const dynamic = 'force-dynamic'")) {
 if (vaultPage.includes("'use client'")) {
   failures.push('vault/page.tsx must remain a server page')
 }
+if (!vaultPage.includes("apiState: 'fallback'") || !vaultPage.includes('apiErrorCode')) {
+  failures.push('vault/page.tsx must make fallback state observable')
+}
 if (vaultClient.includes('process.env') || vaultClient.includes('MUGIWARA_CONTROL_PANEL_API_URL')) {
   failures.push('VaultClient must not read server env')
+}
+if (!vaultClient.includes('Estado de API') || !vaultClient.includes('Vault en fallback saneado')) {
+  failures.push('VaultClient must show an explicit degraded API notice when using fallback')
 }
 
 if (failures.length > 0) {

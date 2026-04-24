@@ -84,6 +84,7 @@ Campos esperados:
 
 Uso:
 - árbol navegable allowlisted y lectura de documento permitido
+- si el frontend usa fallback documental por fallo de API, el estado degradado debe quedar visible y no confundirse con lectura real del vault
 
 ### `mugiwara.card`
 Campos esperados:

@@ -11,7 +11,7 @@ El control plane distingue entre configuración pública de frontend y configura
 
 | Variable | Consumidor | Exposición | Uso |
 | --- | --- | --- | --- |
-| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. |
+| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. |
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:
@@ -76,8 +76,39 @@ Antes de cerrar cambios que toquen Skills config o BFF, ejecutar:
 npm run verify:skills-server-only
 ```
 
+## Vault
+`/vault` usa el patrón server-only desde Phase 12.4 y hace visible el fallback degradado desde Phase 12.6a:
+
+1. `apps/web/src/modules/vault/api/vault-http.ts` importa `server-only`.
+2. El adapter lee `MUGIWARA_CONTROL_PANEL_API_URL` y valida esquema `http:`/`https:`.
+3. `/vault` declara `export const dynamic = 'force-dynamic'`.
+4. Si la API falta, falla o devuelve un payload inválido, la página mantiene fixture documental saneado y muestra aviso explícito de estado degradado.
+5. El aviso no expone URL backend, rutas host, stack traces ni cuerpo de respuesta.
+
+Antes de cerrar cambios que toquen Vault config o fallback, ejecutar:
+
+```bash
+npm run verify:vault-server-only
+```
+
+## Dashboard y Healthcheck
+`/dashboard` y `/healthcheck` usan el patrón server-only desde Phase 12.5:
+
+1. `apps/web/src/modules/dashboard/api/dashboard-http.ts` y `apps/web/src/modules/healthcheck/api/healthcheck-http.ts` importan `server-only`.
+2. Ambos adapters leen `MUGIWARA_CONTROL_PANEL_API_URL` y validan esquema `http:`/`https:`.
+3. `/dashboard` y `/healthcheck` declaran `export const dynamic = 'force-dynamic'`.
+4. Los fetches usan `cache: 'no-store'`.
+5. Si la API falta o falla, ambas páginas muestran fallback local saneado con aviso visible; no muestran comandos, logs, stdout/stderr, URLs internas ni detalles host.
+6. Healthcheck usa por ahora catálogo backend-owned saneado. Cuando conecte fuentes reales deberá parsear timestamps explícitamente, revisar severidad `critical` en Dashboard y considerar allowlist operativa de hosts si el despliegue lo requiere.
+
+Antes de cerrar cambios que toquen Dashboard/Healthcheck config o fallback, ejecutar:
+
+```bash
+npm run verify:health-dashboard-server-only
+```
+
 ## Decisiones relacionadas
-La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md` y la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`.
+La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`, la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`, Vault vive en `openspec/phase-12-4-vault-readonly-api.md` y Health/Dashboard en `openspec/phase-12-5-health-dashboard-aggregation.md`.
 
 Resumen de la decisión:
 - `/mugiwaras` ya migró en Phase 12.3f porque era server component, dinámico y no necesitaba browser fetch directo.

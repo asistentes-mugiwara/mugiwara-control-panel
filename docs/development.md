@@ -24,3 +24,16 @@ Cualquier cambio estructural debe actualizar `README.md`, `docs/` y `AGENTS.md` 
 - El wrapper `scripts/opencode-safe-run.sh` soporta tanto arranque nuevo (`--title`) como continuación (`--session`) manteniendo agente explícito.
 - No declarar éxito de persistencia en Engram sin comprobar observaciones reales además de sesiones/prompts.
 - Evidencia y criterio operativo actual: `docs/sdd-runtime-validation.md`.
+
+## Verify server-only de Phase 12
+Las rutas API-backed del MVP tienen guardrails estáticos específicos. Antes de cerrar cambios sobre configuración runtime, adapters o fallback de estas superficies, ejecutar el subconjunto afectado:
+
+```bash
+npm run verify:memory-server-only
+npm run verify:mugiwaras-server-only
+npm run verify:skills-server-only
+npm run verify:vault-server-only
+npm run verify:health-dashboard-server-only
+```
+
+Para cierre de bloque o smoke global, ejecutar todos junto con backend regression, typecheck, build y baseline visual.
