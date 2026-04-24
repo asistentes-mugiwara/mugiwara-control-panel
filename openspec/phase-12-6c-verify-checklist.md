@@ -16,14 +16,16 @@
 - [x] #16 commented again in closeout: https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/16#issuecomment-4315241023
 - [x] #17 reviewed: keep open as separate dependency/security maintenance track.
 - [x] #17 commented again in closeout: https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/17#issuecomment-4315241104
-- [ ] PR handoff comment links Phase 12.6c outcome and calls out both open issues.
+- [x] PR handoff comment links Phase 12.6c outcome and calls out both open issues: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/20#issuecomment-4315247646
 
 ## Verification
 - [x] Phase 12.6b runtime evidence reused as integration basis: guardrails, build, backend regression, API/web smoke, browser console and visual baseline passed.
 - [x] `git diff --check` passed after initial closeout edits.
 - [x] Project repo status contains only intended Phase 12.6c files before commit.
 - [x] Vault repo status contains only intended Project Summary refresh before vault commit/sync.
-- [ ] PR/review handoff completed with Franky + Chopper.
+- [x] Franky PR comment: `approve` from operability, with formal review blocked by shared GitHub account limitation: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/20#issuecomment-4315262238
+- [x] Chopper PR comment: `approve` from security, with formal review blocked by shared GitHub account limitation: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/20#issuecomment-4315279831
+- [x] PR/review handoff completed with Franky + Chopper.
 
 ## Non-goals confirmed
 - [x] No runtime code changed.
