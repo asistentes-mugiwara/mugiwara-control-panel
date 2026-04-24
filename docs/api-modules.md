@@ -24,9 +24,12 @@
 - no escribir sobre perfiles
 
 ### `memory`
-- exponer built-in memory en lectura
-- exponer Honcho solo como estado + facts resumidos
+- exponer `GET /api/v1/memory` como catálogo read-only de resúmenes saneados por agente
+- exponer `GET /api/v1/memory/{slug}` como detalle read-only acotado
+- exponer built-in memory solo como resumen allowlisted, nunca como dump crudo
+- exponer Honcho solo como facts resumidos y estado de frescura
 - dejar Engram modelado por proyecto en una fase posterior
+- no exponer prompts, IDs internos, sesiones, observaciones completas, tokens ni secretos
 
 ### `vault`
 - navegación, árbol, índices y lectura de markdown
