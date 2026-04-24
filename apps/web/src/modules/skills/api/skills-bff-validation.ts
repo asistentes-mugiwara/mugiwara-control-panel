@@ -1,10 +1,19 @@
+import 'server-only'
+
 export const SKILLS_BFF_BODY_LIMIT_BYTES = 256 * 1024
 export const SKILLS_BFF_CONTENT_LIMIT_BYTES = 200_000
 
 const SKILL_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/
 const SHA256_PATTERN = /^[a-fA-F0-9]{64}$/
 
-type BffErrorCode = 'validation_error' | 'unsupported_media_type'
+export const SKILLS_BFF_TRUSTED_ORIGINS_ENV = 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS'
+
+type BffErrorCode =
+  | 'validation_error'
+  | 'unsupported_media_type'
+  | 'trusted_origins_not_configured'
+  | 'origin_required'
+  | 'origin_not_allowed'
 
 type BffErrorPayload = {
   detail: {
@@ -27,6 +36,60 @@ export class SkillsBffValidationError extends Error {
 
 function utf8Bytes(value: string) {
   return new TextEncoder().encode(value).length
+}
+
+
+function sanitizeOrigin(value: string) {
+  try {
+    const parsed = new URL(value)
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null
+    }
+
+    return parsed.origin
+  } catch {
+    return null
+  }
+}
+
+function getTrustedOrigins() {
+  const value = process.env[SKILLS_BFF_TRUSTED_ORIGINS_ENV]
+
+  if (!value) {
+    return []
+  }
+
+  return Array.from(new Set(value.split(',').map((entry) => entry.trim()).map(sanitizeOrigin).filter(Boolean))) as string[]
+}
+
+export function assertTrustedOriginForSkillsWrite(request: Request) {
+  const trustedOrigins = getTrustedOrigins()
+
+  if (trustedOrigins.length === 0) {
+    throw new SkillsBffValidationError('La allowlist server-only de orígenes de Skills no está configurada.', {
+      status: 403,
+      code: 'trusted_origins_not_configured',
+    })
+  }
+
+  const origin = request.headers.get('origin')
+
+  if (!origin) {
+    throw new SkillsBffValidationError('La frontera BFF de Skills requiere Origin para rutas de escritura.', {
+      status: 403,
+      code: 'origin_required',
+    })
+  }
+
+  const safeOrigin = sanitizeOrigin(origin)
+
+  if (!safeOrigin || !trustedOrigins.includes(safeOrigin)) {
+    throw new SkillsBffValidationError('Origin no permitido para la frontera BFF de Skills.', {
+      status: 403,
+      code: 'origin_not_allowed',
+    })
+  }
 }
 
 export function validateSkillId(skillId: string) {

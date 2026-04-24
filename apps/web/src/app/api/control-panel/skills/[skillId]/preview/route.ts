@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import {
+  assertTrustedOriginForSkillsWrite,
   buildSkillsBffValidationErrorPayload,
   isSkillsBffValidationError,
   parseSkillPreviewPayload,
@@ -23,6 +24,7 @@ type SkillPreviewRouteContext = {
 
 export async function POST(request: Request, { params }: SkillPreviewRouteContext) {
   try {
+    assertTrustedOriginForSkillsWrite(request)
     const { skillId } = await params
     const safeSkillId = validateSkillId(skillId)
     const payload = await parseSkillPreviewPayload(request)

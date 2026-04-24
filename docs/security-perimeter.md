@@ -37,14 +37,23 @@ Rules:
 Phase 13.2 does not add a hard backend host allowlist. That belongs to a later enforcement phase if deployment hardening needs it. This phase defines the contract and guardrails.
 
 ## Trusted origins policy
-Before enforcing Origin/CSRF checks, Phase 13.2 defines the supported origin model:
+Phase 13.3 enforces a configurable trusted-origin allowlist for write-capable Skills BFF routes.
 
-- local development origins: `http://localhost:<port>` and `http://127.0.0.1:<port>`;
-- private LAN origins: allowed only if explicitly configured for a trusted private network;
-- Tailscale origins: allowed only if explicitly configured for Pablo's private Tailnet hostnames/IPs;
-- public internet origins: unsupported until auth/session/rate-limit decisions exist.
+Configuration:
 
-Phase 13.3 may implement a concrete trusted-origin configuration. Until then, write-route hardening must not invent a fragile hardcoded list.
+- `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` is server-only.
+- The value is a comma-separated list of exact `http:` / `https:` origins, for example local/private origins without paths.
+- Public internet origins remain unsupported until auth/session/rate-limit decisions exist.
+- Wildcards, arbitrary reflected origins and browser-controlled allowlists are not supported.
+
+Enforcement for `/api/control-panel/skills/**` write routes:
+
+- missing allowlist -> `403 trusted_origins_not_configured`;
+- missing `Origin` -> `403 origin_required`;
+- invalid or non-allowlisted `Origin` -> `403 origin_not_allowed`;
+- allowed `Origin` -> request may continue to the existing schema/body/skill-id validation and backend write policy.
+
+The current CSRF strategy is Origin-based because the MVP has no browser cookie/session auth yet and the BFF does not forward browser cookies or `Authorization` upstream. If future authentication uses cookies, add a separate CSRF token/session strategy before treating cookie-backed writes as protected.
 
 ## Skills BFF policy
 The Skills BFF remains same-origin and allowlisted:
@@ -56,7 +65,7 @@ The Skills BFF remains same-origin and allowlisted:
 - Browser `Authorization` headers must not be forwarded upstream by default.
 - Request bodies, diffs, hashes, skill contents and backend paths must not be logged or returned in sanitized errors.
 
-If future authentication uses cookies, Phase 13.3 must add Origin/CSRF validation before treating same-origin BFF write routes as protected.
+If future authentication uses cookies, add a separate CSRF token/session strategy before treating cookie-backed BFF write routes as protected. Phase 13.3 only enforces the current non-cookie MVP boundary with strict Origin validation.
 
 ## Error and logging policy
 Allowed in errors/logs:
