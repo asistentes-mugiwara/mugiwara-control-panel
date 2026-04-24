@@ -15,6 +15,7 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "verify:visual-baseline": "node scripts/visual-verify-baseline.mjs",
     "verify:memory-server-only": "node scripts/check-memory-server-only.mjs",
+    "verify:mugiwaras-server-only": "node scripts/check-mugiwaras-server-only.mjs",
     "dev:api": "uvicorn apps.api.src.main:app --reload",
     "lint": "echo 'Pending lint setup'",
     "test": "echo 'Pending test setup'"

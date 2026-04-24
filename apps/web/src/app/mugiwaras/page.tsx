@@ -32,25 +32,29 @@ type MugiwarasViewModel = {
   } | null
 }
 
-async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
-  const apiBaseUrl = getMugiwarasApiBaseUrl()
-
-  if (!apiBaseUrl) {
-    return {
-      state: 'not_configured',
-      cards: mugiwaraCardFixture,
-      crewRulesDocument: null,
-      notice: {
-        status: 'sin-datos',
-        title: 'Backend de Mugiwara no configurado',
-        description:
-          'La página mantiene el fixture saneado, pero la lectura canónica de /srv/crew-core/AGENTS.md requiere NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL.',
-        detail: 'Variable ausente en el runtime actual.',
-      },
-    }
+function getMugiwarasConfigNotice(error: MugiwarasApiError | null): MugiwarasViewModel {
+  return {
+    state: 'not_configured',
+    cards: mugiwaraCardFixture,
+    crewRulesDocument: null,
+    notice: {
+      status: error?.code === 'invalid_config' ? 'incidencia' : 'sin-datos',
+      title: error?.code === 'invalid_config' ? 'Configuración server-only de Mugiwara inválida' : 'Backend de Mugiwara no configurado',
+      description:
+        'La página mantiene el fixture saneado, pero la lectura canónica de /srv/crew-core/AGENTS.md requiere MUGIWARA_CONTROL_PANEL_API_URL válida en el runtime server.',
+      detail: error?.code ?? 'Variable ausente en el runtime actual.',
+    },
   }
+}
 
+async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
   try {
+    const apiBaseUrl = getMugiwarasApiBaseUrl()
+
+    if (!apiBaseUrl) {
+      return getMugiwarasConfigNotice(null)
+    }
+
     const response = await fetchMugiwarasCatalog()
     return {
       state: 'ready',
@@ -59,6 +63,10 @@ async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
       notice: null,
     }
   } catch (error) {
+    if (error instanceof MugiwarasApiError && error.code === 'invalid_config') {
+      return getMugiwarasConfigNotice(error)
+    }
+
     const detail = error instanceof MugiwarasApiError ? `${error.code}: ${error.message}` : error instanceof Error ? error.message : 'Error desconocido'
     return {
       state: 'error',

@@ -1,4 +1,8 @@
+import 'server-only'
+
 import type { MugiwarasCatalogResponse } from '@contracts/read-models'
+
+export const MUGIWARAS_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'
 
 export class MugiwarasApiError extends Error {
   status: number
@@ -23,9 +27,25 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, '')
 }
 
+function parseMugiwarasApiBaseUrl(value: string) {
+  let parsed: URL
+
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new MugiwarasApiError('invalid_config', { status: 0, code: 'invalid_config' })
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new MugiwarasApiError('invalid_config', { status: 0, code: 'invalid_config' })
+  }
+
+  return trimTrailingSlash(value)
+}
+
 export function getMugiwarasApiBaseUrl() {
-  const value = process.env.NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL
-  return value ? trimTrailingSlash(value) : null
+  const value = process.env[MUGIWARAS_API_BASE_URL_ENV]
+  return value ? parseMugiwarasApiBaseUrl(value) : null
 }
 
 export async function fetchMugiwarasCatalog(): Promise<MugiwarasCatalogResponse> {

@@ -39,14 +39,15 @@ npm run dev:web
 npm run build:web
 npm run typecheck:web
 npm run verify:memory-server-only
+npm run verify:mugiwaras-server-only
 ```
 
 ## Configuración runtime
 Ver `docs/runtime-config.md`.
 
 Resumen actual:
-- `/memory` usa `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
-- `/skills` y `/mugiwaras` conservan temporalmente `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` hasta una fase de migración propia.
+- `/memory` y `/mugiwaras` usan `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
+- `/skills` conserva temporalmente `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` hasta una fase de migración propia.
 
 
 ## OpenCode + Engram
