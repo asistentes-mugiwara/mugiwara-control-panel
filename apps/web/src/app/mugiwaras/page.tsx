@@ -93,7 +93,7 @@ export default async function MugiwarasPage() {
         title="Tripulación"
         subtitle="Vista de solo lectura de identidad, estado, skills enlazadas, señales de memoria y canon operativo Mugiwara."
         mugiwaraSlug="luffy"
-        detailPills={['Índice de tripulación', 'Crests activos', 'Documento canónico read-only']}
+        detailPills={['Índice de tripulación', 'Emblemas activos', 'Documento canónico read-only']}
       />
 
       <SurfaceCard title="Superficie de lectura" eyebrow="Roster" accent="gold">
@@ -146,6 +146,7 @@ export default async function MugiwarasPage() {
               </div>
 
               <pre
+                className="canonical-document-viewer"
                 aria-describedby="crew-rules-scroll-hint"
                 aria-label="Contenido de AGENTS.md canónico de crew-core"
                 tabIndex={0}
