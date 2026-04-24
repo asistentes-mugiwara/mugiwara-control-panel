@@ -40,14 +40,15 @@ npm run build:web
 npm run typecheck:web
 npm run verify:memory-server-only
 npm run verify:mugiwaras-server-only
+npm run verify:skills-server-only
 ```
 
 ## Configuración runtime
 Ver `docs/runtime-config.md`.
 
 Resumen actual:
-- `/memory` y `/mugiwaras` usan `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
-- `/skills` conserva temporalmente `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` hasta una fase de migración propia.
+- `/memory`, `/mugiwaras` y `/skills` usan `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
+- `/skills` expone al navegador solo endpoints BFF same-origin bajo `/api/control-panel/skills/**`; la URL real del backend no entra en el bundle cliente.
 
 
 ## OpenCode + Engram

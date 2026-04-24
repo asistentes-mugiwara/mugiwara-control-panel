@@ -13,6 +13,8 @@ type ApiErrorPayload = {
   }
 }
 
+const SKILLS_BFF_BASE_PATH = '/api/control-panel/skills'
+
 export class SkillsApiError extends Error {
   status: number
   code: string
@@ -25,27 +27,16 @@ export class SkillsApiError extends Error {
   }
 }
 
-function trimTrailingSlash(value: string) {
-  return value.replace(/\/$/, '')
-}
-
-export function getSkillsApiBaseUrl() {
-  const value = process.env.NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL
-  return value ? trimTrailingSlash(value) : null
+export function getSkillsApiConnectionLabel() {
+  return 'BFF same-origin'
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const baseUrl = getSkillsApiBaseUrl()
-
-  if (!baseUrl) {
-    throw new SkillsApiError('not_configured', { status: 0, code: 'not_configured' })
-  }
-
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetch(`${SKILLS_BFF_BASE_PATH}${path}`, {
     ...init,
     headers: {
       Accept: 'application/json',
-      'Content-Type': 'application/json',
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...init?.headers,
     },
   })
@@ -69,26 +60,26 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function fetchSkillsCatalog() {
-  return fetchJson<SkillsCatalogResponse>('/api/v1/skills')
+  return fetchJson<SkillsCatalogResponse>('')
 }
 
 export function fetchSkillDetail(skillId: string) {
-  return fetchJson<SkillDetailResponse>(`/api/v1/skills/${skillId}`)
+  return fetchJson<SkillDetailResponse>(`/${encodeURIComponent(skillId)}`)
 }
 
 export function fetchSkillsAudit() {
-  return fetchJson<SkillAuditResponse>('/api/v1/skills/audit')
+  return fetchJson<SkillAuditResponse>('/audit')
 }
 
 export function fetchSkillPreview(skillId: string, payload: { content: string; expected_sha256: string }) {
-  return fetchJson<SkillPreviewResponse>(`/api/v1/skills/${skillId}/preview`, {
+  return fetchJson<SkillPreviewResponse>(`/${encodeURIComponent(skillId)}/preview`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export function updateSkill(skillId: string, payload: { actor: string; content: string; expected_sha256: string }) {
-  return fetchJson<SkillUpdateResponse>(`/api/v1/skills/${skillId}`, {
+  return fetchJson<SkillUpdateResponse>(`/${encodeURIComponent(skillId)}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   })
