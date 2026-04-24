@@ -1,4 +1,8 @@
+import 'server-only'
+
 import type { MemoryDetailResponse, MemorySummaryResponse } from '@contracts/read-models'
+
+export const MEMORY_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'
 
 export class MemoryApiError extends Error {
   status: number
@@ -23,9 +27,25 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, '')
 }
 
+function parseMemoryApiBaseUrl(value: string) {
+  let parsed: URL
+
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new MemoryApiError('invalid_config', { status: 0, code: 'invalid_config' })
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new MemoryApiError('invalid_config', { status: 0, code: 'invalid_config' })
+  }
+
+  return trimTrailingSlash(value)
+}
+
 export function getMemoryApiBaseUrl() {
-  const value = process.env.NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL
-  return value ? trimTrailingSlash(value) : null
+  const value = process.env[MEMORY_API_BASE_URL_ENV]
+  return value ? parseMemoryApiBaseUrl(value) : null
 }
 
 async function parseApiError(response: Response) {

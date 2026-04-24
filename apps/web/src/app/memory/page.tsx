@@ -6,6 +6,8 @@ import type { AppStatus } from '@/shared/theme/tokens'
 
 import { MemoryClient, type MemoryPageNotice } from './MemoryClient'
 
+export const dynamic = 'force-dynamic'
+
 type InitialMemoryData = {
   apiSummaries: ApiMemoryAgentSummary[] | null
   apiDetails: Partial<Record<MugiwaraSlug, ApiMemoryAgentDetail>>
@@ -65,8 +67,16 @@ async function getInitialMemoryData(): Promise<InitialMemoryData> {
       apiState: 'fallback',
       apiNotice: {
         status: apiError?.code === 'not_configured' ? 'sin-datos' : 'incidencia',
-        title: apiError?.code === 'not_configured' ? 'API Memory no configurada' : 'API Memory no disponible',
-        description: 'La página mantiene el fallback saneado local. No se muestran dumps crudos ni detalles técnicos de memoria.',
+        title:
+          apiError?.code === 'not_configured'
+            ? 'API Memory no configurada'
+            : apiError?.code === 'invalid_config'
+              ? 'Configuración server-only de Memory inválida'
+              : 'API Memory no disponible',
+        description:
+          apiError?.code === 'not_configured'
+            ? 'Configura `MUGIWARA_CONTROL_PANEL_API_URL` solo en el entorno server para conectar esta vista al backend.'
+            : 'La página mantiene el fallback saneado local. No se muestran dumps crudos ni detalles técnicos de memoria.',
         detail: apiError?.code,
       },
     }
