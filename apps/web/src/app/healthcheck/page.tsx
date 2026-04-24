@@ -4,14 +4,66 @@ import {
   mapHealthcheckSeverityToBadgeStatus,
   mapHealthcheckStatusToBadgeStatus,
 } from '@/modules/healthcheck/view-models/healthcheck-mappers'
-import { healthcheckWorkspaceFixture } from '@/modules/healthcheck/view-models/healthcheck-summary.fixture'
+import { fetchHealthcheckWorkspace, HealthcheckApiError } from '@/modules/healthcheck/api/healthcheck-http'
+import { healthcheckWorkspaceFixture, type HealthcheckWorkspace } from '@/modules/healthcheck/view-models/healthcheck-summary.fixture'
+import type { AppStatus } from '@/shared/theme/tokens'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme } from '@/shared/theme/tokens'
 
-function formatTimestamp(value: string) {
+type HealthcheckPageNotice = {
+  status: AppStatus
+  title: string
+  description: string
+  detail?: string
+}
+
+export const dynamic = 'force-dynamic'
+
+async function getInitialHealthcheckData(): Promise<{ workspace: HealthcheckWorkspace; apiNotice: HealthcheckPageNotice | null }> {
+  try {
+    const response = await fetchHealthcheckWorkspace()
+
+    if (response.status !== 'ready') {
+      return {
+        workspace: healthcheckWorkspaceFixture,
+        apiNotice: {
+          status: 'sin-datos',
+          title: 'API Healthcheck sin datos configurados',
+          description: 'La API respondió sin catálogo disponible; se mantiene fixture saneado para no romper la lectura.',
+          detail: response.status,
+        },
+      }
+    }
+
+    return { workspace: response.data as HealthcheckWorkspace, apiNotice: null }
+  } catch (error) {
+    const apiError = error instanceof HealthcheckApiError ? error : null
+
+    return {
+      workspace: healthcheckWorkspaceFixture,
+      apiNotice: {
+        status: apiError?.code === 'not_configured' ? 'sin-datos' : 'incidencia',
+        title:
+          apiError?.code === 'not_configured'
+            ? 'API Healthcheck no configurada'
+            : apiError?.code === 'invalid_config'
+              ? 'Configuración server-only de Healthcheck inválida'
+              : 'API Healthcheck no disponible',
+        description: 'La página mantiene fallback saneado local. No se muestran comandos, logs crudos ni detalles internos del host.',
+        detail: apiError?.code,
+      },
+    }
+  }
+}
+
+function formatTimestamp(value: string | null) {
+  if (!value) {
+    return 'Sin actualización'
+  }
+
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
@@ -24,8 +76,8 @@ function formatTimestamp(value: string) {
   }).format(date)
 }
 
-export default function HealthcheckPage() {
-  const workspace = healthcheckWorkspaceFixture
+export default async function HealthcheckPage() {
+  const { workspace, apiNotice } = await getInitialHealthcheckData()
   const healthSummaryNotice =
     workspace.summary_bar.incidents > 0
       ? {
@@ -52,6 +104,16 @@ export default function HealthcheckPage() {
         mugiwaraSlug="chopper"
         detailPills={['Perímetro', 'Señales saneadas', 'Respuesta priorizada']}
       />
+
+      {apiNotice ? (
+        <StatePanel
+          status={apiNotice.status}
+          title={apiNotice.title}
+          description={apiNotice.description}
+          detail={apiNotice.detail}
+          eyebrow="Estado de API"
+        />
+      ) : null}
 
       <SurfaceCard title="Resumen de salud" elevated eyebrow="Puesto médico" accent="danger">
         <div style={{ display: 'grid', gap: '14px' }}>

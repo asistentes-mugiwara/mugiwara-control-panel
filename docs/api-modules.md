@@ -37,8 +37,16 @@
 - sin escritura en MVP
 
 ### `healthcheck`
-- resumir cronjobs, backups, gateways, honcho, docker y checks operativos
-- consumir fuentes saneadas y timestamps de frescura
+- exponer `GET /api/v1/healthcheck` como workspace read-only saneado
+- resumir cronjobs, backups, gateways, honcho, docker y checks operativos desde catálogo seguro backend-owned
+- consumir solo fuentes saneadas y timestamps de frescura
+- no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase
+- representar `stale`/`not_configured` de forma explícita
+
+### `dashboard`
+- exponer `GET /api/v1/dashboard` como agregación read-only para la home operativa
+- componer solo resúmenes seguros y links allowlisted
+- degradar Healthcheck no configurado a warning/stale visible, nunca a sano silencioso
 
 ### `system`
 - estado general del servidor y señales operativas de alto nivel
