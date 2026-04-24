@@ -1,22 +1,26 @@
+import type { Severity } from '@contracts/read-models'
+
 import type { AppStatus } from '@/shared/theme/tokens'
 
-import type { MugiwaraCardStatus } from './mugiwara-card.fixture'
-
-export function mapMugiwaraStatusToBadgeStatus(status: MugiwaraCardStatus): AppStatus {
-  const map: Record<MugiwaraCardStatus, AppStatus> = {
-    healthy: 'operativo',
-    warning: 'revision',
-    degraded: 'incidencia',
+export function mapMugiwaraStatusToBadgeStatus(status: Severity): AppStatus {
+  const map: Record<Severity, AppStatus> = {
+    operativo: 'operativo',
+    revision: 'revision',
+    incidencia: 'incidencia',
+    stale: 'stale',
+    'sin-datos': 'sin-datos',
   }
 
   return map[status]
 }
 
-export function getMugiwaraStatusLabel(status: MugiwaraCardStatus): string {
-  const map: Record<MugiwaraCardStatus, string> = {
-    healthy: 'Estable',
-    warning: 'Atención',
-    degraded: 'Degradado',
+export function getMugiwaraStatusLabel(status: Severity): string {
+  const map: Record<Severity, string> = {
+    operativo: 'Operativo',
+    revision: 'En revisión',
+    incidencia: 'Incidencia',
+    stale: 'Stale',
+    'sin-datos': 'Sin datos',
   }
 
   return map[status]

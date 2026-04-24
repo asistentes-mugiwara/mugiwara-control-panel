@@ -83,6 +83,20 @@ Campos esperados:
 - `memory_badge`
 - `links`
 
+### `mugiwara.crew_rules_document`
+Campos esperados:
+- `document_id`
+- `title`
+- `display_path`
+- `source_label`
+- `read_only`
+- `canonical`
+- `markdown`
+
+Uso:
+- mostrar en la sección Mugiwara el `/srv/crew-core/AGENTS.md` canónico en modo solo lectura
+- no listar `/home/agentops/.hermes/hermes-agent/AGENTS.md` como fuente distinta, porque es symlink al canon
+
 ### `mugiwara.profile`
 Campos esperados:
 - `slug`
