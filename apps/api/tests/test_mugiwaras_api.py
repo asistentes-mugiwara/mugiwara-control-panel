@@ -84,3 +84,25 @@ def test_mugiwaras_catalog_does_not_follow_hermes_agents_symlink(tmp_path: Path)
     assert str(hermes_agents) not in response.text
 
     app.dependency_overrides.clear()
+
+
+def test_mugiwaras_catalog_rejects_parent_directory_symlink(tmp_path: Path) -> None:
+    real_root = tmp_path / 'real-crew-core'
+    real_root.mkdir()
+    (real_root / 'AGENTS.md').write_text('canonical through parent symlink', encoding='utf-8')
+
+    symlink_root = tmp_path / 'crew-core-link'
+    symlink_root.symlink_to(real_root, target_is_directory=True)
+
+    service = MugiwaraService(crew_rules_path=symlink_root / 'AGENTS.md')
+    app.dependency_overrides[get_mugiwaras_service] = lambda: service
+    client = TestClient(app)
+
+    response = client.get('/api/v1/mugiwaras')
+
+    assert response.status_code == 503
+    assert response.json()['detail']['code'] == 'source_unavailable'
+    assert str(symlink_root) not in response.text
+    assert str(real_root) not in response.text
+
+    app.dependency_overrides.clear()

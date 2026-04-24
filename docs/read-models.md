@@ -95,6 +95,7 @@ Campos esperados:
 
 Uso:
 - mostrar en la sección Mugiwara el `/srv/crew-core/AGENTS.md` canónico en modo solo lectura
+- tratar esta lectura como superficie del control plane privado; si el API se expone fuera del perímetro operativo, debe ir detrás de auth/permisos antes de servir markdown completo
 - no listar `/home/agentops/.hermes/hermes-agent/AGENTS.md` como fuente distinta, porque es symlink al canon
 
 ### `mugiwara.profile`

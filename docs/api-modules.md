@@ -19,7 +19,7 @@
 - componer ficha por agente
 - agregar estado, identidad, built-in memory resumida y skills relacionadas
 - exponer `GET /api/v1/mugiwaras` y `GET /api/v1/mugiwaras/{slug}` como superficies read-only
-- mostrar `/srv/crew-core/AGENTS.md` como documento canónico de reglas operativas en la sección Mugiwara
+- mostrar `/srv/crew-core/AGENTS.md` como documento canónico de reglas operativas en la sección Mugiwara; esta lectura pertenece al control plane privado y no debe exponerse fuera de la frontera operativa/autenticada del despliegue
 - no listar ni resolver por separado `/home/agentops/.hermes/hermes-agent/AGENTS.md`, porque es symlink al canon
 - no escribir sobre perfiles
 

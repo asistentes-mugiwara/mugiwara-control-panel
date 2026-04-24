@@ -12,16 +12,16 @@ DEFAULT_CREW_RULES_PATH = Path('/srv/crew-core/AGENTS.md')
 CANONICAL_CREW_RULES_DISPLAY_PATH = '/srv/crew-core/AGENTS.md'
 
 CREW_CARDS: tuple[MugiwaraCard, ...] = (
-    MugiwaraCard('luffy', 'Luffy', 'operativo', ['delegation-contract', 'crew-orchestration'], 'Capitán operativo', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('zoro', 'Zoro', 'operativo', ['sdd-orchestrator-zoro', 'zoro-pr-review-handoff'], 'Continuidad fuerte', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('franky', 'Franky', 'operativo', ['franky-pr-ops-review', 'vault-sync-ops'], 'Runtime vigilado', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('chopper', 'Chopper', 'operativo', ['chopper-pr-security-review', 'security-hardening'], 'Riesgo controlado', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('usopp', 'Usopp', 'revision', ['usopp-pr-design-review', 'frontend-spec-usopp'], 'Diseño activo', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('nami', 'Nami', 'operativo', ['finance-ops', 'google-sheets-control'], 'Señales estables', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('robin', 'Robin', 'operativo', ['research-synthesis', 'vault-canon'], 'Canon consultable', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('brook', 'Brook', 'revision', ['data-analysis', 'analytics-standby'], 'Datos en standby', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('jinbe', 'Jinbe', 'sin-datos', ['legal-context'], 'Definido en canon', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
-    MugiwaraCard('sanji', 'Sanji', 'sin-datos', ['physical-ops'], 'Definido en canon', [SafeLink('Abrir Memory', '/memory'), SafeLink('Abrir Skills', '/skills')]),
+    MugiwaraCard('luffy', 'Luffy', 'operativo', ['delegation-contract', 'crew-orchestration'], 'Capitán operativo', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('zoro', 'Zoro', 'operativo', ['sdd-orchestrator-zoro', 'zoro-pr-review-handoff'], 'Continuidad fuerte', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('franky', 'Franky', 'operativo', ['franky-pr-ops-review', 'vault-sync-ops'], 'Runtime vigilado', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('chopper', 'Chopper', 'operativo', ['chopper-pr-security-review', 'security-hardening'], 'Riesgo controlado', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('usopp', 'Usopp', 'revision', ['usopp-pr-design-review', 'frontend-spec-usopp'], 'Diseño activo', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('nami', 'Nami', 'operativo', ['finance-ops', 'google-sheets-control'], 'Señales estables', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('robin', 'Robin', 'operativo', ['research-synthesis', 'vault-canon'], 'Canon consultable', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('brook', 'Brook', 'revision', ['data-analysis', 'analytics-standby'], 'Datos en standby', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('jinbe', 'Jinbe', 'sin-datos', ['legal-context'], 'Definido en canon', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('sanji', 'Sanji', 'sin-datos', ['physical-ops'], 'Definido en canon', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
 )
 
 PROFILE_META: dict[str, dict[str, str]] = {
@@ -87,14 +87,9 @@ class MugiwaraService:
         )
 
     def _read_canonical_crew_rules(self) -> str:
-        if self._crew_rules_path.is_symlink():
-            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'La fuente canónica debe leerse directamente, no vía symlink.')
+        self._ensure_no_symlink_component(self._crew_rules_path)
 
         resolved = self._crew_rules_path.expanduser().resolve()
-        canonical = DEFAULT_CREW_RULES_PATH.resolve()
-        if self._crew_rules_path == DEFAULT_CREW_RULES_PATH and resolved != canonical:
-            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'AGENTS.md canónico no disponible.')
-
         if not resolved.exists() or not resolved.is_file():
             raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'AGENTS.md canónico no disponible.')
 
@@ -102,6 +97,18 @@ class MugiwaraService:
         if len(content.encode('utf-8')) > MAX_CREW_RULES_BYTES:
             raise self._reject(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 'validation_error', 'AGENTS.md supera el tamaño máximo permitido.')
         return content
+
+    def _ensure_no_symlink_component(self, path: Path) -> None:
+        expanded = path.expanduser()
+        candidates = [expanded, *expanded.parents]
+        for candidate in candidates:
+            if candidate == candidate.parent:
+                continue
+            try:
+                if candidate.is_symlink():
+                    raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'La fuente canónica debe leerse directamente, no vía symlink.')
+            except OSError:
+                raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'AGENTS.md canónico no disponible.')
 
     def _reject(self, http_status: int, code: str, message: str) -> HTTPException:
         return HTTPException(status_code=http_status, detail={'code': code, 'message': message})

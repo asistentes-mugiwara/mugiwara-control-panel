@@ -22,7 +22,8 @@ The AGENTS.md requirement belongs in Phase 12.2, not later, because:
   - `GET /api/v1/mugiwaras/{slug}`
 - Keep data static and allowlisted for this microphase.
 - Read exactly the canonical crew rules document from `/srv/crew-core/AGENTS.md`.
-- Reject symlink-backed AGENTS reads in service tests to prevent treating the Hermes Agent symlink as an independent source.
+- Reject symlink-backed AGENTS reads at file and parent-component level in service tests to prevent treating the Hermes Agent symlink as an independent source.
+- Document that full AGENTS markdown belongs behind the private control-plane boundary/auth perimeter if the API is ever exposed beyond trusted operation.
 - Extend shared TypeScript contracts with `CrewRulesDocument`.
 - Update `/mugiwaras` to prefer backend data when `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` is configured, with a sane fixture fallback and no AGENTS content when backend is unavailable.
 
@@ -37,7 +38,8 @@ The AGENTS.md requirement belongs in Phase 12.2, not later, because:
 - `/api/v1/mugiwaras` returns crew cards plus `crew_rules_document` for `/srv/crew-core/AGENTS.md`.
 - `/api/v1/mugiwaras/{slug}` returns a safe profile for known slugs.
 - Unknown slugs return semantic 404 without leaking host paths.
-- Symlink AGENTS source is rejected in tests.
+- Symlink AGENTS source is rejected in tests, including parent-directory symlink components.
+- `/mugiwaras` improves document legibility with a local read-only badge, keyboard-focusable scroll region and explicit scroll hint.
 - `/mugiwaras` can render API-backed data and shows the AGENTS.md content only when backend data is available.
 
 ## Files changed

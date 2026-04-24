@@ -93,7 +93,7 @@ export default async function MugiwarasPage() {
         title="Tripulación"
         subtitle="Vista de solo lectura de identidad, estado, skills enlazadas, señales de memoria y canon operativo Mugiwara."
         mugiwaraSlug="luffy"
-        detailPills={['Crew index', 'Crests activos', 'AGENTS.md solo lectura']}
+        detailPills={['Índice de tripulación', 'Crests activos', 'Documento canónico read-only']}
       />
 
       <SurfaceCard title="Superficie de lectura" eyebrow="Roster" accent="gold">
@@ -121,16 +121,34 @@ export default async function MugiwarasPage() {
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{viewModel.crewRulesDocument.display_path}</span>
-                  <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
-                    {viewModel.crewRulesDocument.source_label} · {formatLineCount(viewModel.crewRulesDocument.markdown)} líneas · solo lectura
+                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '14px', fontWeight: 700 }}>{viewModel.crewRulesDocument.display_path}</span>
+                  <span id="crew-rules-scroll-hint" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                    {viewModel.crewRulesDocument.source_label} · {formatLineCount(viewModel.crewRulesDocument.markdown)} líneas · contenido desplazable
                   </span>
                 </div>
-                <StatusBadge status={viewModel.crewRulesDocument.read_only ? 'operativo' : 'revision'} />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span
+                    aria-label="Documento en modo solo lectura"
+                    style={{
+                      border: `1px solid ${appTheme.colors.borderSubtle}`,
+                      borderRadius: '999px',
+                      padding: '4px 10px',
+                      color: appTheme.colors.textSecondary,
+                      background: appTheme.colors.bgSurface1,
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    🔒 Solo lectura
+                  </span>
+                  <StatusBadge status={viewModel.crewRulesDocument.read_only ? 'operativo' : 'revision'} />
+                </div>
               </div>
 
               <pre
+                aria-describedby="crew-rules-scroll-hint"
                 aria-label="Contenido de AGENTS.md canónico de crew-core"
+                tabIndex={0}
                 style={{
                   margin: 0,
                   maxHeight: '420px',
@@ -140,14 +158,18 @@ export default async function MugiwarasPage() {
                   border: `1px solid ${appTheme.colors.borderSubtle}`,
                   borderRadius: appTheme.radius.md,
                   background: appTheme.colors.bgSurface1,
-                  color: appTheme.colors.textSecondary,
-                  padding: '14px',
-                  fontSize: '12px',
-                  lineHeight: 1.5,
+                  color: appTheme.colors.textPrimary,
+                  padding: '16px',
+                  fontSize: '13px',
+                  lineHeight: 1.65,
+                  boxShadow: `inset 0 -18px 24px ${appTheme.colors.bgSurface2}`,
                 }}
               >
                 {viewModel.crewRulesDocument.markdown}
               </pre>
+              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                Fin de ventana visible: usa scroll dentro del documento para leer el canon completo. Sin edición desde el panel.
+              </span>
             </div>
           </SurfaceCard>
         </section>

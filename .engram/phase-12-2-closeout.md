@@ -14,7 +14,7 @@
 ## Verify ejecutado
 - RED: `PYTHONPATH=. pytest apps/api/tests/test_mugiwaras_api.py` falló antes de implementación por ausencia del módulo `mugiwaras`.
 - GREEN inicial: `PYTHONPATH=. pytest apps/api/tests/test_mugiwaras_api.py` → 3 passed.
-- Suite backend actual: `python -m py_compile apps/api/src/modules/mugiwaras/domain.py apps/api/src/modules/mugiwaras/service.py apps/api/src/modules/mugiwaras/router.py apps/api/src/main.py && PYTHONPATH=. pytest apps/api/tests/test_mugiwaras_api.py apps/api/tests/test_shared_contracts.py apps/api/tests/test_skills_api.py` → 10 passed.
+- Suite backend actual: `python -m py_compile apps/api/src/modules/mugiwaras/domain.py apps/api/src/modules/mugiwaras/service.py apps/api/src/modules/mugiwaras/router.py apps/api/src/main.py && PYTHONPATH=. pytest apps/api/tests/test_mugiwaras_api.py apps/api/tests/test_shared_contracts.py apps/api/tests/test_skills_api.py` → 11 passed.
 - Frontend typecheck: `npm --prefix apps/web run typecheck` → OK.
 - Frontend build: `npm --prefix apps/web run build` → OK.
 - Diff hygiene: `git diff --check` → OK.
@@ -23,4 +23,5 @@
 
 ## Riesgos abiertos
 - La lectura de `/srv/crew-core/AGENTS.md` es una lectura fija allowlisted; futuras lecturas de documentos no deben reutilizar este patrón como filesystem browser.
+- Si el API deja de estar limitado al control plane privado, servir markdown completo de AGENTS.md debe quedar detrás de auth/permisos explícitos.
 - La página queda dinámica para poder leer API en runtime cuando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` está configurada.
