@@ -26,6 +26,7 @@
 ### `memory`
 - exponer `GET /api/v1/memory` como catálogo read-only de resúmenes saneados por agente
 - exponer `GET /api/v1/memory/{slug}` como detalle read-only acotado
+- integrar `/memory` desde frontend mediante loader server-side y componente cliente interactivo
 - exponer built-in memory solo como resumen allowlisted, nunca como dump crudo
 - exponer Honcho solo como facts resumidos y estado de frescura
 - dejar Engram modelado por proyecto en una fase posterior
