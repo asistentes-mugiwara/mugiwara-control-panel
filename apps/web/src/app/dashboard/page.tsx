@@ -3,7 +3,9 @@ import Link from 'next/link'
 import {
   dashboardSummaryFixture,
   type DashboardCount,
+  type DashboardSummary,
 } from '@/modules/dashboard/view-models/dashboard-summary.fixture'
+import { fetchDashboardSummary, DashboardApiError } from '@/modules/dashboard/api/dashboard-http'
 import {
   getDashboardSeverityLabel,
   mapDashboardFreshnessToStatus,
@@ -11,8 +13,55 @@ import {
 } from '@/modules/dashboard/view-models/dashboard-mappers'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
+import { StatePanel } from '@/shared/ui/state/StatePanel'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
-import { appTheme } from '@/shared/theme/tokens'
+import { appTheme, type AppStatus } from '@/shared/theme/tokens'
+
+type DashboardPageNotice = {
+  status: AppStatus
+  title: string
+  description: string
+  detail?: string
+}
+
+export const dynamic = 'force-dynamic'
+
+async function getInitialDashboardData(): Promise<{ summary: DashboardSummary; apiNotice: DashboardPageNotice | null }> {
+  try {
+    const response = await fetchDashboardSummary()
+
+    if (response.status !== 'ready') {
+      return {
+        summary: dashboardSummaryFixture,
+        apiNotice: {
+          status: 'sin-datos',
+          title: 'API Dashboard sin datos configurados',
+          description: 'La API respondió sin agregado disponible; se mantiene fixture saneado para no romper la navegación.',
+          detail: response.status,
+        },
+      }
+    }
+
+    return { summary: response.data as DashboardSummary, apiNotice: null }
+  } catch (error) {
+    const apiError = error instanceof DashboardApiError ? error : null
+
+    return {
+      summary: dashboardSummaryFixture,
+      apiNotice: {
+        status: apiError?.code === 'not_configured' ? 'sin-datos' : 'incidencia',
+        title:
+          apiError?.code === 'not_configured'
+            ? 'API Dashboard no configurada'
+            : apiError?.code === 'invalid_config'
+              ? 'Configuración server-only de Dashboard inválida'
+              : 'API Dashboard no disponible',
+        description: 'La página mantiene fallback saneado local. No se muestran detalles internos del backend ni salidas operativas crudas.',
+        detail: apiError?.code,
+      },
+    }
+  }
+}
 
 function CountGridItem({ count }: { count: DashboardCount }) {
   return (
@@ -23,8 +72,8 @@ function CountGridItem({ count }: { count: DashboardCount }) {
   )
 }
 
-export default function DashboardPage() {
-  const summary = dashboardSummaryFixture
+export default async function DashboardPage() {
+  const { summary, apiNotice } = await getInitialDashboardData()
 
   return (
     <>
@@ -35,6 +84,16 @@ export default function DashboardPage() {
         mugiwaraSlug="luffy"
         detailPills={['Puente de mando', 'Lectura saneada', 'Módulos propietarios']}
       />
+
+      {apiNotice ? (
+        <StatePanel
+          status={apiNotice.status}
+          title={apiNotice.title}
+          description={apiNotice.description}
+          detail={apiNotice.detail}
+          eyebrow="Estado de API"
+        />
+      ) : null}
 
       <section className="layout-grid layout-grid--cards-260">
         {summary.counts.map((count) => (

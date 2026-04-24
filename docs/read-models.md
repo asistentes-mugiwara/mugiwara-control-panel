@@ -13,15 +13,24 @@ Todos los recursos usan la envoltura común:
 ## Modelos por recurso
 ### `dashboard.summary`
 Campos esperados:
-- `sections`
-- `highest_severity`
-- `freshness`
-- `counts`
-- `links`
+- `sections[]` con `id`, `label` y estado saneado (`healthy`, `warning`, `degraded`)
+- `highest_severity` (`low`, `medium`, `high`, `critical`)
+- `freshness` con `updated_at`, `label` y `state`
+- `counts[]` con `label`, `value` y `note`
+- `links[]` allowlisted
 
 Uso:
 - entrada global de operador
 - navegación hacia superficies propietarias
+- agregación backend-owned de resúmenes ya saneados
+
+### `healthcheck.workspace`
+Campos esperados:
+- `summary_bar`
+- `modules[]`
+- `events[]`
+- `principles[]`
+- `signals[]`
 
 ### `healthcheck.summary[]`
 Campos esperados:
