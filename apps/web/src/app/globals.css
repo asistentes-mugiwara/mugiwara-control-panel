@@ -133,8 +133,7 @@ button {
   align-items: center;
   max-width: 100%;
   text-align: center;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .responsive-code {
