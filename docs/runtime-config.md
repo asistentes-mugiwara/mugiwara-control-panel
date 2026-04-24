@@ -11,8 +11,7 @@ El control plane distingue entre configuración pública de frontend y configura
 
 | Variable | Consumidor | Exposición | Uso |
 | --- | --- | --- | --- |
-| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras` server loaders | Server-only | Base URL del backend para superficies read-only que pueden cargar desde servidor. |
-| `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` | `/skills` | Pública/cliente | Base URL histórica para la superficie Skills hasta que tenga frontera BFF/server-side propia. |
+| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. |
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:
@@ -59,15 +58,28 @@ Antes de cerrar cambios que toquen Mugiwaras config, ejecutar:
 npm run verify:mugiwaras-server-only
 ```
 
-## Pendiente deliberado
-`/skills` sigue usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas.
+## Skills
+`/skills` usa el patrón BFF/server-only desde Phase 12.3h:
 
-La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md` y el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`.
+1. El navegador llama solo a endpoints same-origin bajo `/api/control-panel/skills/**`.
+2. `apps/web/src/modules/skills/api/skills-server-http.ts` importa `server-only` y lee `MUGIWARA_CONTROL_PANEL_API_URL`.
+3. La base URL se valida como `http:` o `https:` antes del fetch upstream.
+4. Los route handlers de Next.js usan `cache: 'no-store'`, `force-dynamic` y endpoints allowlisted, no proxy genérico.
+5. Las rutas BFF validan `skillId`, método, `Content-Type`, tamaño y schema antes de reenviar preview/update.
+6. Los errores devueltos al navegador están saneados y no incluyen backend URL, stack traces, bodies, diffs ni secretos.
+7. FastAPI sigue siendo fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
+
+Antes de cerrar cambios que toquen Skills config o BFF, ejecutar:
+
+```bash
+npm run verify:skills-server-only
+```
+
+## Decisiones relacionadas
+La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md` y la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`.
 
 Resumen de la decisión:
 - `/mugiwaras` ya migró en Phase 12.3f porque era server component, dinámico y no necesitaba browser fetch directo.
-- `/skills` requiere implementación propia porque hoy es client component y contiene preview/update controlados.
-- Phase 12.3g decide usar Next.js route handlers bajo `/api/control-panel/skills/**` como BFF same-origin, no server actions por ahora.
-- Ese BFF debe usar `MUGIWARA_CONTROL_PANEL_API_URL` solo en servidor, no ser proxy abierto, validar `skillId`/método/`Content-Type`/tamaño/schema, usar `cache: no-store` y devolver errores saneados.
+- `/skills` migró en Phase 12.3h con route handlers BFF same-origin porque es client component y contiene preview/update controlados.
+- Ese BFF usa `MUGIWARA_CONTROL_PANEL_API_URL` solo en servidor, no es proxy abierto, valida entradas críticas, usa `cache: no-store` y devuelve errores saneados.
 - FastAPI sigue siendo la fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
-- La implementación de `/skills` debe llevar revisión de Chopper + Franky.

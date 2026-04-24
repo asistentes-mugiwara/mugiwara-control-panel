@@ -9,7 +9,7 @@ import {
   fetchSkillPreview,
   fetchSkillsAudit,
   fetchSkillsCatalog,
-  getSkillsApiBaseUrl,
+  getSkillsApiConnectionLabel,
   SkillsApiError,
   updateSkill,
 } from '@/modules/skills/api/skills-http'
@@ -64,35 +64,35 @@ function getSaveStateStatus(state: SaveState): AppStatus {
   }
 }
 
-function getSkillsViewNotice(state: SkillsViewState, apiBaseUrl: string | null, errorMessage: string | null) {
+function getSkillsViewNotice(state: SkillsViewState, connectionLabel: string, errorMessage: string | null) {
   switch (state) {
     case 'loading':
       return {
         status: 'revision' as const,
-        title: 'Conectando con el backend real de skills',
-        description: 'La UI está cargando catálogo, detalle y auditoría allowlisted sin romper el shell durante la espera.',
-        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null,
+        title: 'Conectando con la frontera BFF de skills',
+        description: 'La UI está cargando catálogo, detalle y auditoría allowlisted mediante endpoints same-origin sin exponer la URL del backend.',
+        detail: `Conexión: ${connectionLabel}`,
       }
     case 'not_configured':
       return {
         status: 'sin-datos' as const,
-        title: 'API base URL no configurada',
-        description: 'Configura `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` para conectar esta vista al backend real sin caer en estados ambiguos.',
-        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : 'Variable ausente en el runtime actual.',
+        title: 'BFF de Skills sin configuración server-only',
+        description: 'Configura `MUGIWARA_CONTROL_PANEL_API_URL` solo en el runtime server para conectar esta vista al backend real.',
+        detail: 'El navegador no necesita conocer la URL del backend.',
       }
     case 'error':
       return {
         status: 'incidencia' as const,
         title: 'No se pudo cargar la fuente real de skills',
-        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta del backend impiden mostrar catálogo y detalle con garantías.',
+        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta saneada del BFF impiden mostrar catálogo y detalle con garantías.',
         detail: errorMessage ?? 'Sin detalle adicional.',
       }
     case 'empty':
       return {
         status: 'sin-datos' as const,
         title: 'La allowlist no devolvió skills visibles',
-        description: 'El backend respondió correctamente, pero no hay entradas disponibles para esta selección allowlisted.',
-        detail: apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null,
+        description: 'El backend respondió correctamente a través del BFF, pero no hay entradas disponibles para esta selección allowlisted.',
+        detail: `Conexión: ${connectionLabel}`,
       }
     case 'ready':
     default:
@@ -114,8 +114,8 @@ function formatSignedDelta(value: number) {
 
 export default function SkillsPage() {
   const policy = skillSurfaceFixture
-  const apiBaseUrl = getSkillsApiBaseUrl()
-  const [viewState, setViewState] = useState<SkillsViewState>(apiBaseUrl ? 'loading' : 'not_configured')
+  const apiConnectionLabel = getSkillsApiConnectionLabel()
+  const [viewState, setViewState] = useState<SkillsViewState>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [catalog, setCatalog] = useState<SkillCatalogItem[]>([])
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
@@ -134,12 +134,6 @@ export default function SkillsPage() {
     let cancelled = false
 
     async function loadCatalog() {
-      if (!apiBaseUrl) {
-        setViewState('not_configured')
-        setErrorMessage(null)
-        return
-      }
-
       setViewState('loading')
       setErrorMessage(null)
 
@@ -182,13 +176,13 @@ export default function SkillsPage() {
     return () => {
       cancelled = true
     }
-  }, [apiBaseUrl])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
     async function loadDetail() {
-      if (!apiBaseUrl || !selectedSkillId || !['ready', 'loading'].includes(viewState)) {
+      if (!selectedSkillId || !['ready', 'loading'].includes(viewState)) {
         return
       }
 
@@ -216,7 +210,7 @@ export default function SkillsPage() {
     return () => {
       cancelled = true
     }
-  }, [apiBaseUrl, selectedSkillId, viewState])
+  }, [selectedSkillId, viewState])
 
   useEffect(() => {
     if (!selectedSkill) {
@@ -247,7 +241,7 @@ export default function SkillsPage() {
     return getLatestAuditForSkill(audit, selectedSkill.skill_id)
   }, [audit, selectedSkill])
 
-  const sourceNotice = getSkillsViewNotice(viewState, apiBaseUrl, errorMessage)
+  const sourceNotice = getSkillsViewNotice(viewState, apiConnectionLabel, errorMessage)
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
   const normalizedActor = actorInput.trim()
   const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && normalizedActor && saveState !== 'saving')
@@ -559,12 +553,12 @@ export default function SkillsPage() {
         <SurfaceCard title="Estado del origen" elevated eyebrow="Enlace" accent="sky">
           <div style={{ display: 'grid', gap: '10px' }}>
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-              El frontend usa backend real cuando la base URL está configurada; si no, cae a un estado explícito de fuente no
-              configurada sin romper el shell ni el build.
+              El navegador habla con una frontera BFF same-origin; la URL real del backend queda solo en configuración server-only
+              y los errores llegan saneados sin romper el shell ni el build.
             </p>
             <StatusBadge status={mapSkillsViewStateToBadgeStatus(viewState)} />
             <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-              {apiBaseUrl ? `API base URL: ${apiBaseUrl}` : 'API base URL no configurada'}
+              Conexión: {apiConnectionLabel}
             </span>
             {sourceNotice ? (
               <StatePanel
@@ -577,9 +571,9 @@ export default function SkillsPage() {
             ) : (
               <StatePanel
                 status="operativo"
-                title="Fuente real conectada"
-                description="Catálogo, detalle y auditoría están listos para operar sobre la allowlist activa sin recurrir a estados implícitos."
-                detail={apiBaseUrl ? `API base URL: ${apiBaseUrl}` : null}
+                title="BFF same-origin conectado"
+                description="Catálogo, detalle y auditoría están listos para operar sobre la allowlist activa sin exponer la URL del backend al navegador."
+                detail={`Conexión: ${apiConnectionLabel}`}
                 eyebrow="Estado de fuente"
               />
             )}
