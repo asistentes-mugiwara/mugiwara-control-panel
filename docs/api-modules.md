@@ -33,7 +33,10 @@
 - no exponer prompts, IDs internos, sesiones, observaciones completas, tokens ni secretos
 
 ### `vault`
-- navegación, árbol, índices y lectura de markdown
+- exponer `GET /api/v1/vault` como workspace documental read-only allowlisted
+- exponer `GET /api/v1/vault/documents/{document_path:path}` para lectura de documentos markdown permitidos
+- normalizar paths y rechazar traversal, paths absolutos, symlinks, extensiones no soportadas y documentos fuera de allowlist
+- integrar `/vault` desde frontend mediante adapter server-only con fallback saneado visible
 - sin escritura en MVP
 
 ### `healthcheck`
