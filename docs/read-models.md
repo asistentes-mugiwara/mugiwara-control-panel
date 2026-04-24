@@ -55,6 +55,8 @@ Campos esperados:
 
 Uso:
 - visión resumida y detalle acotado de memoria por agente
+- mantener visible la distinción built-in/Honcho sin mezclar Engram
+- no exponer prompts, dumps crudos, IDs internos, sesiones ni observaciones completas
 
 ### `vault.index`
 Campos esperados:
