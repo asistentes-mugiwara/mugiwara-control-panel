@@ -27,6 +27,7 @@ Backend-back `/vault` with a safe allowlisted Vault API without opening arbitrar
 - `npm --prefix apps/web run build` OK with `/vault` dynamic.
 - Smoke local: API `GET /api/v1/vault` returned 200 with 3 allowlisted documents; `/vault` rendered backend data with clean browser console.
 
-## Review needed
-- Chopper: path traversal/leak boundary.
-- Franky: runtime/server-only/no-store/guardrail.
+## Review outcome
+- PR #13 merged: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/13
+- Franky: `mergeable_with_minor_followups`; follow-up #14 opened for visible/observable degraded state when `/vault` falls back to fixture.
+- Chopper: initially requested changes on symlink handling and heading/title sanitization; post-merge hardening commit `ecbbc04` fixed both and Chopper approved.
