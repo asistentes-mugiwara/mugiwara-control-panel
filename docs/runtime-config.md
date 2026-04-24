@@ -11,8 +11,8 @@ El control plane distingue entre configuración pública de frontend y configura
 
 | Variable | Consumidor | Exposición | Uso |
 | --- | --- | --- | --- |
-| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory` server loader | Server-only | Base URL del backend para la superficie Memory read-only. |
-| `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` | `/skills`, `/mugiwaras` | Pública/cliente | Base URL histórica para verticales que todavía consumen backend desde cliente o patrón previo. |
+| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras` server loaders | Server-only | Base URL del backend para superficies read-only que pueden cargar desde servidor. |
+| `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` | `/skills` | Pública/cliente | Base URL histórica para la superficie Skills hasta que tenga frontera BFF/server-side propia. |
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:
@@ -44,12 +44,27 @@ Este check confirma que Memory mantiene:
 - ausencia de `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` en el adapter y el aviso operativo de `/memory`;
 - render dinámico de `/memory`.
 
+## Mugiwaras
+`/mugiwaras` usa el patrón server-only desde Phase 12.3f:
+
+1. `apps/web/src/modules/mugiwaras/api/mugiwaras-http.ts` importa `server-only`.
+2. El adapter lee `MUGIWARA_CONTROL_PANEL_API_URL`.
+3. La base URL se valida como `http:` o `https:` antes del fetch.
+4. `/mugiwaras` mantiene `export const dynamic = 'force-dynamic'` para leer la configuración en runtime.
+5. Si la variable falta o es inválida, la página mantiene fixture saneado y no muestra AGENTS.md.
+
+Antes de cerrar cambios que toquen Mugiwaras config, ejecutar:
+
+```bash
+npm run verify:mugiwaras-server-only
+```
+
 ## Pendiente deliberado
-`/skills` y `/mugiwaras` siguen usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas.
+`/skills` sigue usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas.
 
 La planificación de migración vive en `openspec/phase-12-3e-server-only-migration-plan.md`.
 
 Resumen de la decisión:
-- `/mugiwaras` debe migrar primero porque ya es server component, ya es dinámico y no necesita browser fetch directo.
+- `/mugiwaras` ya migró en Phase 12.3f porque era server component, dinámico y no necesitaba browser fetch directo.
 - `/skills` requiere fase propia de diseño/implementación porque hoy es client component y contiene preview/update controlados; debe pasar por una frontera server-side tipo BFF/route handlers o server actions sin debilitar la política FastAPI.
-- Ambas migraciones deben llevar revisión de Chopper + Franky.
+- La migración de `/skills` debe llevar revisión de Chopper + Franky.
