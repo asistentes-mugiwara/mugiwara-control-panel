@@ -128,6 +128,28 @@ if (!validation.includes('assertJsonContentType')) {
   failures.push('BFF validation must enforce application/json for write routes')
 }
 
+if (!validation.includes("import 'server-only'")) {
+  failures.push('BFF validation/perimeter module must be guarded with server-only')
+}
+
+if (!validation.includes('MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS')) {
+  failures.push('BFF validation/perimeter module must use server-only trusted origins config')
+}
+
+for (const [name, route] of Object.entries({ detailRoute, previewRoute })) {
+  if (!route.includes('assertTrustedOriginForSkillsWrite(request)')) {
+    failures.push(`${name} must enforce trusted Origin before Skills writes`)
+  }
+}
+
+if (browserAdapter.includes('MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS')) {
+  failures.push('browser-side skills adapter must not read trusted origins config')
+}
+
+if (allRoutes.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS') || validation.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS')) {
+  failures.push('trusted origins config must not use NEXT_PUBLIC_*')
+}
+
 const forbiddenGenericProxySnippets = [
   'searchParams.get(\'path\')',
   'searchParams.get("path")',

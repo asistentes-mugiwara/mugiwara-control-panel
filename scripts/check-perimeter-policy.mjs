@@ -17,6 +17,7 @@ const paths = {
   packageJson: join(repoRoot, 'package.json'),
   skillsBrowserAdapter: join(repoRoot, 'apps/web/src/modules/skills/api/skills-http.ts'),
   skillsServerAdapter: join(repoRoot, 'apps/web/src/modules/skills/api/skills-server-http.ts'),
+  skillsBffValidation: join(repoRoot, 'apps/web/src/modules/skills/api/skills-bff-validation.ts'),
   skillsDetailRoute: join(repoRoot, 'apps/web/src/app/api/control-panel/skills/[skillId]/route.ts'),
   skillsPreviewRoute: join(repoRoot, 'apps/web/src/app/api/control-panel/skills/[skillId]/preview/route.ts'),
 }
@@ -37,6 +38,7 @@ const runtimeConfig = read(paths.runtimeConfig, 'runtime config document')
 const packageJsonText = read(paths.packageJson, 'package.json')
 const skillsBrowserAdapter = read(paths.skillsBrowserAdapter, 'skills browser adapter')
 const skillsServerAdapter = read(paths.skillsServerAdapter, 'skills server adapter')
+const skillsBffValidation = read(paths.skillsBffValidation, 'skills BFF validation/perimeter module')
 const skillsDetailRoute = read(paths.skillsDetailRoute, 'skills detail/update route')
 const skillsPreviewRoute = read(paths.skillsPreviewRoute, 'skills preview route')
 const writeRoutes = [skillsDetailRoute, skillsPreviewRoute].join('\n')
@@ -51,11 +53,15 @@ mustInclude(perimeterDoc, 'internet-public: unsupported', 'security perimeter do
 mustInclude(perimeterDoc, 'Tailscale private access', 'security perimeter document')
 mustInclude(perimeterDoc, 'Browser cookies must not be forwarded upstream by default.', 'security perimeter document')
 mustInclude(perimeterDoc, 'Browser `Authorization` headers must not be forwarded upstream by default.', 'security perimeter document')
-mustInclude(perimeterDoc, 'Phase 13.3 may implement a concrete trusted-origin configuration.', 'security perimeter document')
+mustInclude(perimeterDoc, 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS', 'security perimeter document')
+mustInclude(perimeterDoc, '403 trusted_origins_not_configured', 'security perimeter document')
+mustInclude(perimeterDoc, '403 origin_required', 'security perimeter document')
+mustInclude(perimeterDoc, '403 origin_not_allowed', 'security perimeter document')
 mustInclude(perimeterDoc, 'Issue #16, Healthcheck/Dashboard real-source hardening, stays after perimeter hardening.', 'security perimeter document')
 mustInclude(runtimeConfig, 'docs/security-perimeter.md', 'runtime config document')
 mustInclude(runtimeConfig, 'internet-public: unsupported', 'runtime config document')
 mustInclude(runtimeConfig, 'npm run verify:perimeter-policy', 'runtime config document')
+mustInclude(runtimeConfig, 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS', 'runtime config document')
 
 let packageJson
 try {
@@ -74,6 +80,35 @@ if (skillsBrowserAdapter.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL') 
 
 if (!skillsBrowserAdapter.includes("const SKILLS_BFF_BASE_PATH = '/api/control-panel/skills'")) {
   failures.push('skills browser adapter must use the same-origin Skills BFF base path')
+}
+
+
+mustInclude(skillsBffValidation, "import 'server-only'", 'skills BFF validation/perimeter module')
+mustInclude(skillsBffValidation, 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS', 'skills BFF validation/perimeter module')
+mustInclude(skillsBffValidation, 'assertTrustedOriginForSkillsWrite', 'skills BFF validation/perimeter module')
+mustInclude(skillsBffValidation, 'trusted_origins_not_configured', 'skills BFF validation/perimeter module')
+mustInclude(skillsBffValidation, 'origin_required', 'skills BFF validation/perimeter module')
+mustInclude(skillsBffValidation, 'origin_not_allowed', 'skills BFF validation/perimeter module')
+mustInclude(skillsDetailRoute, 'assertTrustedOriginForSkillsWrite(request)', 'skills update route')
+mustInclude(skillsPreviewRoute, 'assertTrustedOriginForSkillsWrite(request)', 'skills preview route')
+
+if (skillsBrowserAdapter.includes('MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS')) {
+  failures.push('skills browser adapter must not read trusted origins configuration')
+}
+
+
+
+const forbiddenTrustedOriginSnippets = [
+  'NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS',
+  'Access-Control-Allow-Origin: *',
+  "'Access-Control-Allow-Origin': '*'",
+  '"Access-Control-Allow-Origin": "*"',
+]
+
+for (const snippet of forbiddenTrustedOriginSnippets) {
+  if (writeRoutes.includes(snippet) || skillsBrowserAdapter.includes(snippet) || skillsBffValidation.includes(snippet)) {
+    failures.push(`trusted origins must stay server-only and exact, forbidden snippet: ${snippet}`)
+  }
 }
 
 const forbiddenWriteRouteSnippets = [

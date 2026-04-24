@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import {
+  assertTrustedOriginForSkillsWrite,
   buildSkillsBffValidationErrorPayload,
   isSkillsBffValidationError,
   parseSkillUpdatePayload,
@@ -39,6 +40,7 @@ export async function GET(_request: Request, { params }: SkillRouteContext) {
 
 export async function PUT(request: Request, { params }: SkillRouteContext) {
   try {
+    assertTrustedOriginForSkillsWrite(request)
     const { skillId } = await params
     const safeSkillId = validateSkillId(skillId)
     const payload = await parseSkillUpdatePayload(request)

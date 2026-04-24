@@ -28,6 +28,7 @@ npm run verify:perimeter-policy
 | Variable | Consumidor | Exposición | Uso |
 | --- | --- | --- | --- |
 | `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. Debe apuntar a loopback, red privada o Tailscale/private hostname; no es configuración pública de navegador. |
+| `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` | `/skills` BFF write routes | Server-only | Allowlist separada por comas de orígenes exactos `http:`/`https:` permitidos para `POST`/`PUT` de Skills. Debe contener solo orígenes privados/locales/Tailscale; si falta, las escrituras BFF devuelven `403 trusted_origins_not_configured`. |
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:
@@ -82,9 +83,10 @@ npm run verify:mugiwaras-server-only
 3. La base URL se valida como `http:` o `https:` antes del fetch upstream.
 4. Los route handlers de Next.js usan `cache: 'no-store'`, `force-dynamic` y endpoints allowlisted, no proxy genérico.
 5. Las rutas BFF validan `skillId`, método, `Content-Type`, tamaño y schema antes de reenviar preview/update.
-6. Los errores devueltos al navegador están saneados y no incluyen backend URL, stack traces, bodies, diffs ni secretos.
-7. FastAPI sigue siendo fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
-8. Los endpoints `/api/control-panel/skills/**`, especialmente `PUT`, pertenecen al control plane privado: no deben exponerse fuera de Tailscale/perímetro autenticado sin añadir auth/autorización server-side y rate limiting.
+6. Las rutas write-capable (`POST` preview y `PUT` update) exigen `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` y rechazan `Origin` ausente o no confiable antes de procesar el cuerpo.
+7. Los errores devueltos al navegador están saneados y no incluyen backend URL, stack traces, bodies, diffs ni secretos.
+8. FastAPI sigue siendo fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
+9. Los endpoints `/api/control-panel/skills/**`, especialmente `PUT`, pertenecen al control plane privado: no deben exponerse fuera de Tailscale/perímetro autenticado sin añadir auth/autorización server-side y rate limiting.
 
 Antes de cerrar cambios que toquen Skills config o BFF, ejecutar:
 
