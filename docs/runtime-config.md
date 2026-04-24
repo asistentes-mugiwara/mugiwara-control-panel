@@ -7,11 +7,27 @@ El control plane distingue entre configuración pública de frontend y configura
 - Las variables sin prefijo `NEXT_PUBLIC_` deben leerse solo desde server loaders, adapters server-only o backend.
 - Cualquier URL o ruta que revele topología interna debe preferir configuración server-only cuando la página pueda cargar los datos desde servidor.
 
+## Perímetro soportado
+El contrato de perímetro vive en `docs/security-perimeter.md`.
+
+Resumen operativo:
+
+- acceso soportado: desarrollo local, red privada controlada y Tailscale/private access;
+- `internet-public: unsupported` hasta que existan decisiones explícitas de auth, sesión, CSRF y rate limiting;
+- `/skills` es la única superficie write-capable del MVP y debe endurecerse antes de conectar nuevas fuentes reales de Healthcheck;
+- los valores de topología interna no deben aparecer en UI, logs, errores, bundles cliente ni documentación con hostnames reales.
+
+Guardarraíl de este contrato:
+
+```bash
+npm run verify:perimeter-policy
+```
+
 ## Variables actuales
 
 | Variable | Consumidor | Exposición | Uso |
 | --- | --- | --- | --- |
-| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. |
+| `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. Debe apuntar a loopback, red privada o Tailscale/private hostname; no es configuración pública de navegador. |
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:
