@@ -38,6 +38,16 @@ export type MugiwaraCard = {
   links: SafeLink[]
 }
 
+export type CrewRulesDocument = {
+  document_id: string
+  title: string
+  display_path: string
+  source_label: string
+  read_only: true
+  canonical: true
+  markdown: string
+}
+
 export type MugiwaraProfile = {
   slug: string
   identity: {
@@ -106,8 +116,8 @@ export type SystemSignal = {
 }
 
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
-export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[] }, { count: number }>
-export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string }>
+export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
+export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
 export type MemorySummaryResponse = ResourceEnvelope<{ items: MemoryAgentSummary[] }, { count: number; sources: string[] }>
 export type MemoryDetailResponse = ResourceEnvelope<MemoryAgentDetail, { mugiwara_slug: string; read_only: true }>
 export type VaultIndexResponse = ResourceEnvelope<VaultIndex, { safe_root: string }>
