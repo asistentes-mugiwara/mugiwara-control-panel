@@ -38,7 +38,16 @@ Este repo será público en GitHub.
 npm run dev:web
 npm run build:web
 npm run typecheck:web
+npm run verify:memory-server-only
 ```
+
+## Configuración runtime
+Ver `docs/runtime-config.md`.
+
+Resumen actual:
+- `/memory` usa `MUGIWARA_CONTROL_PANEL_API_URL` como variable server-only.
+- `/skills` y `/mugiwaras` conservan temporalmente `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` hasta una fase de migración propia.
+
 
 ## OpenCode + Engram
 Siempre abrir OpenCode desde la raíz del proyecto:
