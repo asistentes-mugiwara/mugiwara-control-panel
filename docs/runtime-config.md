@@ -45,4 +45,11 @@ Este check confirma que Memory mantiene:
 - render dinámico de `/memory`.
 
 ## Pendiente deliberado
-`/skills` y `/mugiwaras` siguen usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas. Migrarlos al patrón server-only requiere fase separada, review de Chopper/Franky y verificación específica de UI/runtime.
+`/skills` y `/mugiwaras` siguen usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas.
+
+La planificación de migración vive en `openspec/phase-12-3e-server-only-migration-plan.md`.
+
+Resumen de la decisión:
+- `/mugiwaras` debe migrar primero porque ya es server component, ya es dinámico y no necesita browser fetch directo.
+- `/skills` requiere fase propia de diseño/implementación porque hoy es client component y contiene preview/update controlados; debe pasar por una frontera server-side tipo BFF/route handlers o server actions sin debilitar la política FastAPI.
+- Ambas migraciones deben llevar revisión de Chopper + Franky.
