@@ -62,9 +62,12 @@ npm run verify:mugiwaras-server-only
 ## Pendiente deliberado
 `/skills` sigue usando `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` por compatibilidad con fases previas.
 
-La planificación de migración vive en `openspec/phase-12-3e-server-only-migration-plan.md`.
+La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md` y el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`.
 
 Resumen de la decisión:
 - `/mugiwaras` ya migró en Phase 12.3f porque era server component, dinámico y no necesitaba browser fetch directo.
-- `/skills` requiere fase propia de diseño/implementación porque hoy es client component y contiene preview/update controlados; debe pasar por una frontera server-side tipo BFF/route handlers o server actions sin debilitar la política FastAPI.
-- La migración de `/skills` debe llevar revisión de Chopper + Franky.
+- `/skills` requiere implementación propia porque hoy es client component y contiene preview/update controlados.
+- Phase 12.3g decide usar Next.js route handlers bajo `/api/control-panel/skills/**` como BFF same-origin, no server actions por ahora.
+- Ese BFF debe usar `MUGIWARA_CONTROL_PANEL_API_URL` solo en servidor, no ser proxy abierto, validar `skillId`/método/`Content-Type`/tamaño/schema, usar `cache: no-store` y devolver errores saneados.
+- FastAPI sigue siendo la fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
+- La implementación de `/skills` debe llevar revisión de Chopper + Franky.
