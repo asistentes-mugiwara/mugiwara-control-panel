@@ -68,6 +68,7 @@ npm run verify:mugiwaras-server-only
 5. Las rutas BFF validan `skillId`, método, `Content-Type`, tamaño y schema antes de reenviar preview/update.
 6. Los errores devueltos al navegador están saneados y no incluyen backend URL, stack traces, bodies, diffs ni secretos.
 7. FastAPI sigue siendo fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
+8. Los endpoints `/api/control-panel/skills/**`, especialmente `PUT`, pertenecen al control plane privado: no deben exponerse fuera de Tailscale/perímetro autenticado sin añadir auth/autorización server-side y rate limiting.
 
 Antes de cerrar cambios que toquen Skills config o BFF, ejecutar:
 

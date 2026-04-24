@@ -30,6 +30,7 @@ Implement the `/skills` BFF/server-only migration approved in Phase 12.3g.
 
 ## Notes
 - Preview smoke used a non-persisting diff. Update smoke was intentionally not run against real allowlisted skills to avoid modifying production skill files without a fixture/restore workflow.
+- Chopper asked for a minor followup documenting that `/api/control-panel/skills/**`, especially `PUT`, must remain behind Tailscale/private-auth perimeter unless future auth/rate-limit is added; this was added to runtime docs and OpenSpec before merge.
 - One stale `.next` dev-server state caused an initial `/skills` 500 after route changes; removing `apps/web/.next` and restarting dev server resolved it. Build/typecheck were already clean.
 
 ## Review needed

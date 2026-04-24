@@ -44,11 +44,12 @@ The browser no longer needs `NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL` for `/s
 
 The server adapter validates `http:`/`https:` URL schemes. Missing or invalid config returns sanitized `not_configured` errors through the BFF instead of exposing the value.
 
-## Cache/logging/credential policy
+## Cache/logging/credential/perimeter policy
 - BFF upstream fetches use `cache: 'no-store'`.
 - Route handlers force dynamic/no-store execution.
 - No request-body logging is introduced.
 - The BFF does not forward browser cookies or arbitrary Authorization headers to FastAPI.
+- The `/api/control-panel/skills/**` endpoints, especially `PUT`, remain private-control-plane endpoints and must not be exposed outside Tailscale/an authenticated perimeter without adding server-side auth/authorization and rate limiting.
 - Browser-visible errors use a narrow `detail.code` / `detail.message` shape.
 
 ## FastAPI remains source of truth
