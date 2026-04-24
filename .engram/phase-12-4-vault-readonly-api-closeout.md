@@ -12,12 +12,13 @@ Backend-back `/vault` with a safe allowlisted Vault API without opening arbitrar
 
 ## Security notes
 - Allowlist-only Markdown reads.
+- Symlinks are rejected before path resolution, including symlinked allowlisted files and symlinked parent components.
 - No absolute path, traversal, `~`, symlink or unsupported extension access.
-- Host-sensitive lines are filtered from parsed document bodies.
+- Host-sensitive lines are filtered from parsed document bodies, titles and headings/TOC.
 - Errors are semantic and do not include host paths.
 
 ## Verify snapshot
-- `PYTHONPATH=. pytest apps/api/tests/test_memory_api.py apps/api/tests/test_mugiwaras_api.py apps/api/tests/test_shared_contracts.py apps/api/tests/test_skills_api.py apps/api/tests/test_vault_api.py` → 20 passed.
+- `PYTHONPATH=. pytest apps/api/tests/test_memory_api.py apps/api/tests/test_mugiwaras_api.py apps/api/tests/test_shared_contracts.py apps/api/tests/test_skills_api.py apps/api/tests/test_vault_api.py` → 22 passed.
 - `npm run verify:vault-server-only` OK.
 - `npm run verify:memory-server-only` OK.
 - `npm run verify:mugiwaras-server-only` OK.

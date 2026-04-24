@@ -143,13 +143,15 @@ class VaultService:
             if not line:
                 continue
             if line.startswith('# '):
-                if not title:
-                    title = line.removeprefix('# ').strip()
+                candidate_title = line.removeprefix('# ').strip()
+                if not title and not self._line_may_expose_host_detail(candidate_title):
+                    title = candidate_title
                 continue
             if line.startswith('## '):
                 if current_body:
                     sections.append(VaultDocumentSection(current_heading, current_body[:6]))
-                current_heading = line.removeprefix('## ').strip()
+                candidate_heading = line.removeprefix('## ').strip()
+                current_heading = candidate_heading if not self._line_may_expose_host_detail(candidate_heading) else 'Sección saneada'
                 current_body = []
                 continue
             if line.startswith('#'):
@@ -184,14 +186,27 @@ class VaultService:
 
     def _resolve_allowlisted_path(self, relative_path: str) -> Path:
         safe_path = self._normalize_requested_path(relative_path)
-        candidate = (self._root / safe_path).resolve()
+        raw_candidate = self._root / safe_path
+        if raw_candidate.is_symlink() or self._has_symlink_parent(raw_candidate):
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
+        candidate = raw_candidate.resolve()
         if self._root not in candidate.parents:
             raise self._reject(status.HTTP_400_BAD_REQUEST, 'validation_error', 'Ruta de vault no permitida.')
-        if candidate.is_symlink():
-            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
         if not candidate.exists() or not candidate.is_file():
             raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Documento no disponible en la allowlist del vault.')
         return candidate
+
+    def _has_symlink_parent(self, path: Path) -> bool:
+        try:
+            relative = path.relative_to(self._root)
+        except ValueError:
+            return True
+        current = self._root
+        for part in relative.parts[:-1]:
+            current = current / part
+            if current.is_symlink():
+                return True
+        return False
 
     def _freshness(self) -> VaultFreshness:
         mtimes = []

@@ -2,6 +2,9 @@ from fastapi.testclient import TestClient
 
 from apps.api.src.main import app
 
+from apps.api.src.modules.vault.domain import VaultCategory, VaultDocumentEntry
+from apps.api.src.modules.vault.service import VaultService
+
 client = TestClient(app)
 
 
@@ -82,3 +85,59 @@ def test_vault_rejects_unsupported_extension():
     detail = response.json()['detail']
     assert detail['code'] == 'unsupported_media_type'
     assert '/srv/' not in detail['message']
+
+
+def test_vault_rejects_allowlisted_symlink_inside_root(tmp_path):
+    docs = tmp_path / 'docs'
+    docs.mkdir()
+    target = docs / 'target.md'
+    target.write_text('# Target\n\n## Body\n\nSafe body.', encoding='utf-8')
+    link = docs / 'allowed.md'
+    link.symlink_to(target)
+    entry = VaultDocumentEntry(
+        document_id='allowed',
+        label='Allowed',
+        relative_path='docs/allowed.md',
+        category_id='docs',
+        category_label='Docs',
+        summary='Allowed symlink should be rejected.',
+        context='Synthetic test fixture.',
+    )
+    service = VaultService(root=tmp_path, categories=(VaultCategory('docs', 'Docs', 'docs', 'Docs', (entry,)),))
+
+    try:
+        service.get_document_by_id('allowed')
+    except Exception as exc:
+        assert getattr(exc, 'status_code') == 503
+        assert exc.detail['code'] == 'source_unavailable'
+    else:
+        raise AssertionError('allowlisted symlink should be rejected')
+
+
+def test_vault_sanitizes_sensitive_title_and_headings(tmp_path):
+    docs = tmp_path / 'docs'
+    docs.mkdir()
+    doc = docs / 'allowed.md'
+    doc.write_text(
+        '# /srv/secret-title\n\n## token heading\n\nVisible paragraph.\n\n## Safe heading\n\n/home/hidden paragraph\n\nVisible safe paragraph.',
+        encoding='utf-8',
+    )
+    entry = VaultDocumentEntry(
+        document_id='allowed',
+        label='Allowed fallback title',
+        relative_path='docs/allowed.md',
+        category_id='docs',
+        category_label='Docs',
+        summary='Synthetic markdown.',
+        context='Synthetic test fixture.',
+    )
+    service = VaultService(root=tmp_path, categories=(VaultCategory('docs', 'Docs', 'docs', 'Docs', (entry,)),))
+
+    payload = service.get_document_by_id('allowed')
+    serialized = str(payload)
+    assert payload.title == 'Allowed fallback title'
+    assert '/srv/' not in serialized
+    assert '/home/' not in serialized
+    assert 'token heading' not in serialized.lower()
+    assert any(section.heading == 'Sección saneada' for section in payload.sections)
+    assert any('Visible safe paragraph.' in section.body for section in payload.sections)
