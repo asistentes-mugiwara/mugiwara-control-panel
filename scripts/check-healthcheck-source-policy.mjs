@@ -83,7 +83,27 @@ const forbiddenHostConsolePatterns = [
   { pattern: /\bimport\s+httpx\b/, label: 'import httpx' },
   { pattern: /\bhttpx\.(get|post|put|patch|delete|request)\s*\(/, label: 'httpx generic URL fetch' },
   { pattern: /\burllib\.request\b/, label: 'urllib.request generic URL fetch' },
+  { pattern: /\bimport\s+glob\b/, label: 'import glob' },
+  { pattern: /\bglob\.glob\s*\(/, label: 'glob filesystem discovery' },
+  { pattern: /\bos\.(listdir|scandir|walk)\s*\(/, label: 'generic filesystem discovery' },
+  { pattern: /\bPath\.(home|cwd)\s*\(/, label: 'ambient Path root discovery' },
+  { pattern: /\.rglob\s*\(/, label: 'recursive filesystem discovery' },
+  { pattern: /\bopen\s*\(/, label: 'generic file open' },
 ]
+
+const requiredRegistrySnippets = [
+  '_SENSITIVE_TEXT_MARKERS',
+  '_SANITIZED_TEXT_DEFAULTS',
+  'label=HEALTHCHECK_SOURCE_LABELS[source_id]',
+  '_safe_text_field',
+  'Resumen Healthcheck saneado por política de seguridad.',
+  'Detalle Healthcheck omitido por política de seguridad.',
+]
+
+for (const snippet of requiredRegistrySnippets) {
+  const registryText = read(join(paths.healthcheckModule, 'registry.py'), 'Healthcheck source registry')
+  mustInclude(registryText, snippet, 'Healthcheck source registry')
+}
 
 for (const filePath of listPythonFiles(paths.healthcheckModule)) {
   const text = readFileSync(filePath, 'utf8')
@@ -96,6 +116,11 @@ for (const filePath of listPythonFiles(paths.healthcheckModule)) {
 
 const requiredDocSnippets = [
   'No generic host console',
+  'Text field sanitization',
+  'ignores adapter-provided labels',
+  'HEALTHCHECK_SOURCE_LABELS[source_id]',
+  '`summary`, `warning_text`, `source_label` and `freshness_label`',
+  'generic filesystem discovery or reads',
   'Franky-owned operational source',
   'shared manifest registry, not Zoro profile-local `cronjob list`',
   '`vault-sync`: warn after 90 minutes, fail after 360 minutes',

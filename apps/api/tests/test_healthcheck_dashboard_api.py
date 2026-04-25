@@ -9,6 +9,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_SEVERITY_VALUES,
     HEALTHCHECK_SOURCE_FAMILY_IDS,
     HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS,
+    HEALTHCHECK_SOURCE_LABELS,
     HEALTHCHECK_SOURCE_MANIFEST_POLICIES,
     HEALTHCHECK_STATUS_VALUES,
     HealthcheckRecord,
@@ -179,6 +180,58 @@ def test_healthcheck_source_registry_normalizes_allowed_fields_only():
     ]
     assert payload['signals'][0]['check_id'] == 'cronjobs.registry'
     assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_healthcheck_source_registry_sanitizes_sensitive_allowed_text_fields():
+    snapshot = HealthcheckSourceRegistry().normalize(
+        'vault-sync',
+        {
+            'label': 'Vault sync /srv/crew-core/private/.env token',
+            'status': 'warn',
+            'severity': 'medium',
+            'updated_at': '2026-04-24T07:41:00Z',
+            'summary': 'token leaked at /srv/crew-core/private/.env',
+            'warning_text': 'stderr includes secret marker and command output',
+            'source_label': 'raw_output from /home/agentops/.env',
+            'freshness_label': 'password appeared in journal stdout',
+            'freshness_state': 'stale',
+        },
+    )
+
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    signal = payload['signals'][0]
+    assert module['label'] == 'Vault sync'
+    assert signal['label'] == 'Vault sync'
+    assert module['summary'] == 'Resumen Healthcheck saneado por política de seguridad.'
+    assert signal['warning_text'] == 'Detalle Healthcheck omitido por política de seguridad.'
+    assert signal['source_label'] == 'Healthcheck source registry'
+    assert signal['freshness']['label'] == 'Frescura desconocida'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_healthcheck_source_registry_uses_backend_owned_label_when_adapter_label_is_sensitive():
+    snapshot = HealthcheckSourceRegistry().normalize(
+        'vault-sync',
+        {
+            'label': 'Vault sync /srv/crew-core/private/.env token',
+            'status': 'warn',
+            'severity': 'medium',
+            'updated_at': '2026-04-24T07:41:00Z',
+            'summary': 'Safe vault summary.',
+            'warning_text': 'Synthetic safe warning.',
+            'source_label': 'Vault safe summary',
+            'freshness_label': 'Actualizado hace 5 min',
+            'freshness_state': 'stale',
+        },
+    )
+
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'][0]['label'] == HEALTHCHECK_SOURCE_LABELS['vault-sync']
+    assert payload['signals'][0]['label'] == HEALTHCHECK_SOURCE_LABELS['vault-sync']
     _assert_no_sensitive_host_output(payload)
 
 

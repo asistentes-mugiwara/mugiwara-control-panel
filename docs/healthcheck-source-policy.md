@@ -4,15 +4,21 @@
 Phase 15.2c closes the final foundation slice before live Healthcheck source adapters. It defines the source-policy contract that later adapters must satisfy without adding live reads yet.
 
 ## No generic host console
-Healthcheck must not become a generic host console. New source code in `apps/api/src/modules/healthcheck` must not introduce generic shell, process, command execution or arbitrary URL-fetch adapters without a reviewed, allowlisted phase.
+Healthcheck must not become a generic host console. New source code in `apps/api/src/modules/healthcheck` must not introduce generic shell, process, command execution, arbitrary URL-fetch adapters or generic filesystem discovery without a reviewed, allowlisted phase.
 
 Blocked by `npm run verify:healthcheck-source-policy`:
 - generic subprocess or shell usage;
 - `exec()` / `eval()` style execution;
 - generic `requests`, `httpx` or `urllib.request` URL fetches inside the Healthcheck module;
-- command-parameter based host adapters.
+- command-parameter based host adapters;
+- generic filesystem discovery or reads such as `glob`, `os.listdir`, `os.scandir`, `os.walk`, ambient `Path.home()` / `Path.cwd()`, recursive `rglob()` or direct `open()` in the Healthcheck module.
 
 Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c.
+
+## Text field sanitization
+Future adapters must sanitize summaries before handing them to Healthcheck. As defense in depth, `HealthcheckSourceRegistry` ignores adapter-provided labels and always resolves `label` from backend-owned `HEALTHCHECK_SOURCE_LABELS[source_id]`. It also applies a final sensitive-marker filter to allowed textual fields: `summary`, `warning_text`, `source_label` and `freshness_label`.
+
+If those fields contain host paths, `.env`, tokens, credentials, cookies, raw output markers, stdout/stderr, commands, tracebacks, journals, prompts, chat IDs, delivery targets, Git diffs, untracked files or internal remotes, the registry replaces the value with a generic safe fallback. This preserves status/severity/freshness semantics while preventing sensitive textual content from reaching the public read model.
 
 ## Manifest ownership and safe location class
 Future live adapters may consume only sanitized summaries from reviewed sources. They must never expose raw host details.
