@@ -26,6 +26,43 @@ _ALLOWED_SOURCE_FIELDS = frozenset(
     }
 )
 
+_SENSITIVE_TEXT_MARKERS = frozenset(
+    {
+        '/srv/',
+        '/home/',
+        '.env',
+        'token',
+        'secret',
+        'password',
+        'credential',
+        'cookie',
+        'raw_output',
+        'stdout',
+        'stderr',
+        'command',
+        'traceback',
+        'journal',
+        'unit_content',
+        'backup_path',
+        'included_path',
+        'prompt_body',
+        'chat_id',
+        'delivery_target',
+        'authorization',
+        'private_key',
+        'git_diff',
+        'untracked_files',
+        'remote_url',
+    }
+)
+
+_SANITIZED_TEXT_DEFAULTS = {
+    'summary': 'Resumen Healthcheck saneado por política de seguridad.',
+    'warning_text': 'Detalle Healthcheck omitido por política de seguridad.',
+    'source_label': 'Healthcheck source registry',
+    'freshness_label': 'Frescura desconocida',
+}
+
 
 @dataclass(frozen=True)
 class HealthcheckSourceSnapshot:
@@ -54,10 +91,10 @@ class HealthcheckSourceRegistry:
             status=self._string_field(allowed, 'status', 'unknown'),
             severity=self._string_field(allowed, 'severity', 'unknown'),
             updated_at=self._string_field(allowed, 'updated_at', ''),
-            summary=self._string_field(allowed, 'summary', 'Estado disponible con resumen saneado.'),
-            warning_text=self._string_field(allowed, 'warning_text', 'Estado degradado pendiente de revisión.'),
-            source_label=self._string_field(allowed, 'source_label', 'Healthcheck source registry'),
-            freshness_label=self._string_field(allowed, 'freshness_label', 'Frescura desconocida'),
+            summary=self._safe_text_field(allowed, 'summary', 'Estado disponible con resumen saneado.'),
+            warning_text=self._safe_text_field(allowed, 'warning_text', 'Estado degradado pendiente de revisión.'),
+            source_label=self._safe_text_field(allowed, 'source_label', 'Healthcheck source registry'),
+            freshness_label=self._safe_text_field(allowed, 'freshness_label', 'Frescura desconocida'),
         )
         validate_healthcheck_status(record.status)
         validate_healthcheck_severity(record.severity)
@@ -129,3 +166,13 @@ class HealthcheckSourceRegistry:
         if isinstance(value, str):
             return value
         return default
+
+    def _safe_text_field(self, values: Mapping[str, object], key: str, default: str) -> str:
+        value = self._string_field(values, key, default)
+        if self._contains_sensitive_text(value):
+            return _SANITIZED_TEXT_DEFAULTS.get(key, default)
+        return value
+
+    def _contains_sensitive_text(self, value: str) -> bool:
+        normalized = value.lower()
+        return any(marker in normalized for marker in _SENSITIVE_TEXT_MARKERS)

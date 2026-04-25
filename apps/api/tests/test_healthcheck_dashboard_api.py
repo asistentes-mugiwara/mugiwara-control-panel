@@ -182,6 +182,33 @@ def test_healthcheck_source_registry_normalizes_allowed_fields_only():
     _assert_no_sensitive_host_output(payload)
 
 
+def test_healthcheck_source_registry_sanitizes_sensitive_allowed_text_fields():
+    snapshot = HealthcheckSourceRegistry().normalize(
+        'vault-sync',
+        {
+            'label': 'Vault sync',
+            'status': 'warn',
+            'severity': 'medium',
+            'updated_at': '2026-04-24T07:41:00Z',
+            'summary': 'token leaked at /srv/crew-core/private/.env',
+            'warning_text': 'stderr includes secret marker and command output',
+            'source_label': 'raw_output from /home/agentops/.env',
+            'freshness_label': 'password appeared in journal stdout',
+            'freshness_state': 'stale',
+        },
+    )
+
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    signal = payload['signals'][0]
+    assert module['summary'] == 'Resumen Healthcheck saneado por política de seguridad.'
+    assert signal['warning_text'] == 'Detalle Healthcheck omitido por política de seguridad.'
+    assert signal['source_label'] == 'Healthcheck source registry'
+    assert signal['freshness']['label'] == 'Frescura desconocida'
+    _assert_no_sensitive_host_output(payload)
+
+
 def test_healthcheck_source_registry_models_absent_unreadable_and_unregistered_as_degraded():
     registry = HealthcheckSourceRegistry()
     service = HealthcheckService.from_source_snapshots(
