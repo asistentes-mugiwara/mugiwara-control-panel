@@ -71,8 +71,8 @@ if (packageJson && packageJson.scripts?.['verify:healthcheck-source-policy'] !==
   failures.push('package.json must expose verify:healthcheck-source-policy')
 }
 
-if (packageJson && packageJson.scripts?.['write:project-health-status'] !== 'python scripts/write-project-health-status.py') {
-  failures.push('package.json must expose write:project-health-status')
+if (packageJson && packageJson.scripts?.['write:project-health-status'] !== 'python3 scripts/write-project-health-status.py') {
+  failures.push('package.json must expose write:project-health-status with python3')
 }
 
 const forbiddenHostConsolePatterns = [
