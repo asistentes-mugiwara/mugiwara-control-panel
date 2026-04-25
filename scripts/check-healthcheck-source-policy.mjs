@@ -17,6 +17,7 @@ const paths = {
   apiModulesDoc: join(repoRoot, 'docs/api-modules.md'),
   readModelsDoc: join(repoRoot, 'docs/read-models.md'),
   projectHealthProducer: join(repoRoot, 'scripts/write-project-health-status.py'),
+  gatewayStatusProducer: join(repoRoot, 'scripts/write-gateway-status.py'),
 }
 
 const failures = []
@@ -59,6 +60,7 @@ const sourcePolicyDoc = read(paths.sourcePolicyDoc, 'Healthcheck source policy d
 const apiModulesDoc = read(paths.apiModulesDoc, 'API modules document')
 const readModelsDoc = read(paths.readModelsDoc, 'read models document')
 const projectHealthProducer = read(paths.projectHealthProducer, 'project-health manifest producer')
+const gatewayStatusProducer = read(paths.gatewayStatusProducer, 'gateway status manifest producer')
 
 let packageJson
 try {
@@ -73,6 +75,14 @@ if (packageJson && packageJson.scripts?.['verify:healthcheck-source-policy'] !==
 
 if (packageJson && packageJson.scripts?.['write:project-health-status'] !== 'python3 scripts/write-project-health-status.py') {
   failures.push('package.json must expose write:project-health-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['write:gateway-status'] !== 'python3 scripts/write-gateway-status.py') {
+  failures.push('package.json must expose write:gateway-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:gateway-status-runner'] !== 'node scripts/check-gateway-status-runner.mjs') {
+  failures.push('package.json must expose verify:gateway-status-runner')
 }
 
 const forbiddenHostConsolePatterns = [
@@ -146,6 +156,20 @@ for (const snippet of requiredProjectHealthProducerSnippets) {
   mustInclude(projectHealthProducer, snippet, 'project-health manifest producer')
 }
 
+const requiredGatewayStatusProducerSnippets = [
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'gateways')",
+  "SAFE_GATEWAY_ENTRY_KEYS = ('active',)",
+  "['systemctl', '--user', 'is-active', unit_name]",
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+]
+
+for (const snippet of requiredGatewayStatusProducerSnippets) {
+  mustInclude(gatewayStatusProducer, snippet, 'gateway status manifest producer')
+}
+
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
@@ -169,8 +193,13 @@ const requiredDocSnippets = [
   'Phase 15.4a reads a fixed Zoro-owned repo-local status manifest and exposes only timestamp/result plus boolean workspace/main/sync semantics',
   'Phase 15.5a also allows the fixed `gateway-status` manifest reader',
   'it consumes only `updated_at` and boolean/enum active state',
+  'Phase 15.5b adds `scripts/write-gateway-status.py` as the reviewed producer',
+  'only checks allowlisted `hermes-gateway-<slug>.service` active state',
+  'mugiwara-gateway-status.timer',
+  'scripts/install-gateway-status-user-timer.sh',
+  'does not inspect journal output, unit file contents, PIDs, command lines, env values, logs, stdout/stderr or alternate output paths',
   'These phases still do not add cronjob reads',
-  'does not add a gateway manifest producer, systemd runner, GitHub issue/PR counts or last-verify aggregation',
+  'GitHub issue/PR counts or last-verify aggregation',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh Mugiwara Control Panel gateway status manifest periodically
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=mugiwara-gateway-status.service
+
+[Install]
+WantedBy=timers.target
