@@ -41,10 +41,11 @@
 
 ### `healthcheck`
 - exponer `GET /api/v1/healthcheck` como workspace read-only saneado
-- resumir cronjobs, backups, gateways, honcho, docker y checks operativos desde catálogo seguro backend-owned
+- resumir `vault-sync`, `project-health`, `backup-health`, `hermes-gateways`, `gateway.<mugiwara-slug>` y `cronjobs` desde catálogo seguro backend-owned
+- mantener vocabulario allowlisted de `status`, `severity`, `freshness.state`, source IDs y check IDs en el dominio backend
 - consumir solo fuentes saneadas y timestamps de frescura
 - no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase
-- representar `stale`/`not_configured` de forma explícita
+- representar `stale`/`not_configured`/`unknown` de forma explícita
 
 ### `dashboard`
 - exponer `GET /api/v1/dashboard` como agregación read-only para la home operativa

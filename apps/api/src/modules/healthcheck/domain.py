@@ -2,6 +2,65 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+HEALTHCHECK_STATUS_VALUES: tuple[str, ...] = ('pass', 'warn', 'fail', 'stale', 'not_configured', 'unknown')
+HEALTHCHECK_SEVERITY_VALUES: tuple[str, ...] = ('low', 'medium', 'high', 'critical', 'unknown')
+HEALTHCHECK_FRESHNESS_STATES: tuple[str, ...] = ('fresh', 'stale', 'unknown')
+
+MUGIWARA_GATEWAY_SOURCE_IDS: tuple[str, ...] = (
+    'gateway.luffy',
+    'gateway.zoro',
+    'gateway.nami',
+    'gateway.usopp',
+    'gateway.sanji',
+    'gateway.chopper',
+    'gateway.robin',
+    'gateway.franky',
+    'gateway.brook',
+    'gateway.jinbe',
+)
+
+HEALTHCHECK_SOURCE_FAMILY_IDS: tuple[str, ...] = (
+    'vault-sync',
+    'project-health',
+    'backup-health',
+    'hermes-gateways',
+    *MUGIWARA_GATEWAY_SOURCE_IDS,
+    'cronjobs',
+)
+
+HEALTHCHECK_CHECK_ID_BY_SOURCE_ID: dict[str, str] = {
+    'vault-sync': 'vault-sync.last-sync',
+    'project-health': 'project-health.workspace',
+    'backup-health': 'backup-health.last-backup',
+    'hermes-gateways': 'hermes-gateways.global',
+    **{source_id: f'{source_id}.process' for source_id in MUGIWARA_GATEWAY_SOURCE_IDS},
+    'cronjobs': 'cronjobs.registry',
+}
+
+HEALTHCHECK_CHECK_IDS: tuple[str, ...] = tuple(HEALTHCHECK_CHECK_ID_BY_SOURCE_ID.values())
+
+
+def validate_healthcheck_status(status: str) -> None:
+    if status not in HEALTHCHECK_STATUS_VALUES:
+        raise ValueError(f'Unsupported healthcheck status: {status}')
+
+
+def validate_healthcheck_severity(severity: str) -> None:
+    if severity not in HEALTHCHECK_SEVERITY_VALUES:
+        raise ValueError(f'Unsupported healthcheck severity: {severity}')
+
+
+def validate_healthcheck_freshness_state(state: str) -> None:
+    if state not in HEALTHCHECK_FRESHNESS_STATES:
+        raise ValueError(f'Unsupported healthcheck freshness state: {state}')
+
+
+def resolve_healthcheck_check_id(source_id: str) -> str:
+    try:
+        return HEALTHCHECK_CHECK_ID_BY_SOURCE_ID[source_id]
+    except KeyError as exc:
+        raise ValueError(f'Unsupported healthcheck source id: {source_id}') from exc
+
 
 @dataclass(frozen=True)
 class HealthcheckFreshness:
