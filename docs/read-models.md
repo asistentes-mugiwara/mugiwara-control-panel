@@ -66,6 +66,8 @@ Phase 15.2a no añade lecturas vivas: no lee manifiestos, filesystem, Git/GitHub
 
 Phase 15.2b añade una normalización backend-owned previa a futuras fuentes vivas. Los adapters futuros entregarán payloads ya resumidos al registro de fuentes; el registro solo copia una allowlist mínima (`label`, `status`, `severity`, `updated_at`, `summary`, `warning_text`, `source_label`, `freshness_label`, `freshness_state`) y descarta campos desconocidos antes de que lleguen al modelo serializable. Ausencias, fuentes no legibles y adapters no registrados se representan como `not_configured` o `unknown`, nunca como `pass` silencioso. Los errores de source ID no deben ecoar el valor rechazado para evitar filtrar paths, comandos o nombres internos.
 
+Phase 15.2c adds static guardrails, manifest ownership and freshness thresholds before live adapters. The detailed policy lives in `docs/healthcheck-source-policy.md`; it defines Franky/Zoro ownership per source family, safe location classes, explicit exclusions for raw host data and initial warn/fail thresholds. This phase still does not read manifests or apply thresholds to live data.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

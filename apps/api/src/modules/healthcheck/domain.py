@@ -41,6 +41,71 @@ HEALTHCHECK_CHECK_ID_BY_SOURCE_ID: dict[str, str] = {
 
 HEALTHCHECK_CHECK_IDS: tuple[str, ...] = tuple(HEALTHCHECK_CHECK_ID_BY_SOURCE_ID.values())
 
+_HEALTHCHECK_GATEWAY_FRESHNESS_THRESHOLD: Mapping[str, int] = MappingProxyType(
+    {'warn_after_minutes': 15, 'fail_after_minutes': 60}
+)
+
+HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS: Mapping[str, Mapping[str, int]] = MappingProxyType(
+    {
+        'vault-sync': MappingProxyType({'warn_after_minutes': 90, 'fail_after_minutes': 360}),
+        'project-health': MappingProxyType({'warn_after_minutes': 120, 'fail_after_minutes': 480}),
+        'backup-health': MappingProxyType({'warn_after_minutes': 1800, 'fail_after_minutes': 4320}),
+        'hermes-gateways': _HEALTHCHECK_GATEWAY_FRESHNESS_THRESHOLD,
+        **{source_id: _HEALTHCHECK_GATEWAY_FRESHNESS_THRESHOLD for source_id in MUGIWARA_GATEWAY_SOURCE_IDS},
+        'cronjobs': MappingProxyType({'warn_after_minutes': 180, 'fail_after_minutes': 720}),
+    }
+)
+
+HEALTHCHECK_SOURCE_MANIFEST_POLICIES: Mapping[str, Mapping[str, str]] = MappingProxyType(
+    {
+        'vault-sync': MappingProxyType(
+            {
+                'owner': 'franky',
+                'safe_location_class': 'franky-owned-vault-sync-status-manifest',
+                'exclusions': 'raw logs, stdout, stderr, git diffs, credentials, absolute host paths',
+            }
+        ),
+        'project-health': MappingProxyType(
+            {
+                'owner': 'zoro',
+                'safe_location_class': 'repo-local-project-health-summary',
+                'exclusions': 'untracked file lists, internal remotes, git diffs, absolute host paths, credentials',
+            }
+        ),
+        'backup-health': MappingProxyType(
+            {
+                'owner': 'franky',
+                'safe_location_class': 'franky-owned-backup-status-manifest',
+                'exclusions': 'backup_path, included_path, raw logs, stdout, stderr, credentials, absolute host paths',
+            }
+        ),
+        'hermes-gateways': MappingProxyType(
+            {
+                'owner': 'franky',
+                'safe_location_class': 'systemd-user-gateway-status-summary',
+                'exclusions': 'unit_content, journal, pid, command lines, stdout, stderr, environment values',
+            }
+        ),
+        **{
+            source_id: MappingProxyType(
+                {
+                    'owner': 'franky',
+                    'safe_location_class': 'allowlisted-gateway-status-summary',
+                    'exclusions': 'unit_content, journal, pid, command lines, stdout, stderr, environment values',
+                }
+            )
+            for source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+        },
+        'cronjobs': MappingProxyType(
+            {
+                'owner': 'franky',
+                'safe_location_class': 'shared-manifest-registry',
+                'exclusions': 'zoro profile-local cronjob list, prompt_body, chat_id, delivery targets, tokens, credentials',
+            }
+        ),
+    }
+)
+
 HEALTHCHECK_SOURCE_LABELS: Mapping[str, str] = MappingProxyType(
     {
         'vault-sync': 'Vault sync',

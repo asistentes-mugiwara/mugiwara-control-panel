@@ -45,6 +45,8 @@
 - mantener vocabulario allowlisted de `status`, `severity`, `freshness.state`, source IDs y check IDs en el dominio backend
 - normalizar payloads de adapters futuros con registro backend-owned allowlist-only antes de serializar; campos crudos o desconocidos se descartan y los source IDs rechazados no se ecoan
 - consumir solo fuentes saneadas y timestamps de frescura
+- documentar y verificar manifest ownership and freshness thresholds antes de cualquier lectura viva (`docs/healthcheck-source-policy.md`)
+- bloquear crecimiento accidental hacia consola host genérica con `npm run verify:healthcheck-source-policy`
 - no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase
 - representar `stale`/`not_configured`/`unknown` de forma explícita
 
