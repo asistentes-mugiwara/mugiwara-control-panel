@@ -1,7 +1,7 @@
 # Healthcheck source policy
 
 ## Purpose
-Phase 15.2c closed the final foundation slice before live Healthcheck source adapters. It defines the source-policy contract that adapters must satisfy. Phase 15.3a starts live reads with the `vault-sync` adapter only, through a fixed Franky-owned manifest path and the existing registry sanitizer.
+Phase 15.2c closed the final foundation slice before live Healthcheck source adapters. It defines the source-policy contract that adapters must satisfy. Phase 15.3a started live reads with the `vault-sync` adapter only; Phase 15.3b adds the `backup-health` adapter. Both consume fixed Franky-owned manifests and route through the existing registry sanitizer.
 
 ## No generic host console
 Healthcheck must not become a generic host console. New source code in `apps/api/src/modules/healthcheck` must not introduce generic shell, process, command execution, arbitrary URL-fetch adapters or generic filesystem discovery without a reviewed, allowlisted phase.
@@ -13,7 +13,7 @@ Blocked by `npm run verify:healthcheck-source-policy`:
 - command-parameter based host adapters;
 - generic filesystem discovery or reads such as `glob`, `os.listdir`, `os.scandir`, `os.walk`, ambient `Path.home()` / `Path.cwd()`, recursive `rglob()` or direct `open()` in the Healthcheck module.
 
-Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c. Phase 15.3a allows only the fixed `vault-sync` manifest reader in `source_adapters.py`; it does not add backup, project-health, gateway or cronjob reads.
+Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c. Phase 15.3a allows the fixed `vault-sync` manifest reader in `source_adapters.py`; Phase 15.3b also allows the fixed `backup-health` manifest reader. These phases still do not add project-health, gateway or cronjob reads.
 
 ## Text field sanitization
 Future adapters must sanitize summaries before handing them to Healthcheck. As defense in depth, `HealthcheckSourceRegistry` ignores adapter-provided labels and always resolves `label` from backend-owned `HEALTHCHECK_SOURCE_LABELS[source_id]`. It also applies a final sensitive-marker filter to allowed textual fields: `summary`, `warning_text`, `source_label` and `freshness_label`.
@@ -26,7 +26,7 @@ Future live adapters may consume only sanitized summaries from reviewed sources.
 | Source family | Owner | Safe location class | Notes |
 | --- | --- | --- | --- |
 | `vault-sync` | Franky | Franky-owned operational source | Phase 15.3a reads a fixed status manifest and exposes only timestamp/result-derived summary fields. |
-| `backup-health` | Franky | Franky-owned operational source | Status manifest or wrapper maintained by operations. |
+| `backup-health` | Franky | Franky-owned operational source | Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields. |
 | `cronjobs` | Franky | shared manifest registry, not Zoro profile-local `cronjob list` | Must represent global scheduled jobs safely, not one profile's local runtime view. |
 | `hermes-gateways` | Franky | systemd user gateway summary | Aggregated gateway status only. |
 | `gateway.<mugiwara-slug>` | Franky | allowlisted gateway status summary | One allowlisted process summary per Mugiwara slug. |
@@ -43,7 +43,7 @@ Thresholds are intentionally backend-owned policy before Phase 15.3+ live adapte
 - `hermes-gateways` and `gateway.<mugiwara-slug>`: warn after 15 minutes, fail after 60 minutes.
 - `cronjobs`: warn after 180 minutes, fail after 720 minutes.
 
-These thresholds are not applied to live data in Phase 15.2c. Future adapters must parse timestamps explicitly, normalize to the existing Healthcheck freshness vocabulary and degrade absent/unreadable data to `not_configured`, `unknown` or `stale`, never to healthy output.
+These thresholds are not applied to live data in Phase 15.2c. Phase 15.3a/15.3b apply them only to fixed `vault-sync` and `backup-health` manifests. Future adapters must parse timestamps explicitly, normalize to the existing Healthcheck freshness vocabulary and degrade absent/unreadable data to `not_configured`, `unknown` or `stale`, never to healthy output.
 
 ## Verify
 Run after changes that touch Healthcheck source adapters, docs or source-policy boundaries:

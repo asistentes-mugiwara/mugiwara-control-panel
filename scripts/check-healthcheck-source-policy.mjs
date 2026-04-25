@@ -128,7 +128,9 @@ const requiredDocSnippets = [
   '`cronjobs`: warn after 180 minutes, fail after 720 minutes',
   '`hermes-gateways` and `gateway.<mugiwara-slug>`: warn after 15 minutes, fail after 60 minutes',
   '`project-health`: warn after 120 minutes, fail after 480 minutes',
-  'No live manifest reads are implemented in Phase 15.2c',
+  'Phase 15.3b also allows the fixed `backup-health` manifest reader',
+  'Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields',
+  'These phases still do not add project-health, gateway or cronjob reads',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 

@@ -72,6 +72,8 @@ Phase 15.2c adds static guardrails, manifest ownership and freshness thresholds 
 
 Phase 15.3a connects the first live source: `vault-sync`. The adapter reads only a fixed Franky-owned status manifest, derives `pass`/`warn`/`stale`/`fail` from safe result and timestamp fields, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not expose manifest paths, branch names, Git output, raw fields or remotes, and it does not add backup/project/gateway/cronjob reads.
 
+Phase 15.3b connects the second live source: `backup-health`. The adapter reads only a fixed Franky-owned local backup status manifest, consumes safe status/timestamp/checksum/retention fields, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not expose archive names, backup paths, included paths, stdout/stderr, raw output, file sizes or runtime manifest internals, and it does not add project/gateway/cronjob reads.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

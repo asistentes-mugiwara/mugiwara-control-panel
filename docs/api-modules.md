@@ -46,7 +46,8 @@
 - normalizar payloads de adapters futuros con registro backend-owned allowlist-only antes de serializar; campos crudos o desconocidos se descartan y los source IDs rechazados no se ecoan
 - consumir solo fuentes saneadas y timestamps de frescura
 - conectar en Phase 15.3a el primer adapter vivo `vault-sync` desde manifiesto fijo Franky-owned, sin exponer rutas, ramas, remotes, Git output ni campos raw
-- mantener backup/project/gateway/cronjob reads fuera hasta sus microfases revisadas
+- conectar en Phase 15.3b el adapter vivo `backup-health` desde manifiesto fijo Franky-owned, sin exponer rutas de archivo, nombres de archivos, paths incluidos, stdout/stderr, tamaños ni campos raw
+- mantener project/gateway/cronjob reads fuera hasta sus microfases revisadas
 - documentar y verificar manifest ownership and freshness thresholds antes de cualquier lectura viva (`docs/healthcheck-source-policy.md`)
 - bloquear crecimiento accidental hacia consola host genérica con `npm run verify:healthcheck-source-policy`
 - no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase
