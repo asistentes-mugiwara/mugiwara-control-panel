@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import datetime, timezone
 
 from .domain import (
     HealthcheckEvent,
@@ -65,8 +66,18 @@ class HealthcheckService:
         incidents = sum(1 for module in modules if module.status == 'fail')
         warnings = sum(1 for module in modules if module.status in {'warn', 'stale'})
         overall = max(modules, key=lambda module: _STATUS_ORDER[module.status]).status
-        updated_at = max(module.updated_at for module in modules)
+        updated_at = self._latest_updated_at(modules)
         return HealthcheckSummaryBar(overall, len(modules), warnings, incidents, updated_at)
+
+    def _latest_updated_at(self, modules: list[HealthcheckModuleCard]) -> str | None:
+        latest: tuple[datetime, str] | None = None
+        for module in modules:
+            parsed = _parse_timestamp(module.updated_at)
+            if parsed is None:
+                continue
+            if latest is None or parsed > latest[0]:
+                latest = (parsed, module.updated_at)
+        return latest[1] if latest else None
 
     def _to_module(self, record: HealthcheckRecord) -> HealthcheckModuleCard:
         return HealthcheckModuleCard(record.module_id, record.label, record.status, record.severity, record.updated_at, record.summary)
@@ -81,3 +92,14 @@ class HealthcheckService:
             warning_text=record.warning_text,
             source_label=record.source_label,
         )
+
+
+def _parse_timestamp(value: str) -> datetime | None:
+    try:
+        normalized = value.replace('Z', '+00:00') if value.endswith('Z') else value
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
