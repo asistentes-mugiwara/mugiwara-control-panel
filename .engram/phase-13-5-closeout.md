@@ -27,7 +27,7 @@ Phase 13.5 closes the Phase 13 security/perimeter block without adding runtime b
 - `npm run audit:web` — `found 0 vulnerabilities`.
 - Targeted backend API smoke for current MVP surfaces + CORS rejection + validation-error sanitization — passed.
 - Directed secret/CORS scan — passed after excluding expected negative-pattern definitions in the guardrail script.
-- `git diff --check` — to be rerun after final docs before commit.
+- `git diff --check` — passed after final docs/script changes.
 
 ## Follow-ups
 - Phase 13.5 PR review: Chopper + Franky.
