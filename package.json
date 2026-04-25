@@ -22,7 +22,7 @@
     "verify:health-dashboard-server-only": "node scripts/check-health-dashboard-server-only.mjs",
     "verify:healthcheck-source-policy": "node scripts/check-healthcheck-source-policy.mjs",
     "verify:project-health-runner": "node scripts/check-project-health-runner.mjs",
-    "write:project-health-status": "python scripts/write-project-health-status.py",
+    "write:project-health-status": "python3 scripts/write-project-health-status.py",
     "dev:api": "uvicorn apps.api.src.main:app --reload",
     "lint": "echo 'Pending lint setup'",
     "test": "echo 'Pending test setup'",
