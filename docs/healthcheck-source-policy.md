@@ -16,7 +16,7 @@ Blocked by `npm run verify:healthcheck-source-policy`:
 Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c.
 
 ## Text field sanitization
-Future adapters must sanitize summaries before handing them to Healthcheck. As defense in depth, `HealthcheckSourceRegistry` also applies a final sensitive-marker filter to allowed textual fields: `summary`, `warning_text`, `source_label` and `freshness_label`.
+Future adapters must sanitize summaries before handing them to Healthcheck. As defense in depth, `HealthcheckSourceRegistry` ignores adapter-provided labels and always resolves `label` from backend-owned `HEALTHCHECK_SOURCE_LABELS[source_id]`. It also applies a final sensitive-marker filter to allowed textual fields: `summary`, `warning_text`, `source_label` and `freshness_label`.
 
 If those fields contain host paths, `.env`, tokens, credentials, cookies, raw output markers, stdout/stderr, commands, tracebacks, journals, prompts, chat IDs, delivery targets, Git diffs, untracked files or internal remotes, the registry replaces the value with a generic safe fallback. This preserves status/severity/freshness semantics while preventing sensitive textual content from reaching the public read model.
 

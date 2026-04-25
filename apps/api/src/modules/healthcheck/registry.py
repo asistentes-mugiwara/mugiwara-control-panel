@@ -14,7 +14,6 @@ from .domain import (
 
 _ALLOWED_SOURCE_FIELDS = frozenset(
     {
-        'label',
         'status',
         'severity',
         'updated_at',
@@ -87,7 +86,7 @@ class HealthcheckSourceRegistry:
         allowed = {key: raw[key] for key in _ALLOWED_SOURCE_FIELDS if key in raw}
         record = HealthcheckRecord(
             module_id=source_id,
-            label=self._string_field(allowed, 'label', HEALTHCHECK_SOURCE_LABELS[source_id]),
+            label=HEALTHCHECK_SOURCE_LABELS[source_id],
             status=self._string_field(allowed, 'status', 'unknown'),
             severity=self._string_field(allowed, 'severity', 'unknown'),
             updated_at=self._string_field(allowed, 'updated_at', ''),

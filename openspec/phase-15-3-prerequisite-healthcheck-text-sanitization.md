@@ -5,6 +5,7 @@ Close GitHub issue #34 before adding any live Healthcheck adapters. The micropha
 
 ## Scope
 - Add a defense-in-depth sensitive-marker filter in `HealthcheckSourceRegistry` for `summary`, `warning_text`, `source_label` and `freshness_label`.
+- Keep `label` backend-owned via `HEALTHCHECK_SOURCE_LABELS[source_id]`; adapter-provided labels are ignored.
 - Preserve source semantics (`status`, `severity`, `freshness_state`, `updated_at`) while replacing unsafe text with generic safe fallbacks.
 - Add regression tests that inject sensitive content inside allowed textual fields and verify the serialized workspace remains sanitized.
 - Expand `npm run verify:healthcheck-source-policy` to assert the sanitizer contract and block generic filesystem discovery/read patterns in the Healthcheck module.
@@ -17,7 +18,7 @@ Close GitHub issue #34 before adding any live Healthcheck adapters. The micropha
 - No auth/public perimeter changes.
 
 ## Defensive behavior
-Allowed textual fields are not rejected wholesale. If their value contains sensitive markers such as host paths, `.env`, token/credential/cookie terms, stdout/stderr/raw output, commands, tracebacks, journals, prompts, chat IDs, delivery targets, Git diffs, untracked files or internal remotes, the registry substitutes a generic fallback. That keeps the check visible but removes unsafe text from the API read model.
+Allowed textual fields are not rejected wholesale. Adapter-provided `label` is ignored and replaced with the backend-owned label for the source ID. If `summary`, `warning_text`, `source_label` or `freshness_label` contain sensitive markers such as host paths, `.env`, token/credential/cookie terms, stdout/stderr/raw output, commands, tracebacks, journals, prompts, chat IDs, delivery targets, Git diffs, untracked files or internal remotes, the registry substitutes a generic fallback. That keeps the check visible but removes unsafe text from the API read model.
 
 ## Verification
 Executed from repo root:

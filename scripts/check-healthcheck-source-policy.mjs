@@ -94,6 +94,7 @@ const forbiddenHostConsolePatterns = [
 const requiredRegistrySnippets = [
   '_SENSITIVE_TEXT_MARKERS',
   '_SANITIZED_TEXT_DEFAULTS',
+  'label=HEALTHCHECK_SOURCE_LABELS[source_id]',
   '_safe_text_field',
   'Resumen Healthcheck saneado por política de seguridad.',
   'Detalle Healthcheck omitido por política de seguridad.',
@@ -116,6 +117,8 @@ for (const filePath of listPythonFiles(paths.healthcheckModule)) {
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
+  'ignores adapter-provided labels',
+  'HEALTHCHECK_SOURCE_LABELS[source_id]',
   '`summary`, `warning_text`, `source_label` and `freshness_label`',
   'generic filesystem discovery or reads',
   'Franky-owned operational source',
