@@ -15,7 +15,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
-from apps.api.src.modules.healthcheck.source_adapters import VaultSyncManifestAdapter
+from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -314,6 +314,144 @@ def test_vault_sync_manifest_adapter_models_missing_or_unreadable_manifest(tmp_p
     unreadable_manifest = tmp_path / 'vault-sync-status.json'
     unreadable_manifest.write_text('{not-json', encoding='utf-8')
     unreadable = VaultSyncManifestAdapter(manifest_path=unreadable_manifest).snapshot(now='2026-04-24T08:00:00Z')
+
+    payload = HealthcheckService.from_source_snapshots((missing, unreadable)).get_workspace()
+
+    status_by_module = {module['summary']: module['status'] for module in payload['modules']}
+    assert status_by_module == {
+        'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
+        'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
+    }
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_backup_health_manifest_adapter_maps_recent_success_to_safe_pass(tmp_path):
+    manifest = tmp_path / 'backup-health-status.json'
+    manifest.write_text(
+        '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4,"archive_path":"/srv/crew-core/backups/private.tar.gz","included_path":"/home/agentops/private","stdout":"token secret raw_output"}',
+        encoding='utf-8',
+    )
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'] == [
+        {
+            'module_id': 'backup-health',
+            'label': 'Backups',
+            'status': 'pass',
+            'severity': 'low',
+            'updated_at': '2026-04-24T07:30:00Z',
+            'summary': 'Backup local reciente con checksum disponible.',
+        }
+    ]
+    assert payload['signals'] == []
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_backup_health_manifest_adapter_degrades_stale_and_missing_checksum(tmp_path):
+    stale_manifest = tmp_path / 'backup-health-stale.json'
+    stale_manifest.write_text(
+        '{"status":"success","last_success_at":"2026-04-21T08:00:00Z","checksum_present":true,"retention_count":4}',
+        encoding='utf-8',
+    )
+    missing_checksum_manifest = tmp_path / 'backup-health-missing-checksum.json'
+    missing_checksum_manifest.write_text(
+        '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","checksum_present":false,"retention_count":4}',
+        encoding='utf-8',
+    )
+
+    stale = BackupHealthManifestAdapter(manifest_path=stale_manifest).snapshot(now='2026-04-24T08:00:00Z')
+    missing_checksum = BackupHealthManifestAdapter(manifest_path=missing_checksum_manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((stale, missing_checksum)).get_workspace()
+
+    status_by_summary = {module['summary']: module['status'] for module in payload['modules']}
+    assert status_by_summary == {
+        'Backup local stale según manifiesto seguro.': 'stale',
+        'Backup local sin checksum seguro disponible.': 'warn',
+    }
+    assert {signal['check_id'] for signal in payload['signals']} == {'backup-health.last-backup'}
+    assert all(signal['freshness']['state'] == 'stale' for signal in payload['signals'])
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize('degraded_status', ['warn', 'warning', 'stale'])
+def test_backup_health_manifest_adapter_preserves_explicit_degraded_status(tmp_path, degraded_status):
+    manifest = tmp_path / f'backup-health-{degraded_status}.json'
+    manifest.write_text(
+        f'{{"status":"{degraded_status}","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}}',
+        encoding='utf-8',
+    )
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    signal = payload['signals'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == 'Backup local requiere revisión según manifiesto seguro.'
+    assert signal['warning_text'] == 'Backup local con degradación explícita.'
+    assert signal['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    'manifest_body',
+    [
+        '{"last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+        '{"status":"green","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+        '{"result":"done","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+    ],
+)
+def test_backup_health_manifest_adapter_requires_explicit_positive_result(tmp_path, manifest_body):
+    manifest = tmp_path / 'backup-health-unsafe-result.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == 'Backup local sin resultado seguro disponible.'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    ('manifest_body', 'expected_summary'),
+    [
+        (
+            '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","retention_count":4}',
+            'Backup local sin checksum seguro disponible.',
+        ),
+        (
+            '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true}',
+            'Backup local sin retención segura disponible.',
+        ),
+    ],
+)
+def test_backup_health_manifest_adapter_requires_integrity_and_retention_fields(tmp_path, manifest_body, expected_summary):
+    manifest = tmp_path / 'backup-health-partial.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == expected_summary
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_backup_health_manifest_adapter_models_missing_or_unreadable_manifest(tmp_path):
+    missing = BackupHealthManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshot(now='2026-04-24T08:00:00Z')
+    unreadable_manifest = tmp_path / 'backup-health-status.json'
+    unreadable_manifest.write_text('{not-json', encoding='utf-8')
+    unreadable = BackupHealthManifestAdapter(manifest_path=unreadable_manifest).snapshot(now='2026-04-24T08:00:00Z')
 
     payload = HealthcheckService.from_source_snapshots((missing, unreadable)).get_workspace()
 

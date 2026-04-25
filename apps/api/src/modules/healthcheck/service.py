@@ -17,7 +17,7 @@ from .domain import (
     validate_healthcheck_status,
 )
 
-from .source_adapters import VaultSyncManifestAdapter
+from .source_adapters import BackupHealthManifestAdapter, VaultSyncManifestAdapter
 
 if TYPE_CHECKING:
     from .registry import HealthcheckSourceSnapshot
@@ -71,8 +71,10 @@ class HealthcheckService:
 
     def _default_source_snapshot_state(self) -> dict[str, str]:
         vault_snapshot = VaultSyncManifestAdapter().snapshot()
-        self._default_source_records = {vault_snapshot.record.module_id: vault_snapshot.record}
-        return {vault_snapshot.record.module_id: vault_snapshot.freshness_state}
+        backup_snapshot = BackupHealthManifestAdapter().snapshot()
+        snapshots = (vault_snapshot, backup_snapshot)
+        self._default_source_records = {snapshot.record.module_id: snapshot.record for snapshot in snapshots}
+        return {snapshot.record.module_id: snapshot.freshness_state for snapshot in snapshots}
 
     def _records_with_default_sources(self, _snapshot_state: dict[str, str]) -> tuple[HealthcheckRecord, ...]:
         source_records = getattr(self, '_default_source_records', {})
