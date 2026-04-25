@@ -1,0 +1,21 @@
+[Unit]
+Description=Mugiwara Control Panel gateway status manifest producer
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:gateway-status
+
+# Keep the runner deterministic and local: no systemd discovery, no journal reads,
+# no unit dumping and no alternate output path. The producer only calls
+# systemctl --user is-active for allowlisted hermes-gateway-<slug>.service units.
+# It writes /srv/crew-core/runtime/healthcheck/gateway-status.json atomically
+# with 0640 file permissions and 0750 parent directory permissions.
+
+# Basic hardening for a user service. Do not make /srv read-only: the producer must
+# update the fixed runtime manifest path.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only

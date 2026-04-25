@@ -51,6 +51,7 @@
 - producir en Phase 15.4b ese manifiesto mediante `scripts/write-project-health-status.py` con escritura atómica, permisos no públicos y JSON mínimo; Git se consulta solo en el productor operativo, nunca desde el backend Healthcheck
 - automatizar el productor desde issue #43 con `mugiwara-project-health-status.timer` y `scripts/install-project-health-status-user-timer.sh`; el runner does not run `git fetch`, no pasa `--output`, y `remote_synced` compares `HEAD` with the local upstream ref
 - conectar en Phase 15.5a el adapter vivo `gateway-status` desde manifiesto fijo Franky-owned para `hermes-gateways` y `gateway.<mugiwara-slug>`, consumiendo solo timestamp y estado activo/enum allowlisted, sin ejecutar systemd desde backend ni exponer PIDs, comandos, unit files, journal, entorno, rutas o logs
+- producir y automatizar en Phase 15.5b ese manifiesto mediante `scripts/write-gateway-status.py`, `mugiwara-gateway-status.timer` y `scripts/install-gateway-status-user-timer.sh`; el runner only checks allowlisted `hermes-gateway-<slug>.service` active state, escribe JSON mínimo atómico, y does not inspect journal output, unit file contents, PIDs, command lines, env values, logs, stdout/stderr or alternate output paths
 - mantener cronjob reads fuera hasta su microfase revisada
 - documentar y verificar manifest ownership and freshness thresholds antes de cualquier lectura viva (`docs/healthcheck-source-policy.md`)
 - bloquear crecimiento accidental hacia consola host genérica con `npm run verify:healthcheck-source-policy`
