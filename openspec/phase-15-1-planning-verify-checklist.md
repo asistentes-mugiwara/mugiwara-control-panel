@@ -45,5 +45,5 @@
 ## Verification
 - [x] `git diff --check` — passed.
 - [x] Review generated OpenSpec for accidental sensitive data — directed diff scan found 0 sensitive added hits.
-- [x] Commit on branch `zoro/phase-15-1-healthcheck-real-sources-plan` — `544dc43 docs: plan healthcheck real sources`.
+- [x] Commit on branch `zoro/phase-15-1-healthcheck-real-sources-plan` — latest reviewed SHA `bcbaa24` before reviewer follow-up absorption.
 - [x] Push branch and open PR — PR #29.

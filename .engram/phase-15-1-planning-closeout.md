@@ -34,6 +34,15 @@ Forbidden: raw command output, stdout/stderr, systemd unit contents, journal log
 - User systemd currently shows Hermes gateway services for the active Mugiwara profiles.
 - Zoro profile cronjob list is empty, so global active cronjob health must use an explicit shared manifest/source rather than profile-local inference.
 
+## Reviewer follow-ups absorbed
+Franky and Chopper both marked PR #29 as `mergeable_with_minor_followups`. The plan was updated to absorb the follow-ups directly into Phase 15.2 DoD:
+
+- explicit `not_configured` / `unknown` / `stale` semantics for absent/unreadable/unregistered sources;
+- negative tests for client-provided path/URL/method and sensitive raw fields;
+- static guardrail/registry test against generic command/shell/exec/subprocess/URL-fetch adapters;
+- manifest ownership/location decision for vault sync, backup and cronjobs before live adapters;
+- freshness thresholds by source family before rendering pass/warn/fail.
+
 ## Verification status
 - `git diff --check` passed.
 - Directed diff scan for sensitive added values found 0 hits.

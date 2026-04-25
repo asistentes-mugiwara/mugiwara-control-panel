@@ -142,6 +142,11 @@ DoD:
 - No live host reads yet.
 - Existing Healthcheck output remains compatible.
 - Tests prove unknown fields are not serialized and invalid source values degrade safely.
+- Source absence is explicit: manifest missing, manifest unreadable and unregistered source must map to `not_configured`, `unknown` or `stale`, never healthy.
+- Registry/adapters reject or ignore client-provided `path`, `url`, `method`, raw output fields, `pid`, `unit_content`, `journal`, backup paths, prompt bodies, chat IDs, tokens and `.env`-like fields.
+- Add a static guardrail or registry test that fails if generic adapters appear (`command`, `shell`, `exec`, `subprocess`, generic URL fetch) outside reviewed allowlisted adapters.
+- Define owner and safe location for each status manifest before live adapters: vault sync, backup and cronjobs.
+- Define freshness thresholds by family before rendering pass/warn/fail: vault, backup, cron, gateway.
 
 Verify:
 ```bash
