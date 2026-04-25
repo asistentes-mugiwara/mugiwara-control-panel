@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh Mugiwara Control Panel project-health manifest periodically
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=60s
+Persistent=true
+Unit=mugiwara-project-health-status.service
+
+[Install]
+WantedBy=timers.target
