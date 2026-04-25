@@ -192,6 +192,12 @@ class BackupHealthManifestAdapter:
             summary = 'Backup local requiere revisión según manifiesto seguro.'
             warning = 'Backup local con degradación explícita.'
             freshness_state = 'stale'
+        elif result not in {'success', 'ok', 'pass'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Backup local sin resultado seguro disponible.'
+            warning = 'Backup local sin resultado positivo explícito.'
+            freshness_state = 'stale'
         elif checksum_present is not True:
             status = 'warn'
             severity = 'medium'

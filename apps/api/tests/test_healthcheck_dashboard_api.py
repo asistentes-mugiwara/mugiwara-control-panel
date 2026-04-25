@@ -397,6 +397,29 @@ def test_backup_health_manifest_adapter_preserves_explicit_degraded_status(tmp_p
 
 
 @pytest.mark.parametrize(
+    'manifest_body',
+    [
+        '{"last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+        '{"status":"green","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+        '{"result":"done","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}',
+    ],
+)
+def test_backup_health_manifest_adapter_requires_explicit_positive_result(tmp_path, manifest_body):
+    manifest = tmp_path / 'backup-health-unsafe-result.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == 'Backup local sin resultado seguro disponible.'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
     ('manifest_body', 'expected_summary'),
     [
         (
