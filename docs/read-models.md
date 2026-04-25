@@ -46,6 +46,24 @@ Uso:
 - panorama de checks saneados
 - drilldown controlado sin exponer salidas crudas
 
+#### Vocabulario backend-owned de fuentes Healthcheck
+Phase 15.2a fija el vocabulario de contratos antes de conectar fuentes vivas. Los IDs de fuente y `check_id` salen de allowlists del backend, nunca de input cliente, paths descubiertos ni servicios detectados dinámicamente.
+
+Estados permitidos:
+- `status`: `pass`, `warn`, `fail`, `stale`, `not_configured`, `unknown`
+- `severity`: `low`, `medium`, `high`, `critical`, `unknown`
+- `freshness.state`: `fresh`, `stale`, `unknown`
+
+Familias/fuentes estables para el bloque Phase 15:
+- `vault-sync` -> `vault-sync.last-sync`
+- `project-health` -> `project-health.workspace`
+- `backup-health` -> `backup-health.last-backup`
+- `hermes-gateways` -> `hermes-gateways.global`
+- `gateway.<mugiwara-slug>` -> `gateway.<mugiwara-slug>.process`, para `luffy`, `zoro`, `nami`, `usopp`, `sanji`, `chopper`, `robin`, `franky`, `brook`, `jinbe`
+- `cronjobs` -> `cronjobs.registry`
+
+Phase 15.2a no añade lecturas vivas: no lee manifiestos, filesystem, Git/GitHub, systemd ni cronjobs reales. La compatibilidad actual se mantiene como catálogo saneado fixture-backed con IDs ya alineados a este vocabulario.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

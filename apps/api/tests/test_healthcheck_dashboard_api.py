@@ -1,7 +1,16 @@
 from fastapi.testclient import TestClient
 
 from apps.api.src.main import app
-from apps.api.src.modules.healthcheck.domain import HealthcheckRecord
+import pytest
+
+from apps.api.src.modules.healthcheck.domain import (
+    HEALTHCHECK_CHECK_IDS,
+    HEALTHCHECK_FRESHNESS_STATES,
+    HEALTHCHECK_SEVERITY_VALUES,
+    HEALTHCHECK_SOURCE_FAMILY_IDS,
+    HEALTHCHECK_STATUS_VALUES,
+    HealthcheckRecord,
+)
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -34,6 +43,70 @@ def _assert_no_sensitive_host_output(value):
     elif isinstance(value, str):
         lowered = value.lower()
         assert all(term not in lowered for term in forbidden)
+
+
+def test_healthcheck_contract_vocabulary_is_backend_owned():
+    assert set(HEALTHCHECK_STATUS_VALUES) == {'pass', 'warn', 'fail', 'stale', 'not_configured', 'unknown'}
+    assert set(HEALTHCHECK_SEVERITY_VALUES) == {'low', 'medium', 'high', 'critical', 'unknown'}
+    assert set(HEALTHCHECK_FRESHNESS_STATES) == {'fresh', 'stale', 'unknown'}
+    assert set(HEALTHCHECK_SOURCE_FAMILY_IDS) == {
+        'vault-sync',
+        'project-health',
+        'backup-health',
+        'hermes-gateways',
+        'gateway.luffy',
+        'gateway.zoro',
+        'gateway.nami',
+        'gateway.usopp',
+        'gateway.sanji',
+        'gateway.chopper',
+        'gateway.robin',
+        'gateway.franky',
+        'gateway.brook',
+        'gateway.jinbe',
+        'cronjobs',
+    }
+    assert set(HEALTHCHECK_CHECK_IDS) == {
+        'vault-sync.last-sync',
+        'project-health.workspace',
+        'backup-health.last-backup',
+        'hermes-gateways.global',
+        'gateway.luffy.process',
+        'gateway.zoro.process',
+        'gateway.nami.process',
+        'gateway.usopp.process',
+        'gateway.sanji.process',
+        'gateway.chopper.process',
+        'gateway.robin.process',
+        'gateway.franky.process',
+        'gateway.brook.process',
+        'gateway.jinbe.process',
+        'cronjobs.registry',
+    }
+
+
+def test_healthcheck_rejects_invalid_status_severity_and_freshness():
+    valid_record = _record('cronjobs', 'Cronjobs', 'warn', 'medium', '2026-04-24T07:41:00Z')
+    with pytest.raises(ValueError, match='Unsupported healthcheck status'):
+        HealthcheckService(records=(valid_record, _record('backup-health', 'Backups', 'healthy', 'low', '2026-04-24T07:35:00Z'))).get_workspace()
+    with pytest.raises(ValueError, match='Unsupported healthcheck severity'):
+        HealthcheckService(records=(valid_record, _record('backup-health', 'Backups', 'pass', 'minor', '2026-04-24T07:35:00Z'))).get_workspace()
+    with pytest.raises(ValueError, match='Unsupported healthcheck freshness state'):
+        HealthcheckService(records=(valid_record,), freshness_state_by_module={'cronjobs': 'current'}).get_workspace()
+
+
+def test_healthcheck_signal_check_ids_do_not_derive_from_client_or_dynamic_input():
+    payload = HealthcheckService(
+        records=(
+            _record('cronjobs', 'Cronjobs', 'warn', 'medium', '2026-04-24T07:41:00Z'),
+            _record('gateway.zoro', 'Zoro gateway', 'warn', 'medium', '2026-04-24T07:44:00Z'),
+        )
+    ).get_workspace()
+
+    assert {signal['check_id'] for signal in payload['signals']} == {'cronjobs.registry', 'gateway.zoro.process'}
+
+    with pytest.raises(ValueError, match='Unsupported healthcheck source id'):
+        HealthcheckService(records=(_record('gateway../../etc/passwd', 'Injected gateway', 'warn', 'high', '2026-04-24T07:44:00Z'),)).get_workspace()
 
 
 def test_healthcheck_returns_sanitized_workspace():
@@ -81,8 +154,8 @@ def test_healthcheck_uses_explicit_timestamp_parsing_for_latest_update():
     service = HealthcheckService(
         records=(
             # Lexically larger, but older once the +02:00 offset is parsed.
-            _record('local-offset', 'Local offset', 'warn', 'medium', '2026-04-24T09:00:00+02:00'),
-            _record('utc-latest', 'UTC latest', 'pass', 'low', '2026-04-24T07:30:00Z'),
+            _record('cronjobs', 'Local offset', 'warn', 'medium', '2026-04-24T09:00:00+02:00'),
+            _record('backup-health', 'UTC latest', 'pass', 'low', '2026-04-24T07:30:00Z'),
         )
     )
 
@@ -92,8 +165,8 @@ def test_healthcheck_uses_explicit_timestamp_parsing_for_latest_update():
 def test_healthcheck_invalid_timestamp_does_not_win_freshness_aggregation():
     service = HealthcheckService(
         records=(
-            _record('bad-clock', 'Bad clock', 'warn', 'medium', 'not-a-timestamp'),
-            _record('valid-clock', 'Valid clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
+            _record('cronjobs', 'Bad clock', 'warn', 'medium', 'not-a-timestamp'),
+            _record('backup-health', 'Valid clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
         )
     )
 
@@ -103,8 +176,8 @@ def test_healthcheck_invalid_timestamp_does_not_win_freshness_aggregation():
 def test_healthcheck_naive_timestamp_is_normalized_for_safe_comparison():
     service = HealthcheckService(
         records=(
-            _record('naive-clock', 'Naive clock', 'warn', 'medium', '2026-04-24T07:45:00'),
-            _record('aware-clock', 'Aware clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
+            _record('cronjobs', 'Naive clock', 'warn', 'medium', '2026-04-24T07:45:00'),
+            _record('backup-health', 'Aware clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
         )
     )
 
@@ -145,8 +218,8 @@ def test_dashboard_handles_unavailable_health_source_explicitly():
 def test_dashboard_uses_record_severity_for_critical_aggregation():
     healthcheck = HealthcheckService(
         records=(
-            _record('critical-warning', 'Critical warning', 'warn', 'critical', '2026-04-24T07:30:00Z'),
-            _record('failed-high', 'Failed high', 'fail', 'high', '2026-04-24T07:20:00Z'),
+            _record('cronjobs', 'Critical warning', 'warn', 'critical', '2026-04-24T07:30:00Z'),
+            _record('backup-health', 'Failed high', 'fail', 'high', '2026-04-24T07:20:00Z'),
         )
     )
     dashboard = DashboardService(healthcheck_service=healthcheck)

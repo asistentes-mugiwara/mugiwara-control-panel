@@ -10,22 +10,26 @@ from .domain import (
     HealthcheckRecord,
     HealthcheckSummaryBar,
     HealthcheckSummaryItem,
+    resolve_healthcheck_check_id,
+    validate_healthcheck_freshness_state,
+    validate_healthcheck_severity,
+    validate_healthcheck_status,
 )
 
 SAFE_HEALTHCHECK_RECORDS: tuple[HealthcheckRecord, ...] = (
     HealthcheckRecord('cronjobs', 'Cronjobs', 'warn', 'medium', '2026-04-24T07:41:00Z', 'La revisión nocturna ejecutó, pero queda una advertencia operativa menor en skills del job.', 'Quedan referencias de skills a normalizar.', 'Cron safe summary', 'Actualizado hace 5 min'),
-    HealthcheckRecord('backups', 'Backups', 'pass', 'low', '2026-04-24T07:35:00Z', 'Último backup local completado y checksum disponible.', 'Sin alerta activa.', 'Backup safe summary', 'Actualizado hace 11 min'),
-    HealthcheckRecord('gateways', 'Gateways', 'warn', 'medium', '2026-04-24T07:44:00Z', 'Latencia por encima del umbral recomendado en la puerta principal.', 'Latencia por encima del umbral recomendado.', 'Gateway safe summary', 'Actualizado hace 2 min'),
-    HealthcheckRecord('honcho', 'Honcho', 'stale', 'medium', '2026-04-24T07:22:00Z', 'Parte del contexto relacional está disponible, pero algunos resúmenes necesitan refresco.', 'Resumen relacional pendiente de refresco.', 'Honcho safe summary', 'Actualizado hace 24 min'),
-    HealthcheckRecord('docker', 'Docker', 'pass', 'low', '2026-04-24T07:32:00Z', 'Servicios contenedorizados sin incidencias visibles en este corte.', 'Sin alerta activa.', 'Docker safe summary', 'Actualizado hace 14 min'),
-    HealthcheckRecord('system', 'System', 'fail', 'high', '2026-04-24T07:39:00Z', 'Se detectó una incidencia abierta de capacidad que requiere revisión prioritaria.', 'Incidencia de capacidad marcada para revisión.', 'System safe summary', 'Actualizado hace 7 min'),
+    HealthcheckRecord('backup-health', 'Backups', 'pass', 'low', '2026-04-24T07:35:00Z', 'Último backup local completado y checksum disponible.', 'Sin alerta activa.', 'Backup safe summary', 'Actualizado hace 11 min'),
+    HealthcheckRecord('hermes-gateways', 'Gateways', 'warn', 'medium', '2026-04-24T07:44:00Z', 'Latencia por encima del umbral recomendado en la puerta principal.', 'Latencia por encima del umbral recomendado.', 'Gateway safe summary', 'Actualizado hace 2 min'),
+    HealthcheckRecord('vault-sync', 'Vault sync', 'stale', 'medium', '2026-04-24T07:22:00Z', 'Parte del estado documental está disponible, pero algunos resúmenes necesitan refresco.', 'Resumen documental pendiente de refresco.', 'Vault sync safe summary', 'Actualizado hace 24 min'),
+    HealthcheckRecord('project-health', 'Project health', 'pass', 'low', '2026-04-24T07:32:00Z', 'Workspace de proyecto sin incidencias visibles en este corte.', 'Sin alerta activa.', 'Project safe summary', 'Actualizado hace 14 min'),
+    HealthcheckRecord('gateway.zoro', 'Zoro gateway', 'fail', 'high', '2026-04-24T07:39:00Z', 'Se detectó una incidencia abierta de capacidad que requiere revisión prioritaria.', 'Incidencia de capacidad marcada para revisión.', 'Gateway safe summary', 'Actualizado hace 7 min'),
 )
 
 SAFE_EVENTS: tuple[HealthcheckEvent, ...] = (
     HealthcheckEvent('evt-cron-nightly', 'cronjobs', 'warn', '2026-04-24T01:33:40+02:00', 'Ejecución nocturna completada con advertencia saneada pendiente de revisión.'),
-    HealthcheckEvent('evt-gateway-latency', 'gateways', 'warn', '2026-04-24T07:44:00Z', 'Latencia sostenida por encima del umbral objetivo durante la última ventana de observación.'),
-    HealthcheckEvent('evt-system-capacity', 'system', 'fail', '2026-04-24T07:39:00Z', 'Capacidad degradada en un componente operativo; se ha marcado como incidencia para revisión.'),
-    HealthcheckEvent('evt-backup-checksum', 'backups', 'pass', '2026-04-24T07:35:00Z', 'Backup reciente validado con checksum sin desviaciones visibles.'),
+    HealthcheckEvent('evt-gateway-latency', 'hermes-gateways', 'warn', '2026-04-24T07:44:00Z', 'Latencia sostenida por encima del umbral objetivo durante la última ventana de observación.'),
+    HealthcheckEvent('evt-zoro-gateway-capacity', 'gateway.zoro', 'fail', '2026-04-24T07:39:00Z', 'Capacidad degradada en un componente operativo; se ha marcado como incidencia para revisión.'),
+    HealthcheckEvent('evt-backup-checksum', 'backup-health', 'pass', '2026-04-24T07:35:00Z', 'Backup reciente validado con checksum sin desviaciones visibles.'),
 )
 
 SAFE_PRINCIPLES: tuple[str, ...] = (
@@ -36,13 +40,20 @@ SAFE_PRINCIPLES: tuple[str, ...] = (
     'Sin shell remoto',
 )
 
-_STATUS_ORDER = {'fail': 4, 'warn': 3, 'stale': 2, 'pass': 1}
+_STATUS_ORDER = {'fail': 5, 'warn': 4, 'stale': 3, 'unknown': 2, 'not_configured': 2, 'pass': 1}
 
 
 class HealthcheckService:
-    def __init__(self, *, records: tuple[HealthcheckRecord, ...] = SAFE_HEALTHCHECK_RECORDS, events: tuple[HealthcheckEvent, ...] = SAFE_EVENTS) -> None:
+    def __init__(
+        self,
+        *,
+        records: tuple[HealthcheckRecord, ...] = SAFE_HEALTHCHECK_RECORDS,
+        events: tuple[HealthcheckEvent, ...] = SAFE_EVENTS,
+        freshness_state_by_module: dict[str, str] | None = None,
+    ) -> None:
         self._records = records
         self._events = events
+        self._freshness_state_by_module = freshness_state_by_module or {}
 
     def workspace_status(self) -> str:
         return 'ready' if self._records else 'not_configured'
@@ -64,7 +75,7 @@ class HealthcheckService:
         if not modules:
             return HealthcheckSummaryBar('stale', 0, 0, 0, None)
         incidents = sum(1 for module in modules if module.status == 'fail')
-        warnings = sum(1 for module in modules if module.status in {'warn', 'stale'})
+        warnings = sum(1 for module in modules if module.status in {'warn', 'stale', 'unknown', 'not_configured'})
         overall = max(modules, key=lambda module: _STATUS_ORDER[module.status]).status
         updated_at = self._latest_updated_at(modules)
         return HealthcheckSummaryBar(overall, len(modules), warnings, incidents, updated_at)
@@ -80,18 +91,27 @@ class HealthcheckService:
         return latest[1] if latest else None
 
     def _to_module(self, record: HealthcheckRecord) -> HealthcheckModuleCard:
+        self._validate_record(record)
         return HealthcheckModuleCard(record.module_id, record.label, record.status, record.severity, record.updated_at, record.summary)
 
     def _to_signal(self, record: HealthcheckRecord) -> HealthcheckSummaryItem:
+        self._validate_record(record)
+        freshness_state = self._freshness_state_by_module.get(record.module_id, 'stale' if record.status == 'stale' else 'fresh')
+        validate_healthcheck_freshness_state(freshness_state)
         return HealthcheckSummaryItem(
-            check_id=f'{record.module_id}-safe-signal',
+            check_id=resolve_healthcheck_check_id(record.module_id),
             label=record.label,
             severity=record.severity,
             status=record.status,
-            freshness=HealthcheckFreshness(updated_at=record.updated_at, label=record.freshness_label, state='stale' if record.status == 'stale' else 'fresh'),
+            freshness=HealthcheckFreshness(updated_at=record.updated_at, label=record.freshness_label, state=freshness_state),
             warning_text=record.warning_text,
             source_label=record.source_label,
         )
+
+    def _validate_record(self, record: HealthcheckRecord) -> None:
+        resolve_healthcheck_check_id(record.module_id)
+        validate_healthcheck_status(record.status)
+        validate_healthcheck_severity(record.severity)
 
 
 def _parse_timestamp(value: str) -> datetime | None:
