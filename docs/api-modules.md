@@ -50,7 +50,8 @@
 - conectar en Phase 15.4a el adapter vivo `project-health` desde manifiesto fijo Zoro-owned, consumiendo solo timestamp/result y booleanos `workspace_clean`, `main_branch`, `remote_synced`, sin exponer rama cruda, remotes, diffs, untracked file lists, GitHub counts ni last-verify detail
 - producir en Phase 15.4b ese manifiesto mediante `scripts/write-project-health-status.py` con escritura atómica, permisos no públicos y JSON mínimo; Git se consulta solo en el productor operativo, nunca desde el backend Healthcheck
 - automatizar el productor desde issue #43 con `mugiwara-project-health-status.timer` y `scripts/install-project-health-status-user-timer.sh`; el runner does not run `git fetch`, no pasa `--output`, y `remote_synced` compares `HEAD` with the local upstream ref
-- mantener gateway/cronjob reads fuera hasta sus microfases revisadas
+- conectar en Phase 15.5a el adapter vivo `gateway-status` desde manifiesto fijo Franky-owned para `hermes-gateways` y `gateway.<mugiwara-slug>`, consumiendo solo timestamp y estado activo/enum allowlisted, sin ejecutar systemd desde backend ni exponer PIDs, comandos, unit files, journal, entorno, rutas o logs
+- mantener cronjob reads fuera hasta su microfase revisada
 - documentar y verificar manifest ownership and freshness thresholds antes de cualquier lectura viva (`docs/healthcheck-source-policy.md`)
 - bloquear crecimiento accidental hacia consola host genérica con `npm run verify:healthcheck-source-policy`
 - no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase

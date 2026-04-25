@@ -15,7 +15,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
-from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
+from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -564,6 +564,81 @@ def test_project_health_manifest_adapter_models_stale_missing_or_unreadable_mani
         'Repo local stale según manifiesto seguro.': 'stale',
     }
     _assert_no_sensitive_host_output(payload)
+
+
+def test_gateway_status_manifest_adapter_maps_all_active_gateways_to_safe_pass(tmp_path):
+    manifest = tmp_path / 'gateway-status.json'
+    manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-24T07:55:00Z","gateways":{"luffy":{"active":true,"pid":1234,"unit_content":"Environment=SYNTHETIC_TOKEN","journal":"secret raw_output"},"zoro":{"active":true},"nami":{"active":true},"usopp":{"active":true},"sanji":{"active":true},"chopper":{"active":true},"robin":{"active":true},"franky":{"active":true},"brook":{"active":true},"jinbe":{"active":true}}}',
+        encoding='utf-8',
+    )
+
+    snapshots = GatewayStatusManifestAdapter(manifest_path=manifest).snapshots(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots(snapshots).get_workspace()
+
+    assert len(payload['modules']) == 11
+    assert {module['module_id'] for module in payload['modules']} == {
+        'hermes-gateways',
+        'gateway.luffy',
+        'gateway.zoro',
+        'gateway.nami',
+        'gateway.usopp',
+        'gateway.sanji',
+        'gateway.chopper',
+        'gateway.robin',
+        'gateway.franky',
+        'gateway.brook',
+        'gateway.jinbe',
+    }
+    assert all(module['status'] == 'pass' for module in payload['modules'])
+    assert payload['signals'] == []
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_gateway_status_manifest_adapter_degrades_inactive_and_partial_gateways_without_leaking_details(tmp_path):
+    manifest = tmp_path / 'gateway-status.json'
+    manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-24T07:55:00Z","gateways":{"luffy":{"active":true},"zoro":{"active":false,"command":"cat /srv/crew-core/.env","stdout":"token secret"},"nami":{"active":true}}}',
+        encoding='utf-8',
+    )
+
+    snapshots = GatewayStatusManifestAdapter(manifest_path=manifest).snapshots(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots(snapshots).get_workspace()
+
+    status_by_module = {module['module_id']: module['status'] for module in payload['modules']}
+    assert status_by_module['hermes-gateways'] == 'fail'
+    assert status_by_module['gateway.luffy'] == 'pass'
+    assert status_by_module['gateway.zoro'] == 'fail'
+    assert status_by_module['gateway.franky'] == 'not_configured'
+    assert {'hermes-gateways.global', 'gateway.zoro.process', 'gateway.franky.process'}.issubset(
+        {signal['check_id'] for signal in payload['signals']}
+    )
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_gateway_status_manifest_adapter_models_stale_missing_or_unreadable_manifest(tmp_path):
+    stale_manifest = tmp_path / 'gateway-status-stale.json'
+    stale_manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-24T06:45:00Z","gateways":{"zoro":{"active":true}}}',
+        encoding='utf-8',
+    )
+    missing = GatewayStatusManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshots(now='2026-04-24T08:00:00Z')
+    unreadable_manifest = tmp_path / 'gateway-status.json'
+    unreadable_manifest.write_text('{not-json', encoding='utf-8')
+    unreadable = GatewayStatusManifestAdapter(manifest_path=unreadable_manifest).snapshots(now='2026-04-24T08:00:00Z')
+    stale = GatewayStatusManifestAdapter(manifest_path=stale_manifest).snapshots(now='2026-04-24T08:00:00Z')
+
+    missing_payload = HealthcheckService.from_source_snapshots(missing).get_workspace()
+    unreadable_payload = HealthcheckService.from_source_snapshots(unreadable).get_workspace()
+    stale_payload = HealthcheckService.from_source_snapshots(stale).get_workspace()
+
+    assert {module['status'] for module in missing_payload['modules']} == {'not_configured'}
+    assert {module['status'] for module in unreadable_payload['modules']} == {'unknown'}
+    assert next(module for module in stale_payload['modules'] if module['module_id'] == 'gateway.zoro')['status'] == 'stale'
+    assert next(module for module in stale_payload['modules'] if module['module_id'] == 'hermes-gateways')['status'] == 'stale'
+    _assert_no_sensitive_host_output(missing_payload)
+    _assert_no_sensitive_host_output(unreadable_payload)
+    _assert_no_sensitive_host_output(stale_payload)
 
 
 def test_healthcheck_returns_sanitized_workspace():

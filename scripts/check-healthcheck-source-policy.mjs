@@ -111,6 +111,19 @@ for (const snippet of requiredRegistrySnippets) {
   mustInclude(registryText, snippet, 'Healthcheck source registry')
 }
 
+const sourceAdaptersText = read(join(paths.healthcheckModule, 'source_adapters.py'), 'Healthcheck source adapters')
+const requiredGatewayAdapterSnippets = [
+  "GATEWAY_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')",
+  'class GatewayStatusManifestAdapter',
+  "global_source_id = 'hermes-gateways'",
+  'MUGIWARA_GATEWAY_SOURCE_IDS',
+  "'source_label': 'Gateway safe manifest'",
+]
+
+for (const snippet of requiredGatewayAdapterSnippets) {
+  mustInclude(sourceAdaptersText, snippet, 'gateway status manifest adapter')
+}
+
 for (const filePath of listPythonFiles(paths.healthcheckModule)) {
   const text = readFileSync(filePath, 'utf8')
   for (const { pattern, label } of forbiddenHostConsolePatterns) {
@@ -154,8 +167,10 @@ const requiredDocSnippets = [
   'Phase 15.4b produces that manifest with atomic writes and non-public file permissions',
   'Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields',
   'Phase 15.4a reads a fixed Zoro-owned repo-local status manifest and exposes only timestamp/result plus boolean workspace/main/sync semantics',
-  'These phases still do not add gateway or cronjob reads',
-  'does not add GitHub issue/PR counts or last-verify aggregation',
+  'Phase 15.5a also allows the fixed `gateway-status` manifest reader',
+  'it consumes only `updated_at` and boolean/enum active state',
+  'These phases still do not add cronjob reads',
+  'does not add a gateway manifest producer, systemd runner, GitHub issue/PR counts or last-verify aggregation',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 
