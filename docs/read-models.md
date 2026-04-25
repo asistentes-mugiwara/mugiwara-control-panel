@@ -78,6 +78,8 @@ Phase 15.4a connects the third live source: `project-health`. The adapter reads 
 
 Phase 15.4b adds the Zoro-owned manifest producer for `project-health`. `scripts/write-project-health-status.py` may query the local Git repo outside the backend, but the manifest still serializes only `status`, `result`, `updated_at`, `workspace_clean`, `main_branch` and `remote_synced`. It writes atomically with non-public permissions and does not include branch names, remotes, SHAs, diffs, untracked files, stdout/stderr, paths, GitHub counts or last-verify detail.
 
+Issue #43 automates that producer with the user-level `mugiwara-project-health-status.timer` installed by `scripts/install-project-health-status-user-timer.sh`. The timer runs every 15 minutes after boot via `npm run write:project-health-status`, does not run `git fetch`, does not override the fixed manifest output, and `remote_synced` compares `HEAD` with the local upstream ref. A future network-refresh runner must be reviewed separately if operations decide the local upstream ref should be refreshed before each manifest write.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

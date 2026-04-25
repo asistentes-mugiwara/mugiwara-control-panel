@@ -1,0 +1,19 @@
+[Unit]
+Description=Mugiwara Control Panel project-health manifest producer
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:project-health-status
+
+# Keep the runner deterministic and local: no git fetch, no network, no alternate output path.
+# The producer writes /srv/crew-core/runtime/healthcheck/project-health-status.json
+# atomically with 0640 file permissions and 0750 parent directory permissions.
+
+# Basic hardening for a user service. Do not make /srv read-only: the producer must
+# update the fixed runtime manifest path.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
