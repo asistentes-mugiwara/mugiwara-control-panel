@@ -16,6 +16,7 @@ const paths = {
   sourcePolicyDoc: join(repoRoot, 'docs/healthcheck-source-policy.md'),
   apiModulesDoc: join(repoRoot, 'docs/api-modules.md'),
   readModelsDoc: join(repoRoot, 'docs/read-models.md'),
+  projectHealthProducer: join(repoRoot, 'scripts/write-project-health-status.py'),
 }
 
 const failures = []
@@ -57,6 +58,7 @@ const packageJsonText = read(paths.packageJson, 'package.json')
 const sourcePolicyDoc = read(paths.sourcePolicyDoc, 'Healthcheck source policy document')
 const apiModulesDoc = read(paths.apiModulesDoc, 'API modules document')
 const readModelsDoc = read(paths.readModelsDoc, 'read models document')
+const projectHealthProducer = read(paths.projectHealthProducer, 'project-health manifest producer')
 
 let packageJson
 try {
@@ -67,6 +69,10 @@ try {
 
 if (packageJson && packageJson.scripts?.['verify:healthcheck-source-policy'] !== 'node scripts/check-healthcheck-source-policy.mjs') {
   failures.push('package.json must expose verify:healthcheck-source-policy')
+}
+
+if (packageJson && packageJson.scripts?.['write:project-health-status'] !== 'python scripts/write-project-health-status.py') {
+  failures.push('package.json must expose write:project-health-status')
 }
 
 const forbiddenHostConsolePatterns = [
@@ -114,6 +120,19 @@ for (const filePath of listPythonFiles(paths.healthcheckModule)) {
   }
 }
 
+const requiredProjectHealthProducerSnippets = [
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/project-health-status.json')",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'workspace_clean', 'main_branch', 'remote_synced')",
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+  "'git', '-C', str(repo)",
+]
+
+for (const snippet of requiredProjectHealthProducerSnippets) {
+  mustInclude(projectHealthProducer, snippet, 'project-health manifest producer')
+}
+
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
@@ -130,6 +149,9 @@ const requiredDocSnippets = [
   '`project-health`: warn after 120 minutes, fail after 480 minutes',
   'Phase 15.3b also allows the fixed `backup-health` manifest reader',
   'Phase 15.4a also allows the fixed `project-health` repo-local manifest reader',
+  'Phase 15.4b adds `scripts/write-project-health-status.py` as the reviewed producer',
+  'writes only status/result, updated_at and boolean workspace/main/sync semantics',
+  'Phase 15.4b produces that manifest with atomic writes and non-public file permissions',
   'Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields',
   'Phase 15.4a reads a fixed Zoro-owned repo-local status manifest and exposes only timestamp/result plus boolean workspace/main/sync semantics',
   'These phases still do not add gateway or cronjob reads',

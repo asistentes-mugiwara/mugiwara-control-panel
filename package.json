@@ -21,6 +21,7 @@
     "verify:vault-server-only": "node scripts/check-vault-server-only.mjs",
     "verify:health-dashboard-server-only": "node scripts/check-health-dashboard-server-only.mjs",
     "verify:healthcheck-source-policy": "node scripts/check-healthcheck-source-policy.mjs",
+    "write:project-health-status": "python scripts/write-project-health-status.py",
     "dev:api": "uvicorn apps.api.src.main:app --reload",
     "lint": "echo 'Pending lint setup'",
     "test": "echo 'Pending test setup'",
