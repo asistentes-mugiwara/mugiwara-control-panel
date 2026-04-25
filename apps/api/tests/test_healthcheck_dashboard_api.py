@@ -11,6 +11,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_STATUS_VALUES,
     HealthcheckRecord,
 )
+from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -105,8 +106,91 @@ def test_healthcheck_signal_check_ids_do_not_derive_from_client_or_dynamic_input
 
     assert {signal['check_id'] for signal in payload['signals']} == {'cronjobs.registry', 'gateway.zoro.process'}
 
-    with pytest.raises(ValueError, match='Unsupported healthcheck source id'):
+    with pytest.raises(ValueError, match='Unsupported healthcheck source id') as exc_info:
         HealthcheckService(records=(_record('gateway../../etc/passwd', 'Injected gateway', 'warn', 'high', '2026-04-24T07:44:00Z'),)).get_workspace()
+    assert 'gateway../../etc/passwd' not in str(exc_info.value)
+
+
+def test_healthcheck_source_registry_normalizes_allowed_fields_only():
+    snapshot = HealthcheckSourceRegistry().normalize(
+        'cronjobs',
+        {
+            'label': 'Cronjobs',
+            'status': 'warn',
+            'severity': 'medium',
+            'updated_at': '2026-04-24T07:41:00Z',
+            'summary': 'Safe cron summary.',
+            'warning_text': 'Synthetic safe warning.',
+            'source_label': 'Cron safe summary',
+            'freshness_label': 'Actualizado hace 5 min',
+            'freshness_state': 'stale',
+            'path': '/srv/crew-core/private/.env',
+            'url': 'https://internal.example/redacted',
+            'method': 'POST',
+            'stdout': 'synthetic sensitive stdout',
+            'stderr': 'Traceback with /home/agentops/.env',
+            'raw_output': 'synthetic raw output',
+            'command': 'cat /srv/crew-core/.env',
+            'traceback': 'internal traceback',
+            'pid': 1234,
+            'unit_content': '[Service] Environment=SYNTHETIC_REDACTED',
+            'journal': 'journal raw logs',
+            'backup_path': '/srv/backups/private',
+            'included_path': '/home/agentops/private',
+            'prompt_body': 'synthetic prompt body',
+            'chat_id': 'synthetic-chat-id',
+            'delivery_target': 'telegram:synthetic-chat-id',
+            'cookie': 'synthetic-cookie',
+            'credentials': 'synthetic-credentials',
+            'git_diff': 'diff --git a/.env b/.env',
+            'untracked_files': ['.env'],
+            'remote_url': 'git@github.com:private/repo.git',
+        },
+    )
+
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'] == [
+        {
+            'module_id': 'cronjobs',
+            'label': 'Cronjobs',
+            'status': 'warn',
+            'severity': 'medium',
+            'updated_at': '2026-04-24T07:41:00Z',
+            'summary': 'Safe cron summary.',
+        }
+    ]
+    assert payload['signals'][0]['check_id'] == 'cronjobs.registry'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_healthcheck_source_registry_models_absent_unreadable_and_unregistered_as_degraded():
+    registry = HealthcheckSourceRegistry()
+    service = HealthcheckService.from_source_snapshots(
+        (
+            registry.normalize_absent('vault-sync'),
+            registry.normalize_unreadable('backup-health'),
+            registry.normalize_unregistered('gateway.zoro'),
+        )
+    )
+
+    payload = service.get_workspace()
+
+    status_by_module = {module['module_id']: module['status'] for module in payload['modules']}
+    assert status_by_module == {
+        'vault-sync': 'not_configured',
+        'backup-health': 'unknown',
+        'gateway.zoro': 'not_configured',
+    }
+    assert payload['summary_bar']['overall_status'] != 'pass'
+    assert payload['summary_bar']['warnings'] == 3
+    assert {signal['check_id'] for signal in payload['signals']} == {
+        'vault-sync.last-sync',
+        'backup-health.last-backup',
+        'gateway.zoro.process',
+    }
+    _assert_no_sensitive_host_output(payload)
 
 
 def test_healthcheck_returns_sanitized_workspace():

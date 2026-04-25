@@ -64,6 +64,8 @@ Familias/fuentes estables para el bloque Phase 15:
 
 Phase 15.2a no añade lecturas vivas: no lee manifiestos, filesystem, Git/GitHub, systemd ni cronjobs reales. La compatibilidad actual se mantiene como catálogo saneado fixture-backed con IDs ya alineados a este vocabulario.
 
+Phase 15.2b añade una normalización backend-owned previa a futuras fuentes vivas. Los adapters futuros entregarán payloads ya resumidos al registro de fuentes; el registro solo copia una allowlist mínima (`label`, `status`, `severity`, `updated_at`, `summary`, `warning_text`, `source_label`, `freshness_label`, `freshness_state`) y descarta campos desconocidos antes de que lleguen al modelo serializable. Ausencias, fuentes no legibles y adapters no registrados se representan como `not_configured` o `unknown`, nunca como `pass` silencioso. Los errores de source ID no deben ecoar el valor rechazado para evitar filtrar paths, comandos o nombres internos.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`
