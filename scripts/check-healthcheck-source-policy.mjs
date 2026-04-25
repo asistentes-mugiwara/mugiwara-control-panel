@@ -134,6 +134,20 @@ for (const snippet of requiredGatewayAdapterSnippets) {
   mustInclude(sourceAdaptersText, snippet, 'gateway status manifest adapter')
 }
 
+const requiredCronjobsAdapterSnippets = [
+  "CRONJOBS_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/cronjobs-status.json')",
+  'class CronjobsManifestAdapter',
+  "source_id = 'cronjobs'",
+  "'source_label': 'Cronjobs safe manifest'",
+  "job.get('last_run_at')",
+  "job.get('last_status')",
+  "job.get('criticality')",
+]
+
+for (const snippet of requiredCronjobsAdapterSnippets) {
+  mustInclude(sourceAdaptersText, snippet, 'cronjobs status manifest adapter')
+}
+
 for (const filePath of listPythonFiles(paths.healthcheckModule)) {
   const text = readFileSync(filePath, 'utf8')
   for (const { pattern, label } of forbiddenHostConsolePatterns) {
@@ -198,7 +212,10 @@ const requiredDocSnippets = [
   'mugiwara-gateway-status.timer',
   'scripts/install-gateway-status-user-timer.sh',
   'does not inspect journal output, unit file contents, PIDs, command lines, env values, logs, stdout/stderr or alternate output paths',
-  'These phases still do not add cronjob reads',
+  'Phase 15.6a also allows the fixed `cronjobs-status` manifest reader',
+  'it consumes only `updated_at`, manifest result and per-job safe status/freshness/criticality semantics',
+  'does not expose job names, owner profiles, prompt bodies, commands, delivery targets, chat IDs, logs, stdout/stderr or raw outputs',
+  'These phases still do not add cronjob producers',
   'GitHub issue/PR counts or last-verify aggregation',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
