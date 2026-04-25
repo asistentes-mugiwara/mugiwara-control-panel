@@ -93,9 +93,15 @@ Forbidden in errors/logs:
 - raw host command output, stdout/stderr, Docker/systemd/log excerpts.
 
 ## Relationship with #16
-Phase 13.5 closes the perimeter hardening block, so issue #16 can start next as a separate Healthcheck/Dashboard hardening phase.
+Phase 13.5 closed the perimeter hardening block, so issue #16 started next as a separate Healthcheck/Dashboard hardening track.
 
-Constraints for #16:
+Phase 14.1 implements the safe foundation slice:
+
+- Healthcheck latest-update aggregation parses timestamps explicitly instead of using lexical string ordering;
+- Dashboard aggregation honors sanitized record severity, including deterministic `critical` values;
+- no live host source connector, generic host console behavior or backend host allowlist enforcement is added in this slice.
+
+Remaining constraints for future #16 work:
 
 - add only explicit, audited real sources;
 - do not turn Healthcheck into a generic host console;

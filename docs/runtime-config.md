@@ -117,7 +117,7 @@ npm run verify:vault-server-only
 3. `/dashboard` y `/healthcheck` declaran `export const dynamic = 'force-dynamic'`.
 4. Los fetches usan `cache: 'no-store'`.
 5. Si la API falta o falla, ambas páginas muestran fallback local saneado con aviso visible; no muestran comandos, logs, stdout/stderr, URLs internas ni detalles host.
-6. Healthcheck usa por ahora catálogo backend-owned saneado. Cuando conecte fuentes reales deberá parsear timestamps explícitamente, revisar severidad `critical` en Dashboard y considerar allowlist operativa de hosts si el despliegue lo requiere.
+6. Healthcheck sigue usando un catálogo backend-owned saneado; Phase 14.1 endureció este camino parseando timestamps explícitamente para agregación de frescura y haciendo que Dashboard respete severidad `critical` a nivel de registro. Los conectores reales auditados y el enforcement de allowlist de backend host siguen como trabajo futuro separado si la topología de despliegue lo requiere.
 
 Antes de cerrar cambios que toquen Dashboard/Healthcheck config o fallback, ejecutar:
 

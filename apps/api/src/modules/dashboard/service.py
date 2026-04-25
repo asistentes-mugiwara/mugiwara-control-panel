@@ -24,7 +24,7 @@ class DashboardService:
         updated_at = summary_bar['updated_at']
         freshness_label = 'Healthcheck backend no configurado' if health_status != 'ready' else 'Agregado backend actualizado'
         warnings = int(summary_bar['warnings']) if health_status == 'ready' else 0
-        incidents = int(summary_bar['incidents']) if health_status == 'ready' else 0
+        criticals = self._critical_incidents(health) if health_status == 'ready' else 0
         return {
             'sections': [
                 {'id': 'dashboard', 'label': 'Dashboard', 'status': 'healthy'},
@@ -40,7 +40,7 @@ class DashboardService:
                 {'label': 'Superficies monitorizadas', 'value': 6, 'note': 'lectura backend agregada'},
                 {'label': 'Checks con warning', 'value': warnings, 'note': 'desde Healthcheck saneado'},
                 {'label': 'Mugiwaras activos', 'value': 9, 'note': 'catálogo allowlisted'},
-                {'label': 'Incidencias críticas', 'value': incidents, 'note': 'sin salidas crudas'},
+                {'label': 'Incidencias críticas', 'value': criticals, 'note': 'sin salidas crudas'},
             ],
             'links': [
                 {'label': 'Abrir Healthcheck', 'href': '/healthcheck'},
@@ -52,7 +52,11 @@ class DashboardService:
         }
 
     def _highest_severity(self, health: dict) -> str:
-        severities = [_STATUS_TO_SEVERITY.get(module['status'], module.get('severity', 'medium')) for module in health['modules']]
-        if not severities:
+        severities = [module.get('severity') or _STATUS_TO_SEVERITY.get(module['status'], 'medium') for module in health['modules']]
+        ranked_severities = [severity for severity in severities if severity in _SEVERITY_RANK]
+        if not ranked_severities:
             return 'medium'
-        return max(severities, key=lambda severity: _SEVERITY_RANK[severity])
+        return max(ranked_severities, key=lambda severity: _SEVERITY_RANK[severity])
+
+    def _critical_incidents(self, health: dict) -> int:
+        return sum(1 for module in health['modules'] if module.get('severity') == 'critical')

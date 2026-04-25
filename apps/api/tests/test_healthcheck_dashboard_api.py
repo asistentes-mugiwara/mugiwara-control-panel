@@ -1,10 +1,25 @@
 from fastapi.testclient import TestClient
 
 from apps.api.src.main import app
+from apps.api.src.modules.healthcheck.domain import HealthcheckRecord
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
 client = TestClient(app)
+
+
+def _record(module_id, label, status, severity, updated_at):
+    return HealthcheckRecord(
+        module_id=module_id,
+        label=label,
+        status=status,
+        severity=severity,
+        updated_at=updated_at,
+        summary=f'{label} safe summary',
+        warning_text='Synthetic safe warning.',
+        source_label='Synthetic safe source',
+        freshness_label='Synthetic freshness',
+    )
 
 
 def _assert_no_sensitive_host_output(value):
@@ -62,6 +77,40 @@ def test_healthcheck_stale_state_is_visible():
     assert stale_signal['warning_text']
 
 
+def test_healthcheck_uses_explicit_timestamp_parsing_for_latest_update():
+    service = HealthcheckService(
+        records=(
+            # Lexically larger, but older once the +02:00 offset is parsed.
+            _record('local-offset', 'Local offset', 'warn', 'medium', '2026-04-24T09:00:00+02:00'),
+            _record('utc-latest', 'UTC latest', 'pass', 'low', '2026-04-24T07:30:00Z'),
+        )
+    )
+
+    assert service.get_workspace()['summary_bar']['updated_at'] == '2026-04-24T07:30:00Z'
+
+
+def test_healthcheck_invalid_timestamp_does_not_win_freshness_aggregation():
+    service = HealthcheckService(
+        records=(
+            _record('bad-clock', 'Bad clock', 'warn', 'medium', 'not-a-timestamp'),
+            _record('valid-clock', 'Valid clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
+        )
+    )
+
+    assert service.get_workspace()['summary_bar']['updated_at'] == '2026-04-24T07:30:00Z'
+
+
+def test_healthcheck_naive_timestamp_is_normalized_for_safe_comparison():
+    service = HealthcheckService(
+        records=(
+            _record('naive-clock', 'Naive clock', 'warn', 'medium', '2026-04-24T07:45:00'),
+            _record('aware-clock', 'Aware clock', 'pass', 'low', '2026-04-24T07:30:00Z'),
+        )
+    )
+
+    assert service.get_workspace()['summary_bar']['updated_at'] == '2026-04-24T07:45:00'
+
+
 def test_dashboard_aggregates_safe_summaries():
     response = client.get('/api/v1/dashboard')
 
@@ -91,3 +140,18 @@ def test_dashboard_handles_unavailable_health_source_explicitly():
     assert health_section['status'] == 'warning'
     assert payload['freshness']['state'] == 'stale'
     assert any(count['label'] == 'Checks con warning' and count['value'] == 0 for count in payload['counts'])
+
+
+def test_dashboard_uses_record_severity_for_critical_aggregation():
+    healthcheck = HealthcheckService(
+        records=(
+            _record('critical-warning', 'Critical warning', 'warn', 'critical', '2026-04-24T07:30:00Z'),
+            _record('failed-high', 'Failed high', 'fail', 'high', '2026-04-24T07:20:00Z'),
+        )
+    )
+    dashboard = DashboardService(healthcheck_service=healthcheck)
+
+    payload = dashboard.get_summary()
+
+    assert payload['highest_severity'] == 'critical'
+    assert {'label': 'Incidencias críticas', 'value': 1, 'note': 'sin salidas crudas'} in payload['counts']
