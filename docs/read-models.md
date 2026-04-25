@@ -74,6 +74,8 @@ Phase 15.3a connects the first live source: `vault-sync`. The adapter reads only
 
 Phase 15.3b connects the second live source: `backup-health`. The adapter reads only a fixed Franky-owned local backup status manifest, consumes safe status/timestamp/checksum/retention fields, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not expose archive names, backup paths, included paths, stdout/stderr, raw output, file sizes or runtime manifest internals, and it does not add project/gateway/cronjob reads.
 
+Phase 15.4a connects the third live source: `project-health`. The adapter reads only a fixed Zoro-owned repo-local status manifest, consumes safe status/timestamp plus boolean `workspace_clean`, `main_branch` and `remote_synced` semantics, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not execute Git, expose raw branch names, remotes, diffs, untracked file lists, GitHub counts or last-verify detail, and it does not add gateway/cronjob reads.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`
