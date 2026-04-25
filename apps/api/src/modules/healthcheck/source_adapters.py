@@ -12,6 +12,7 @@ VAULT_SYNC_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/vault-sync
 BACKUP_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')
 PROJECT_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/project-health-status.json')
 GATEWAY_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')
+CRONJOBS_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/cronjobs-status.json')
 
 
 class VaultSyncManifestAdapter:
@@ -426,6 +427,169 @@ class ProjectHealthManifestAdapter:
 
     def _safe_bool(self, value: object) -> bool | None:
         return value if isinstance(value, bool) else None
+
+    def _freshness_label(self, age_minutes: float) -> str:
+        if age_minutes < 1:
+            return 'Actualizado hace menos de 1 min'
+        rounded_minutes = int(age_minutes)
+        return f'Actualizado hace {rounded_minutes} min'
+
+
+class CronjobsManifestAdapter:
+    """Fixed, allowlisted reader for Franky-owned active cronjobs status manifests."""
+
+    source_id = 'cronjobs'
+
+    def __init__(
+        self,
+        *,
+        manifest_path: Path = CRONJOBS_STATUS_MANIFEST,
+        registry: HealthcheckSourceRegistry | None = None,
+    ) -> None:
+        self._manifest_path = manifest_path
+        self._registry = registry or HealthcheckSourceRegistry()
+
+    def snapshot(self, *, now: str | datetime | None = None) -> HealthcheckSourceSnapshot:
+        if not self._manifest_path.exists():
+            return self._registry.normalize_absent(self.source_id)
+
+        try:
+            manifest = json.loads(self._manifest_path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            return self._registry.normalize_unreadable(self.source_id)
+
+        if not isinstance(manifest, Mapping):
+            return self._registry.normalize_unreadable(self.source_id)
+
+        raw = self._manifest_to_raw(manifest, now=self._parse_now(now))
+        return self._registry.normalize(self.source_id, raw)
+
+    def _manifest_to_raw(self, manifest: Mapping[object, object], *, now: datetime) -> dict[str, str]:
+        updated_at = self._safe_timestamp(manifest.get('updated_at')) or self._safe_timestamp(manifest.get('last_success_at'))
+        if updated_at is None:
+            return {
+                'status': 'unknown',
+                'severity': 'unknown',
+                'updated_at': '',
+                'summary': 'Cronjobs sin timestamp seguro disponible.',
+                'warning_text': 'Cronjobs sin timestamp seguro.',
+                'source_label': 'Cronjobs safe manifest',
+                'freshness_label': 'Frescura desconocida',
+                'freshness_state': 'unknown',
+            }
+
+        jobs = manifest.get('jobs')
+        if not isinstance(jobs, list) or len(jobs) == 0:
+            return {
+                'status': 'not_configured',
+                'severity': 'unknown',
+                'updated_at': updated_at,
+                'summary': 'Cronjobs sin registro allowlisted disponible.',
+                'warning_text': 'Cronjobs no configurados en manifiesto seguro.',
+                'source_label': 'Cronjobs safe manifest',
+                'freshness_label': 'Frescura desconocida',
+                'freshness_state': 'unknown',
+            }
+
+        manifest_result = self._safe_result(manifest.get('status')) or self._safe_result(manifest.get('result'))
+        manifest_age_minutes = (now - _parse_timestamp(updated_at)).total_seconds() / 60
+        thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[self.source_id]
+        job_states = [self._job_state(job, now=now) for job in jobs]
+
+        if manifest_result in {'error', 'failed', 'fail'} or any(state == 'failed' for state in job_states):
+            status = 'fail'
+            severity = 'high'
+            summary = 'Cronjob crítico reporta fallo según manifiesto seguro.'
+            warning = 'Cronjob crítico falló; revisar fuente operacional.'
+            freshness_state = 'stale'
+        elif manifest_result in {'stale', 'warning', 'warn'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Cronjobs requieren revisión según manifiesto seguro.'
+            warning = 'Cronjobs con degradación explícita.'
+            freshness_state = 'stale'
+        elif any(state == 'partial' for state in job_states) or manifest_result not in {'success', 'ok', 'pass'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Cronjobs sin estado seguro completo disponible.'
+            warning = 'Cronjobs sin resultado completo.'
+            freshness_state = 'stale'
+        elif manifest_age_minutes >= thresholds['fail_after_minutes'] or any(state == 'stale' for state in job_states):
+            status = 'stale'
+            severity = 'high'
+            summary = 'Cronjobs críticos stale según manifiesto seguro.'
+            warning = 'Cronjobs críticos stale; revisar fuente operacional.'
+            freshness_state = 'stale'
+        elif manifest_age_minutes >= thresholds['warn_after_minutes']:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Cronjobs se acercan al umbral de frescura.'
+            warning = 'Cronjobs próximos a stale.'
+            freshness_state = 'stale'
+        else:
+            status = 'pass'
+            severity = 'low'
+            summary = 'Cronjobs críticos ejecutados recientemente según manifiesto seguro.'
+            warning = 'Sin alerta activa.'
+            freshness_state = 'fresh'
+
+        return {
+            'status': status,
+            'severity': severity,
+            'updated_at': updated_at,
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Cronjobs safe manifest',
+            'freshness_label': self._freshness_label(manifest_age_minutes),
+            'freshness_state': freshness_state,
+        }
+
+    def _job_state(self, job: object, *, now: datetime) -> str:
+        if not isinstance(job, Mapping):
+            return 'partial'
+        last_status = self._safe_result(job.get('last_status')) or self._safe_result(job.get('status')) or self._safe_result(job.get('result'))
+        last_run_at = self._safe_timestamp(job.get('last_run_at')) or self._safe_timestamp(job.get('updated_at'))
+        criticality = self._safe_criticality(job.get('criticality'))
+        if last_status in {'error', 'failed', 'fail'}:
+            return 'failed'
+        if last_status in {'stale', 'warning', 'warn'}:
+            return 'stale'
+        if last_status not in {'success', 'ok', 'pass'} or last_run_at is None or criticality is None:
+            return 'partial'
+        if criticality != 'critical':
+            return 'ok'
+        age_minutes = (now - _parse_timestamp(last_run_at)).total_seconds() / 60
+        thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[self.source_id]
+        return 'stale' if age_minutes >= thresholds['warn_after_minutes'] else 'ok'
+
+    def _parse_now(self, value: str | datetime | None) -> datetime:
+        if value is None:
+            return datetime.now(timezone.utc)
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        return _parse_timestamp(value)
+
+    def _safe_timestamp(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            _parse_timestamp(value)
+        except ValueError:
+            return None
+        return value
+
+    def _safe_result(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip().lower()
+        allowed = {'success', 'ok', 'pass', 'error', 'failed', 'fail', 'stale', 'warning', 'warn'}
+        return normalized if normalized in allowed else None
+
+    def _safe_criticality(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip().lower()
+        return normalized if normalized in {'critical', 'normal'} else None
 
     def _freshness_label(self, age_minutes: float) -> str:
         if age_minutes < 1:

@@ -15,7 +15,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
-from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
+from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, CronjobsManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -562,6 +562,85 @@ def test_project_health_manifest_adapter_models_stale_missing_or_unreadable_mani
         'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
         'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
         'Repo local stale según manifiesto seguro.': 'stale',
+    }
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_cronjobs_manifest_adapter_maps_recent_successful_registry_to_safe_pass(tmp_path):
+    manifest = tmp_path / 'cronjobs-status.json'
+    manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-24T07:55:00Z","jobs":[{"name":"vault-sync","owner_profile":"franky","expected_cadence_minutes":60,"last_run_at":"2026-04-24T07:30:00Z","last_status":"success","criticality":"critical","prompt_body":"token secret","command":"cat /srv/crew-core/.env","chat_id":"synthetic-chat"},{"name":"project-health","owner_profile":"zoro","expected_cadence_minutes":120,"last_run_at":"2026-04-24T07:20:00Z","last_status":"success","criticality":"normal"}]}',
+        encoding='utf-8',
+    )
+
+    snapshot = CronjobsManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'] == [
+        {
+            'module_id': 'cronjobs',
+            'label': 'Cronjobs',
+            'status': 'pass',
+            'severity': 'low',
+            'updated_at': '2026-04-24T07:55:00Z',
+            'summary': 'Cronjobs críticos ejecutados recientemente según manifiesto seguro.',
+        }
+    ]
+    assert payload['signals'] == []
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    ('manifest_body', 'expected_status', 'expected_summary'),
+    [
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:55:00Z","jobs":[{"name":"vault-sync","last_run_at":"2026-04-24T07:30:00Z","last_status":"failed","criticality":"critical","stdout":"token secret"}]}',
+            'fail',
+            'Cronjob crítico reporta fallo según manifiesto seguro.',
+        ),
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:55:00Z","jobs":[{"name":"vault-sync","last_run_at":"2026-04-24T01:00:00Z","last_status":"success","criticality":"critical"}]}',
+            'stale',
+            'Cronjobs críticos stale según manifiesto seguro.',
+        ),
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:55:00Z","jobs":[{"name":"vault-sync","last_status":"success","criticality":"critical"}]}',
+            'warn',
+            'Cronjobs sin estado seguro completo disponible.',
+        ),
+    ],
+)
+def test_cronjobs_manifest_adapter_degrades_fail_stale_and_partial_jobs_without_leaking_details(tmp_path, manifest_body, expected_status, expected_summary):
+    manifest = tmp_path / 'cronjobs-status.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = CronjobsManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == expected_status
+    assert module['summary'] == expected_summary
+    assert payload['signals'][0]['check_id'] == 'cronjobs.registry'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_cronjobs_manifest_adapter_models_empty_missing_or_unreadable_registry(tmp_path):
+    empty_manifest = tmp_path / 'cronjobs-empty.json'
+    empty_manifest.write_text('{"status":"success","updated_at":"2026-04-24T07:55:00Z","jobs":[]}', encoding='utf-8')
+    missing = CronjobsManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshot(now='2026-04-24T08:00:00Z')
+    unreadable_manifest = tmp_path / 'cronjobs-status.json'
+    unreadable_manifest.write_text('{not-json', encoding='utf-8')
+    unreadable = CronjobsManifestAdapter(manifest_path=unreadable_manifest).snapshot(now='2026-04-24T08:00:00Z')
+    empty = CronjobsManifestAdapter(manifest_path=empty_manifest).snapshot(now='2026-04-24T08:00:00Z')
+
+    payload = HealthcheckService.from_source_snapshots((missing, unreadable, empty)).get_workspace()
+
+    status_by_summary = {module['summary']: module['status'] for module in payload['modules']}
+    assert status_by_summary == {
+        'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
+        'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
+        'Cronjobs sin registro allowlisted disponible.': 'not_configured',
     }
     _assert_no_sensitive_host_output(payload)
 
