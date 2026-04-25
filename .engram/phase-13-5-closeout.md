@@ -1,7 +1,7 @@
 # Phase 13.5 closeout — Perimeter block smoke and canon
 
 ## Status
-Implemented on branch `zoro/phase-13-5-perimeter-block-closeout`.
+Merged via PR #27 (`b2a57a6a89f9ccb22e74a86742f1e589f8049db6`).
 
 ## Summary
 Phase 13.5 closes the Phase 13 security/perimeter block without adding runtime behavior. It runs block-level verification across the backend API suite, perimeter/server-only guardrails, web typecheck/build, web audit, targeted backend smoke and directed secret/CORS scans. It also refreshes project canon so the next implementation block can move to issue #16 under the now-closed private perimeter model.
@@ -30,6 +30,6 @@ Phase 13.5 closes the Phase 13 security/perimeter block without adding runtime b
 - `git diff --check` — passed after final docs/script changes.
 
 ## Follow-ups
-- Phase 13.5 PR review: Chopper + Franky.
+- Phase 13.5 PR #27 merged with Chopper + Franky `mergeable_with_minor_followups`.
 - Next implementation candidate: issue #16, scoped as Healthcheck/Dashboard real-source hardening after perimeter closure.
 - Keep public internet support, cookie-backed auth/CSRF token design and rate limiting as separate future decisions.

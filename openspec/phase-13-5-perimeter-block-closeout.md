@@ -94,4 +94,4 @@ Usopp is not required: no UI/UX or visual change is included.
 - [x] Directed secret/CORS scan passes.
 - [x] OpenSpec/checklist/Engram closeout created.
 - [x] Vault Project Summary updated to mark Phase 13 closed and #16 next.
-- [ ] PR reviewed by Chopper + Franky.
+- [x] PR reviewed by Chopper + Franky and merged as PR #27.
