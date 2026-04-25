@@ -17,6 +17,8 @@ from .domain import (
     validate_healthcheck_status,
 )
 
+from .source_adapters import VaultSyncManifestAdapter
+
 if TYPE_CHECKING:
     from .registry import HealthcheckSourceSnapshot
 
@@ -51,13 +53,14 @@ class HealthcheckService:
     def __init__(
         self,
         *,
-        records: tuple[HealthcheckRecord, ...] = SAFE_HEALTHCHECK_RECORDS,
+        records: tuple[HealthcheckRecord, ...] | None = None,
         events: tuple[HealthcheckEvent, ...] = SAFE_EVENTS,
         freshness_state_by_module: dict[str, str] | None = None,
     ) -> None:
-        self._records = records
+        default_snapshot_state = self._default_source_snapshot_state() if records is None else {}
+        self._records = records if records is not None else self._records_with_default_sources(default_snapshot_state)
         self._events = events
-        self._freshness_state_by_module = freshness_state_by_module or {}
+        self._freshness_state_by_module = {**default_snapshot_state, **(freshness_state_by_module or {})}
 
     @classmethod
     def from_source_snapshots(cls, snapshots: tuple['HealthcheckSourceSnapshot', ...]) -> 'HealthcheckService':
@@ -65,6 +68,15 @@ class HealthcheckService:
             records=tuple(snapshot.record for snapshot in snapshots),
             freshness_state_by_module={snapshot.record.module_id: snapshot.freshness_state for snapshot in snapshots},
         )
+
+    def _default_source_snapshot_state(self) -> dict[str, str]:
+        vault_snapshot = VaultSyncManifestAdapter().snapshot()
+        self._default_source_records = {vault_snapshot.record.module_id: vault_snapshot.record}
+        return {vault_snapshot.record.module_id: vault_snapshot.freshness_state}
+
+    def _records_with_default_sources(self, _snapshot_state: dict[str, str]) -> tuple[HealthcheckRecord, ...]:
+        source_records = getattr(self, '_default_source_records', {})
+        return tuple(source_records.get(record.module_id, record) for record in SAFE_HEALTHCHECK_RECORDS)
 
     def workspace_status(self) -> str:
         return 'ready' if self._records else 'not_configured'

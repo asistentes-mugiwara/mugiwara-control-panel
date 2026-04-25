@@ -1,7 +1,7 @@
 # Healthcheck source policy
 
 ## Purpose
-Phase 15.2c closes the final foundation slice before live Healthcheck source adapters. It defines the source-policy contract that later adapters must satisfy without adding live reads yet.
+Phase 15.2c closed the final foundation slice before live Healthcheck source adapters. It defines the source-policy contract that adapters must satisfy. Phase 15.3a starts live reads with the `vault-sync` adapter only, through a fixed Franky-owned manifest path and the existing registry sanitizer.
 
 ## No generic host console
 Healthcheck must not become a generic host console. New source code in `apps/api/src/modules/healthcheck` must not introduce generic shell, process, command execution, arbitrary URL-fetch adapters or generic filesystem discovery without a reviewed, allowlisted phase.
@@ -13,7 +13,7 @@ Blocked by `npm run verify:healthcheck-source-policy`:
 - command-parameter based host adapters;
 - generic filesystem discovery or reads such as `glob`, `os.listdir`, `os.scandir`, `os.walk`, ambient `Path.home()` / `Path.cwd()`, recursive `rglob()` or direct `open()` in the Healthcheck module.
 
-Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c.
+Adapters remain explicit, source-family-specific and reviewed. No live manifest reads are implemented in Phase 15.2c. Phase 15.3a allows only the fixed `vault-sync` manifest reader in `source_adapters.py`; it does not add backup, project-health, gateway or cronjob reads.
 
 ## Text field sanitization
 Future adapters must sanitize summaries before handing them to Healthcheck. As defense in depth, `HealthcheckSourceRegistry` ignores adapter-provided labels and always resolves `label` from backend-owned `HEALTHCHECK_SOURCE_LABELS[source_id]`. It also applies a final sensitive-marker filter to allowed textual fields: `summary`, `warning_text`, `source_label` and `freshness_label`.
@@ -25,7 +25,7 @@ Future live adapters may consume only sanitized summaries from reviewed sources.
 
 | Source family | Owner | Safe location class | Notes |
 | --- | --- | --- | --- |
-| `vault-sync` | Franky | Franky-owned operational source | Status manifest or wrapper maintained by operations. |
+| `vault-sync` | Franky | Franky-owned operational source | Phase 15.3a reads a fixed status manifest and exposes only timestamp/result-derived summary fields. |
 | `backup-health` | Franky | Franky-owned operational source | Status manifest or wrapper maintained by operations. |
 | `cronjobs` | Franky | shared manifest registry, not Zoro profile-local `cronjob list` | Must represent global scheduled jobs safely, not one profile's local runtime view. |
 | `hermes-gateways` | Franky | systemd user gateway summary | Aggregated gateway status only. |
