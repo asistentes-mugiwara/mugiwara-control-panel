@@ -14,7 +14,7 @@ Phase 15.2 should not be implemented as one broad PR. It is now split into:
 2. **15.2b — Registry normalization and unsafe-field rejection**
    - registry/normalizer;
    - absent/unreadable/unregistered semantics;
-   - negative tests against raw fields and client-provided path/url/method.
+   - negative tests against raw fields, client-provided path/url/method, cookies/credentials, tracebacks, absolute host paths, Git diffs/untracked lists/internal remotes and delivery targets.
 
 3. **15.2c — Guardrails, manifest ownership and freshness policy**
    - static guardrail/test against generic host adapters;

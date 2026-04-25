@@ -18,7 +18,8 @@
 
 ## Safety checks included in the plan
 - [x] Client-provided `path`, `url`, `method` must be rejected/ignored before serialization.
-- [x] Raw/sensitive fields must not serialize: `stdout`, `stderr`, `raw_output`, `command`, `pid`, `unit_content`, `journal`, `backup_path`, `included_path`, `prompt_body`, `chat_id`, `token`, `.env`.
+- [x] Raw/sensitive fields must not serialize: `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, `token`, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remote details.
+- [x] Source/check IDs must come only from backend-owned allowlists, never client input or dynamically discovered host/service names.
 - [x] Missing/unreadable/unregistered sources must map to `not_configured`, `unknown` or `stale`, never healthy.
 - [x] Generic host adapters must be blocked unless explicitly reviewed.
 - [x] Manifest ownership/location and freshness thresholds remain required before live adapters.

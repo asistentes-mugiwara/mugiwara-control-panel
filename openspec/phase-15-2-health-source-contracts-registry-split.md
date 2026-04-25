@@ -51,7 +51,7 @@ Out of scope:
 DoD:
 - Existing API payload shape remains compatible for `/api/v1/healthcheck` and `/api/v1/dashboard`.
 - Invalid status/severity/freshness values cannot silently become healthy output.
-- Source/check IDs are deterministic and not derived from client input.
+- Source/check IDs are deterministic and come only from backend-owned allowlists; they are never derived from client input, discovered paths or dynamically detected service names.
 - Tests cover allowed vocabulary and invalid-value degradation/rejection.
 
 Verify:
@@ -73,10 +73,12 @@ Scope:
 - Model absent, unreadable and unregistered source states explicitly as `not_configured`, `unknown` or `stale`, never `pass`.
 - Add tests that malicious/raw adapter-like input cannot leak fields such as:
   - client-provided `path`, `url`, `method`;
-  - `stdout`, `stderr`, `raw_output`, `command`;
+  - `stdout`, `stderr`, `raw_output`, `command`, `traceback`;
   - `pid`, `unit_content`, `journal`;
-  - `backup_path`, `included_path`;
-  - `prompt_body`, `chat_id`, `token`, `.env`.
+  - absolute host paths, `backup_path`, `included_path`;
+  - `prompt_body`, `chat_id`, delivery targets;
+  - `token`, cookies, credentials, `.env`;
+  - Git diffs, untracked file lists or internal remote details.
 
 Out of scope:
 - Real source adapters.
