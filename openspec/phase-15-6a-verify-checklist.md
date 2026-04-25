@@ -22,6 +22,6 @@
 - [x] `git diff --check` → passed
 
 ## Review gate
-- [ ] Franky review requested.
-- [ ] Chopper review requested.
-- [ ] Review comments addressed or explicitly deferred.
+- [x] Franky review requested and approved manually in PR comment: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/55#issuecomment-4320712514
+- [x] Chopper review requested and approved manually in PR comment: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/55#issuecomment-4320717502
+- [x] Review comments addressed or explicitly deferred: follow-up #56 created for Phase 15.6b producer and minor sanitizer/threshold clarifications.
