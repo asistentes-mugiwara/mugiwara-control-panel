@@ -375,6 +375,55 @@ def test_backup_health_manifest_adapter_degrades_stale_and_missing_checksum(tmp_
     _assert_no_sensitive_host_output(payload)
 
 
+@pytest.mark.parametrize('degraded_status', ['warn', 'warning', 'stale'])
+def test_backup_health_manifest_adapter_preserves_explicit_degraded_status(tmp_path, degraded_status):
+    manifest = tmp_path / f'backup-health-{degraded_status}.json'
+    manifest.write_text(
+        f'{{"status":"{degraded_status}","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true,"retention_count":4}}',
+        encoding='utf-8',
+    )
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    signal = payload['signals'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == 'Backup local requiere revisión según manifiesto seguro.'
+    assert signal['warning_text'] == 'Backup local con degradación explícita.'
+    assert signal['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    ('manifest_body', 'expected_summary'),
+    [
+        (
+            '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","retention_count":4}',
+            'Backup local sin checksum seguro disponible.',
+        ),
+        (
+            '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","checksum_present":true}',
+            'Backup local sin retención segura disponible.',
+        ),
+    ],
+)
+def test_backup_health_manifest_adapter_requires_integrity_and_retention_fields(tmp_path, manifest_body, expected_summary):
+    manifest = tmp_path / 'backup-health-partial.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = BackupHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == expected_summary
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
 def test_backup_health_manifest_adapter_models_missing_or_unreadable_manifest(tmp_path):
     missing = BackupHealthManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshot(now='2026-04-24T08:00:00Z')
     unreadable_manifest = tmp_path / 'backup-health-status.json'

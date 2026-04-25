@@ -186,13 +186,25 @@ class BackupHealthManifestAdapter:
             summary = 'Backup local reporta fallo en su manifiesto seguro.'
             warning = 'Backup local falló; revisar fuente operacional.'
             freshness_state = 'stale'
-        elif checksum_present is False:
+        elif result in {'stale', 'warning', 'warn'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Backup local requiere revisión según manifiesto seguro.'
+            warning = 'Backup local con degradación explícita.'
+            freshness_state = 'stale'
+        elif checksum_present is not True:
             status = 'warn'
             severity = 'medium'
             summary = 'Backup local sin checksum seguro disponible.'
             warning = 'Backup local sin checksum visible.'
             freshness_state = 'stale'
-        elif retention_count is not None and retention_count < 4:
+        elif retention_count is None:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Backup local sin retención segura disponible.'
+            warning = 'Backup local sin retención verificable.'
+            freshness_state = 'stale'
+        elif retention_count < 4:
             status = 'warn'
             severity = 'medium'
             summary = 'Backup local por debajo de la retención esperada.'
