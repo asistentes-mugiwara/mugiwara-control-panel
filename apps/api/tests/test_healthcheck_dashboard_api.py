@@ -8,6 +8,8 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_FRESHNESS_STATES,
     HEALTHCHECK_SEVERITY_VALUES,
     HEALTHCHECK_SOURCE_FAMILY_IDS,
+    HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS,
+    HEALTHCHECK_SOURCE_MANIFEST_POLICIES,
     HEALTHCHECK_STATUS_VALUES,
     HealthcheckRecord,
 )
@@ -84,6 +86,21 @@ def test_healthcheck_contract_vocabulary_is_backend_owned():
         'gateway.jinbe.process',
         'cronjobs.registry',
     }
+
+
+def test_healthcheck_manifest_and_freshness_policy_is_backend_owned():
+    assert HEALTHCHECK_SOURCE_MANIFEST_POLICIES['vault-sync']['owner'] == 'franky'
+    assert HEALTHCHECK_SOURCE_MANIFEST_POLICIES['backup-health']['owner'] == 'franky'
+    assert HEALTHCHECK_SOURCE_MANIFEST_POLICIES['cronjobs']['owner'] == 'franky'
+    assert HEALTHCHECK_SOURCE_MANIFEST_POLICIES['cronjobs']['safe_location_class'] == 'shared-manifest-registry'
+    assert 'zoro profile-local cronjob list' in HEALTHCHECK_SOURCE_MANIFEST_POLICIES['cronjobs']['exclusions']
+    assert all('/srv/' not in policy['safe_location_class'] for policy in HEALTHCHECK_SOURCE_MANIFEST_POLICIES.values())
+
+    assert HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS['vault-sync'] == {'warn_after_minutes': 90, 'fail_after_minutes': 360}
+    assert HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS['backup-health'] == {'warn_after_minutes': 1800, 'fail_after_minutes': 4320}
+    assert HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS['cronjobs'] == {'warn_after_minutes': 180, 'fail_after_minutes': 720}
+    assert HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS['hermes-gateways'] == {'warn_after_minutes': 15, 'fail_after_minutes': 60}
+    assert HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS['gateway.zoro'] == {'warn_after_minutes': 15, 'fail_after_minutes': 60}
 
 
 def test_healthcheck_rejects_invalid_status_severity_and_freshness():

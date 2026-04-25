@@ -110,6 +110,8 @@ Remaining constraints for future #16 work:
 - only introduce `critical` severity aggregation when real sources can emit it deterministically;
 - revisit backend host allowlist if the real deployment topology needs enforcement beyond the current server-only URL policy.
 
+Phase 15.2c adds the static source-policy guardrail before live adapters: `npm run verify:healthcheck-source-policy`. Manifest ownership and freshness thresholds are documented in `docs/healthcheck-source-policy.md`; no live manifest reads are introduced by that foundation slice.
+
 ## Verify
 Run this static policy guardrail after changes that touch perimeter docs, runtime config or Skills BFF boundaries:
 
