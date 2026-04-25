@@ -68,6 +68,12 @@ The Skills BFF remains same-origin and allowlisted:
 If future authentication uses cookies, add a separate CSRF token/session strategy before treating cookie-backed BFF write routes as protected. Phase 13.3 only enforces the current non-cookie MVP boundary with strict Origin validation.
 
 ## Error and logging policy
+Backend/API perimeter behavior added in Phase 13.4:
+
+- API responses carry private-control-plane hardening headers: `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY` and `Cache-Control: no-store`.
+- FastAPI does not enable permissive CORS. Browser CORS preflight requests are rejected with `403 cors_not_supported` and no reflected `Access-Control-Allow-Origin`.
+- Request validation errors return a sanitized `validation_error` envelope instead of echoing raw Pydantic validation details, submitted bodies, hashes, host paths or secret-like payloads.
+
 Allowed in errors/logs:
 - route or module name;
 - HTTP status;

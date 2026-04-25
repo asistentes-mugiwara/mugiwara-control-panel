@@ -20,6 +20,7 @@ const paths = {
   skillsBffValidation: join(repoRoot, 'apps/web/src/modules/skills/api/skills-bff-validation.ts'),
   skillsDetailRoute: join(repoRoot, 'apps/web/src/app/api/control-panel/skills/[skillId]/route.ts'),
   skillsPreviewRoute: join(repoRoot, 'apps/web/src/app/api/control-panel/skills/[skillId]/preview/route.ts'),
+  apiMain: join(repoRoot, 'apps/api/src/main.py'),
 }
 
 const failures = []
@@ -41,6 +42,7 @@ const skillsServerAdapter = read(paths.skillsServerAdapter, 'skills server adapt
 const skillsBffValidation = read(paths.skillsBffValidation, 'skills BFF validation/perimeter module')
 const skillsDetailRoute = read(paths.skillsDetailRoute, 'skills detail/update route')
 const skillsPreviewRoute = read(paths.skillsPreviewRoute, 'skills preview route')
+const apiMain = read(paths.apiMain, 'FastAPI main perimeter module')
 const writeRoutes = [skillsDetailRoute, skillsPreviewRoute].join('\n')
 
 function mustInclude(text, snippet, label) {
@@ -57,6 +59,8 @@ mustInclude(perimeterDoc, 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS', 'security pe
 mustInclude(perimeterDoc, '403 trusted_origins_not_configured', 'security perimeter document')
 mustInclude(perimeterDoc, '403 origin_required', 'security perimeter document')
 mustInclude(perimeterDoc, '403 origin_not_allowed', 'security perimeter document')
+mustInclude(perimeterDoc, '403 cors_not_supported', 'security perimeter document')
+mustInclude(perimeterDoc, 'Request validation errors return a sanitized `validation_error` envelope', 'security perimeter document')
 mustInclude(perimeterDoc, 'Issue #16, Healthcheck/Dashboard real-source hardening, stays after perimeter hardening.', 'security perimeter document')
 mustInclude(runtimeConfig, 'docs/security-perimeter.md', 'runtime config document')
 mustInclude(runtimeConfig, 'internet-public: unsupported', 'runtime config document')
@@ -96,6 +100,14 @@ if (skillsBrowserAdapter.includes('MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS')) {
   failures.push('skills browser adapter must not read trusted origins configuration')
 }
 
+mustInclude(apiMain, 'SECURITY_HEADERS', 'FastAPI main perimeter module')
+mustInclude(apiMain, "'X-Content-Type-Options': 'nosniff'", 'FastAPI main perimeter module')
+mustInclude(apiMain, "'Referrer-Policy': 'no-referrer'", 'FastAPI main perimeter module')
+mustInclude(apiMain, "'X-Frame-Options': 'DENY'", 'FastAPI main perimeter module')
+mustInclude(apiMain, "'Cache-Control': 'no-store'", 'FastAPI main perimeter module')
+mustInclude(apiMain, 'cors_not_supported', 'FastAPI main perimeter module')
+mustInclude(apiMain, '@app.exception_handler(RequestValidationError)', 'FastAPI main perimeter module')
+mustInclude(apiMain, "'message': 'Request validation failed.'", 'FastAPI main perimeter module')
 
 
 const forbiddenTrustedOriginSnippets = [
