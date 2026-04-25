@@ -93,7 +93,16 @@ Forbidden in errors/logs:
 - raw host command output, stdout/stderr, Docker/systemd/log excerpts.
 
 ## Relationship with #16
-Issue #16, Healthcheck/Dashboard real-source hardening, stays after perimeter hardening. Real host health sources must not be connected until the control panel has a clearer perimeter and rejection model.
+Phase 13.5 closes the perimeter hardening block, so issue #16 can start next as a separate Healthcheck/Dashboard hardening phase.
+
+Constraints for #16:
+
+- add only explicit, audited real sources;
+- do not turn Healthcheck into a generic host console;
+- keep outputs sanitized and avoid raw logs/stdout/stderr, shell output, Docker/systemd dumps or arbitrary filesystem reads;
+- parse timestamps explicitly before freshness aggregation;
+- only introduce `critical` severity aggregation when real sources can emit it deterministically;
+- revisit backend host allowlist if the real deployment topology needs enforcement beyond the current server-only URL policy.
 
 ## Verify
 Run this static policy guardrail after changes that touch perimeter docs, runtime config or Skills BFF boundaries:

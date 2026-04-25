@@ -14,7 +14,7 @@ Resumen operativo:
 
 - acceso soportado: desarrollo local, red privada controlada y Tailscale/private access;
 - `internet-public: unsupported` hasta que existan decisiones explícitas de auth, sesión, CSRF y rate limiting;
-- `/skills` es la única superficie write-capable del MVP y debe endurecerse antes de conectar nuevas fuentes reales de Healthcheck;
+- `/skills` es la única superficie write-capable del MVP y quedó endurecida en Phase 13; las nuevas fuentes reales de Healthcheck deben entrar después como #16 bajo ese perímetro cerrado;
 - los valores de topología interna no deben aparecer en UI, logs, errores, bundles cliente ni documentación con hostnames reales.
 
 Guardarraíl de este contrato:
