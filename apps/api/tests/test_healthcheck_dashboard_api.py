@@ -15,6 +15,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
+from apps.api.src.modules.healthcheck.source_adapters import VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -263,6 +264,67 @@ def test_healthcheck_source_registry_models_absent_unreadable_and_unregistered_a
     _assert_no_sensitive_host_output(payload)
 
 
+def test_vault_sync_manifest_adapter_maps_recent_success_to_safe_pass(tmp_path):
+    manifest = tmp_path / 'vault-sync-status.json'
+    manifest.write_text(
+        '{"status":"success","last_success_at":"2026-04-24T07:30:00Z","updated_at":"2026-04-24T07:30:00Z","branch":"main","ahead":0,"behind":0}',
+        encoding='utf-8',
+    )
+
+    snapshot = VaultSyncManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'] == [
+        {
+            'module_id': 'vault-sync',
+            'label': 'Vault sync',
+            'status': 'pass',
+            'severity': 'low',
+            'updated_at': '2026-04-24T07:30:00Z',
+            'summary': 'Vault sincronizado recientemente.',
+        }
+    ]
+    assert payload['signals'] == []
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_vault_sync_manifest_adapter_degrades_stale_and_ignores_manifest_noise(tmp_path):
+    manifest = tmp_path / 'vault-sync-status.json'
+    manifest.write_text(
+        '{"status":"success","last_success_at":"2026-04-24T01:00:00Z","updated_at":"2026-04-24T01:00:00Z","path":"/srv/crew-core/vault/.env","stdout":"token secret raw_output","remote_url":"git@github.com:private/repo.git"}',
+        encoding='utf-8',
+    )
+
+    snapshot = VaultSyncManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    signal = payload['signals'][0]
+    assert module['status'] == 'stale'
+    assert module['severity'] == 'high'
+    assert module['updated_at'] == '2026-04-24T01:00:00Z'
+    assert signal['check_id'] == 'vault-sync.last-sync'
+    assert signal['freshness']['state'] == 'stale'
+    assert signal['warning_text'] == 'Vault sync stale; revisar fuente operacional.'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_vault_sync_manifest_adapter_models_missing_or_unreadable_manifest(tmp_path):
+    missing = VaultSyncManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshot(now='2026-04-24T08:00:00Z')
+    unreadable_manifest = tmp_path / 'vault-sync-status.json'
+    unreadable_manifest.write_text('{not-json', encoding='utf-8')
+    unreadable = VaultSyncManifestAdapter(manifest_path=unreadable_manifest).snapshot(now='2026-04-24T08:00:00Z')
+
+    payload = HealthcheckService.from_source_snapshots((missing, unreadable)).get_workspace()
+
+    status_by_module = {module['summary']: module['status'] for module in payload['modules']}
+    assert status_by_module == {
+        'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
+        'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
+    }
+    _assert_no_sensitive_host_output(payload)
+
+
 def test_healthcheck_returns_sanitized_workspace():
     response = client.get('/api/v1/healthcheck')
 
@@ -295,13 +357,13 @@ def test_healthcheck_empty_source_is_not_configured():
     assert service.get_workspace()['signals'] == []
 
 
-def test_healthcheck_stale_state_is_visible():
+def test_healthcheck_degraded_source_state_is_visible():
     payload = client.get('/api/v1/healthcheck').json()
 
-    assert any(module['status'] == 'stale' for module in payload['data']['modules'])
-    stale_signal = next(signal for signal in payload['data']['signals'] if signal['status'] == 'stale')
-    assert stale_signal['freshness']['label']
-    assert stale_signal['warning_text']
+    assert any(module['status'] in {'stale', 'not_configured', 'unknown'} for module in payload['data']['modules'])
+    degraded_signal = next(signal for signal in payload['data']['signals'] if signal['status'] in {'stale', 'not_configured', 'unknown'})
+    assert degraded_signal['freshness']['label']
+    assert degraded_signal['warning_text']
 
 
 def test_healthcheck_uses_explicit_timestamp_parsing_for_latest_update():

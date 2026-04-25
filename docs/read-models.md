@@ -68,7 +68,9 @@ Phase 15.2b añade una normalización backend-owned previa a futuras fuentes viv
 
 Issue #34 / Phase 15.3 prerequisite añade defensa en profundidad para campos textuales permitidos antes de conectar adaptadores vivos. `HealthcheckSourceRegistry` no acepta `label` del adaptador: lo resuelve desde vocabulario backend-owned. Además filtra marcadores sensibles dentro de `summary`, `warning_text`, `source_label` y `freshness_label`; si detecta rutas host, `.env`, tokens, credenciales, salidas crudas, comandos, tracebacks, journals, prompts, chat IDs, delivery targets o metadatos Git internos, sustituye el texto por un fallback genérico saneado preservando estado, severidad y frescura.
 
-Phase 15.2c adds static guardrails, manifest ownership and freshness thresholds before live adapters. The detailed policy lives in `docs/healthcheck-source-policy.md`; it defines Franky/Zoro ownership per source family, safe location classes, explicit exclusions for raw host data and initial warn/fail thresholds. This phase still does not read manifests or apply thresholds to live data.
+Phase 15.2c adds static guardrails, manifest ownership and freshness thresholds before live adapters. The detailed policy lives in `docs/healthcheck-source-policy.md`; it defines Franky/Zoro ownership per source family, safe location classes, explicit exclusions for raw host data and initial warn/fail thresholds.
+
+Phase 15.3a connects the first live source: `vault-sync`. The adapter reads only a fixed Franky-owned status manifest, derives `pass`/`warn`/`stale`/`fail` from safe result and timestamp fields, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not expose manifest paths, branch names, Git output, raw fields or remotes, and it does not add backup/project/gateway/cronjob reads.
 
 ### `memory.agent_summary`
 Campos esperados:
