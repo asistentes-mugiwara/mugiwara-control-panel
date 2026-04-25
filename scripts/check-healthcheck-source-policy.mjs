@@ -129,8 +129,11 @@ const requiredDocSnippets = [
   '`hermes-gateways` and `gateway.<mugiwara-slug>`: warn after 15 minutes, fail after 60 minutes',
   '`project-health`: warn after 120 minutes, fail after 480 minutes',
   'Phase 15.3b also allows the fixed `backup-health` manifest reader',
+  'Phase 15.4a also allows the fixed `project-health` repo-local manifest reader',
   'Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields',
-  'These phases still do not add project-health, gateway or cronjob reads',
+  'Phase 15.4a reads a fixed Zoro-owned repo-local status manifest and exposes only timestamp/result plus boolean workspace/main/sync semantics',
+  'These phases still do not add gateway or cronjob reads',
+  'does not add GitHub issue/PR counts or last-verify aggregation',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 

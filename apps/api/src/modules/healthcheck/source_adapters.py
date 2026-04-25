@@ -10,6 +10,7 @@ from .registry import HealthcheckSourceRegistry, HealthcheckSourceSnapshot
 
 VAULT_SYNC_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/vault-sync-status.json')
 BACKUP_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')
+PROJECT_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/project-health-status.json')
 
 
 class VaultSyncManifestAdapter:
@@ -282,6 +283,155 @@ class BackupHealthManifestAdapter:
             return 'Actualizado hace menos de 1 min'
         rounded_minutes = int(age_minutes)
         return f'Actualizado hace {rounded_minutes} min'
+
+class ProjectHealthManifestAdapter:
+    """Fixed, allowlisted reader for Zoro-owned repo-local project health manifests."""
+
+    source_id = 'project-health'
+
+    def __init__(
+        self,
+        *,
+        manifest_path: Path = PROJECT_HEALTH_STATUS_MANIFEST,
+        registry: HealthcheckSourceRegistry | None = None,
+    ) -> None:
+        self._manifest_path = manifest_path
+        self._registry = registry or HealthcheckSourceRegistry()
+
+    def snapshot(self, *, now: str | datetime | None = None) -> HealthcheckSourceSnapshot:
+        if not self._manifest_path.exists():
+            return self._registry.normalize_absent(self.source_id)
+
+        try:
+            manifest = json.loads(self._manifest_path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            return self._registry.normalize_unreadable(self.source_id)
+
+        if not isinstance(manifest, Mapping):
+            return self._registry.normalize_unreadable(self.source_id)
+
+        raw = self._manifest_to_raw(manifest, now=self._parse_now(now))
+        return self._registry.normalize(self.source_id, raw)
+
+    def _manifest_to_raw(self, manifest: Mapping[object, object], *, now: datetime) -> dict[str, str]:
+        updated_at = self._safe_timestamp(manifest.get('updated_at')) or self._safe_timestamp(manifest.get('last_success_at'))
+        if updated_at is None:
+            return {
+                'status': 'unknown',
+                'severity': 'unknown',
+                'updated_at': '',
+                'summary': 'Repo local sin timestamp seguro disponible.',
+                'warning_text': 'Project health sin timestamp seguro.',
+                'source_label': 'Project health safe manifest',
+                'freshness_label': 'Frescura desconocida',
+                'freshness_state': 'unknown',
+            }
+
+        result = self._safe_result(manifest.get('status')) or self._safe_result(manifest.get('result'))
+        workspace_clean = self._safe_bool(manifest.get('workspace_clean'))
+        main_branch = self._safe_bool(manifest.get('main_branch'))
+        remote_synced = self._safe_bool(manifest.get('remote_synced'))
+        age_minutes = (now - _parse_timestamp(updated_at)).total_seconds() / 60
+        thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[self.source_id]
+
+        if result in {'error', 'failed', 'fail'}:
+            status = 'fail'
+            severity = 'high'
+            summary = 'Repo local reporta fallo en su manifiesto seguro.'
+            warning = 'Project health falló; revisar repo local.'
+            freshness_state = 'stale'
+        elif result in {'dirty', 'diverged', 'ahead', 'behind', 'stale', 'warning', 'warn'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local requiere revisión según manifiesto seguro.'
+            warning = 'Repo local con degradación explícita.'
+            freshness_state = 'stale'
+        elif result not in {'success', 'ok', 'pass'} or workspace_clean is None or main_branch is None or remote_synced is None:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local sin estado seguro completo disponible.'
+            warning = 'Project health sin resultado completo.'
+            freshness_state = 'stale'
+        elif workspace_clean is not True:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local con cambios pendientes según manifiesto seguro.'
+            warning = 'Repo local con cambios pendientes.'
+            freshness_state = 'stale'
+        elif main_branch is not True:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local fuera de la rama estable esperada.'
+            warning = 'Repo local no está en main según manifiesto seguro.'
+            freshness_state = 'stale'
+        elif remote_synced is not True:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local pendiente de sincronización remota según manifiesto seguro.'
+            warning = 'Repo local pendiente de sincronización.'
+            freshness_state = 'stale'
+        elif age_minutes >= thresholds['fail_after_minutes']:
+            status = 'stale'
+            severity = 'high'
+            summary = 'Repo local stale según manifiesto seguro.'
+            warning = 'Project health stale; revisar fuente operacional.'
+            freshness_state = 'stale'
+        elif age_minutes >= thresholds['warn_after_minutes']:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Repo local se acerca al umbral de frescura.'
+            warning = 'Project health próximo a stale.'
+            freshness_state = 'stale'
+        else:
+            status = 'pass'
+            severity = 'low'
+            summary = 'Repo local revisado recientemente sin incidencias visibles.'
+            warning = 'Sin alerta activa.'
+            freshness_state = 'fresh'
+
+        return {
+            'status': status,
+            'severity': severity,
+            'updated_at': updated_at,
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Project health safe manifest',
+            'freshness_label': self._freshness_label(age_minutes),
+            'freshness_state': freshness_state,
+        }
+
+    def _parse_now(self, value: str | datetime | None) -> datetime:
+        if value is None:
+            return datetime.now(timezone.utc)
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        return _parse_timestamp(value)
+
+    def _safe_timestamp(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            _parse_timestamp(value)
+        except ValueError:
+            return None
+        return value
+
+    def _safe_result(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip().lower()
+        allowed = {'success', 'ok', 'pass', 'error', 'failed', 'fail', 'dirty', 'diverged', 'ahead', 'behind', 'stale', 'warning', 'warn'}
+        return normalized if normalized in allowed else None
+
+    def _safe_bool(self, value: object) -> bool | None:
+        return value if isinstance(value, bool) else None
+
+    def _freshness_label(self, age_minutes: float) -> str:
+        if age_minutes < 1:
+            return 'Actualizado hace menos de 1 min'
+        rounded_minutes = int(age_minutes)
+        return f'Actualizado hace {rounded_minutes} min'
+
 
 
 def _parse_timestamp(value: str) -> datetime:

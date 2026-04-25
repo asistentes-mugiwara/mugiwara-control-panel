@@ -15,7 +15,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
-from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, VaultSyncManifestAdapter
+from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -459,6 +459,109 @@ def test_backup_health_manifest_adapter_models_missing_or_unreadable_manifest(tm
     assert status_by_module == {
         'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
         'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
+    }
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_project_health_manifest_adapter_maps_clean_synced_workspace_to_safe_pass(tmp_path):
+    manifest = tmp_path / 'project-health-status.json'
+    manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-24T07:30:00Z","workspace_clean":true,"main_branch":true,"remote_synced":true,"branch":"main","remote_url":"git@github.com:private/repo.git","git_diff":"diff --git a/.env b/.env","untracked_files":[".env"],"stdout":"token secret raw_output"}',
+        encoding='utf-8',
+    )
+
+    snapshot = ProjectHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    assert payload['modules'] == [
+        {
+            'module_id': 'project-health',
+            'label': 'Project health',
+            'status': 'pass',
+            'severity': 'low',
+            'updated_at': '2026-04-24T07:30:00Z',
+            'summary': 'Repo local revisado recientemente sin incidencias visibles.',
+        }
+    ]
+    assert payload['signals'] == []
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    ('manifest_body', 'expected_summary'),
+    [
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:30:00Z","workspace_clean":false,"main_branch":true,"remote_synced":true,"untracked_files":[".env"],"git_diff":"secret diff"}',
+            'Repo local con cambios pendientes según manifiesto seguro.',
+        ),
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:30:00Z","workspace_clean":true,"main_branch":false,"remote_synced":true,"branch":"feature/private"}',
+            'Repo local fuera de la rama estable esperada.',
+        ),
+        (
+            '{"status":"success","updated_at":"2026-04-24T07:30:00Z","workspace_clean":true,"main_branch":true,"remote_synced":false,"remote_url":"git@github.com:private/repo.git"}',
+            'Repo local pendiente de sincronización remota según manifiesto seguro.',
+        ),
+    ],
+)
+def test_project_health_manifest_adapter_degrades_unsafe_repo_states_without_leaking_details(tmp_path, manifest_body, expected_summary):
+    manifest = tmp_path / 'project-health-status.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = ProjectHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == expected_summary
+    assert payload['signals'][0]['check_id'] == 'project-health.workspace'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+@pytest.mark.parametrize(
+    'manifest_body',
+    [
+        '{"updated_at":"2026-04-24T07:30:00Z","workspace_clean":true,"main_branch":true,"remote_synced":true}',
+        '{"status":"green","updated_at":"2026-04-24T07:30:00Z","workspace_clean":true,"main_branch":true,"remote_synced":true}',
+        '{"status":"success","updated_at":"2026-04-24T07:30:00Z","main_branch":true,"remote_synced":true}',
+    ],
+)
+def test_project_health_manifest_adapter_requires_explicit_safe_result_and_booleans(tmp_path, manifest_body):
+    manifest = tmp_path / 'project-health-partial.json'
+    manifest.write_text(manifest_body, encoding='utf-8')
+
+    snapshot = ProjectHealthManifestAdapter(manifest_path=manifest).snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
+
+    module = payload['modules'][0]
+    assert module['status'] == 'warn'
+    assert module['severity'] == 'medium'
+    assert module['summary'] == 'Repo local sin estado seguro completo disponible.'
+    assert payload['signals'][0]['freshness']['state'] == 'stale'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_project_health_manifest_adapter_models_stale_missing_or_unreadable_manifest(tmp_path):
+    stale_manifest = tmp_path / 'project-health-stale.json'
+    stale_manifest.write_text(
+        '{"status":"success","updated_at":"2026-04-23T23:00:00Z","workspace_clean":true,"main_branch":true,"remote_synced":true}',
+        encoding='utf-8',
+    )
+    missing = ProjectHealthManifestAdapter(manifest_path=tmp_path / 'missing.json').snapshot(now='2026-04-24T08:00:00Z')
+    unreadable_manifest = tmp_path / 'project-health-status.json'
+    unreadable_manifest.write_text('{not-json', encoding='utf-8')
+    unreadable = ProjectHealthManifestAdapter(manifest_path=unreadable_manifest).snapshot(now='2026-04-24T08:00:00Z')
+    stale = ProjectHealthManifestAdapter(manifest_path=stale_manifest).snapshot(now='2026-04-24T08:00:00Z')
+
+    payload = HealthcheckService.from_source_snapshots((missing, unreadable, stale)).get_workspace()
+
+    status_by_summary = {module['summary']: module['status'] for module in payload['modules']}
+    assert status_by_summary == {
+        'Fuente Healthcheck ausente o todavía no configurada.': 'not_configured',
+        'Fuente Healthcheck no legible; no se expone salida cruda.': 'unknown',
+        'Repo local stale según manifiesto seguro.': 'stale',
     }
     _assert_no_sensitive_host_output(payload)
 
