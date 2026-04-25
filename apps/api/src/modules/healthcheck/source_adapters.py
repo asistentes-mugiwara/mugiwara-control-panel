@@ -5,12 +5,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
 
-from .domain import HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS
+from .domain import HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS, MUGIWARA_GATEWAY_SOURCE_IDS
 from .registry import HealthcheckSourceRegistry, HealthcheckSourceSnapshot
 
 VAULT_SYNC_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/vault-sync-status.json')
 BACKUP_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')
 PROJECT_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/project-health-status.json')
+GATEWAY_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')
 
 
 class VaultSyncManifestAdapter:
@@ -431,6 +432,249 @@ class ProjectHealthManifestAdapter:
             return 'Actualizado hace menos de 1 min'
         rounded_minutes = int(age_minutes)
         return f'Actualizado hace {rounded_minutes} min'
+
+
+class GatewayStatusManifestAdapter:
+    """Fixed, allowlisted reader for Franky-owned Hermes gateway status manifests."""
+
+    global_source_id = 'hermes-gateways'
+
+    def __init__(
+        self,
+        *,
+        manifest_path: Path = GATEWAY_STATUS_MANIFEST,
+        registry: HealthcheckSourceRegistry | None = None,
+    ) -> None:
+        self._manifest_path = manifest_path
+        self._registry = registry or HealthcheckSourceRegistry()
+
+    def snapshots(self, *, now: str | datetime | None = None) -> tuple[HealthcheckSourceSnapshot, ...]:
+        source_ids = self._source_ids()
+        if not self._manifest_path.exists():
+            return tuple(self._registry.normalize_absent(source_id) for source_id in source_ids)
+
+        try:
+            manifest = json.loads(self._manifest_path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            return tuple(self._registry.normalize_unreadable(source_id) for source_id in source_ids)
+
+        if not isinstance(manifest, Mapping):
+            return tuple(self._registry.normalize_unreadable(source_id) for source_id in source_ids)
+
+        parsed_now = self._parse_now(now)
+        gateway_raw_by_source = self._gateway_raw_by_source(manifest, now=parsed_now)
+        global_raw = self._global_raw(gateway_raw_by_source, manifest=manifest, now=parsed_now)
+        snapshots: list[HealthcheckSourceSnapshot] = [self._registry.normalize(self.global_source_id, global_raw)]
+        for source_id in MUGIWARA_GATEWAY_SOURCE_IDS:
+            snapshots.append(self._registry.normalize(source_id, gateway_raw_by_source[source_id]))
+        return tuple(snapshots)
+
+    def _source_ids(self) -> tuple[str, ...]:
+        return (self.global_source_id, *MUGIWARA_GATEWAY_SOURCE_IDS)
+
+    def _gateway_raw_by_source(self, manifest: Mapping[object, object], *, now: datetime) -> dict[str, dict[str, str]]:
+        updated_at = self._safe_timestamp(manifest.get('updated_at')) or self._safe_timestamp(manifest.get('last_success_at'))
+        gateways = manifest.get('gateways')
+        if updated_at is None:
+            return {
+                source_id: self._raw_unknown(
+                    source_id,
+                    summary='Gateway sin timestamp seguro disponible.',
+                    warning='Gateway sin timestamp seguro.',
+                )
+                for source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+            }
+        if not isinstance(gateways, Mapping):
+            return {
+                source_id: self._raw_not_configured(
+                    source_id,
+                    updated_at=updated_at,
+                    summary='Gateway sin resumen allowlisted disponible.',
+                    warning='Gateway no configurado en manifiesto seguro.',
+                )
+                for source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+            }
+
+        raw_by_source: dict[str, dict[str, str]] = {}
+        age_minutes = (now - _parse_timestamp(updated_at)).total_seconds() / 60
+        for source_id in MUGIWARA_GATEWAY_SOURCE_IDS:
+            slug = source_id.removeprefix('gateway.')
+            entry = gateways.get(slug)
+            raw_by_source[source_id] = self._gateway_entry_to_raw(source_id, entry, updated_at=updated_at, age_minutes=age_minutes)
+        return raw_by_source
+
+    def _gateway_entry_to_raw(self, source_id: str, entry: object, *, updated_at: str, age_minutes: float) -> dict[str, str]:
+        if not isinstance(entry, Mapping):
+            return self._raw_not_configured(
+                source_id,
+                updated_at=updated_at,
+                summary='Gateway sin resumen allowlisted disponible.',
+                warning='Gateway no configurado en manifiesto seguro.',
+            )
+
+        explicit_status = self._safe_result(entry.get('status')) or self._safe_result(entry.get('result'))
+        active = self._safe_bool(entry.get('active'))
+        thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[source_id]
+
+        if explicit_status in {'error', 'failed', 'fail'} or active is False:
+            status = 'fail'
+            severity = 'high'
+            summary = 'Gateway no activo según manifiesto seguro.'
+            warning = 'Gateway no activo.'
+            freshness_state = 'stale'
+        elif explicit_status in {'stale', 'warning', 'warn'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Gateway requiere revisión según manifiesto seguro.'
+            warning = 'Gateway con degradación explícita.'
+            freshness_state = 'stale'
+        elif active is not True and explicit_status not in {'success', 'ok', 'pass'}:
+            status = 'not_configured'
+            severity = 'unknown'
+            summary = 'Gateway sin estado seguro completo disponible.'
+            warning = 'Gateway sin estado positivo explícito.'
+            freshness_state = 'unknown'
+        elif age_minutes >= thresholds['fail_after_minutes']:
+            status = 'stale'
+            severity = 'high'
+            summary = 'Gateway stale según manifiesto seguro.'
+            warning = 'Gateway stale; revisar fuente operacional.'
+            freshness_state = 'stale'
+        elif age_minutes >= thresholds['warn_after_minutes']:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Gateway se acerca al umbral de frescura.'
+            warning = 'Gateway próximo a stale.'
+            freshness_state = 'stale'
+        else:
+            status = 'pass'
+            severity = 'low'
+            summary = 'Gateway activo según manifiesto seguro.'
+            warning = 'Sin alerta activa.'
+            freshness_state = 'fresh'
+
+        return {
+            'status': status,
+            'severity': severity,
+            'updated_at': updated_at,
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Gateway safe manifest',
+            'freshness_label': self._freshness_label(age_minutes),
+            'freshness_state': freshness_state,
+        }
+
+    def _global_raw(self, gateway_raw_by_source: Mapping[str, Mapping[str, str]], *, manifest: Mapping[object, object], now: datetime) -> dict[str, str]:
+        updated_at = self._safe_timestamp(manifest.get('updated_at')) or self._safe_timestamp(manifest.get('last_success_at'))
+        if updated_at is None:
+            return self._raw_unknown(
+                self.global_source_id,
+                summary='Gateways sin timestamp seguro disponible.',
+                warning='Gateways sin timestamp seguro.',
+            )
+
+        age_minutes = (now - _parse_timestamp(updated_at)).total_seconds() / 60
+        thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[self.global_source_id]
+        statuses = {raw.get('status', 'unknown') for raw in gateway_raw_by_source.values()}
+
+        if 'fail' in statuses:
+            status = 'fail'
+            severity = 'high'
+            summary = 'Uno o más gateways no están activos según manifiesto seguro.'
+            warning = 'Gateway crítico no activo.'
+            freshness_state = 'stale'
+        elif age_minutes >= thresholds['fail_after_minutes']:
+            status = 'stale'
+            severity = 'high'
+            summary = 'Gateways stale según manifiesto seguro.'
+            warning = 'Gateways stale; revisar fuente operacional.'
+            freshness_state = 'stale'
+        elif statuses <= {'pass'} and age_minutes < thresholds['warn_after_minutes']:
+            status = 'pass'
+            severity = 'low'
+            summary = 'Gateways allowlisted activos según manifiesto seguro.'
+            warning = 'Sin alerta activa.'
+            freshness_state = 'fresh'
+        elif statuses & {'not_configured', 'unknown'}:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Gateways con cobertura parcial en manifiesto seguro.'
+            warning = 'Gateways no configurados o desconocidos.'
+            freshness_state = 'stale'
+        else:
+            status = 'warn'
+            severity = 'medium'
+            summary = 'Gateways requieren revisión según manifiesto seguro.'
+            warning = 'Gateways con degradación explícita.'
+            freshness_state = 'stale'
+
+        return {
+            'status': status,
+            'severity': severity,
+            'updated_at': updated_at,
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Gateway safe manifest',
+            'freshness_label': self._freshness_label(age_minutes),
+            'freshness_state': freshness_state,
+        }
+
+    def _raw_unknown(self, source_id: str, *, summary: str, warning: str) -> dict[str, str]:
+        return {
+            'status': 'unknown',
+            'severity': 'unknown',
+            'updated_at': '',
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Gateway safe manifest',
+            'freshness_label': 'Frescura desconocida',
+            'freshness_state': 'unknown',
+        }
+
+    def _raw_not_configured(self, source_id: str, *, updated_at: str, summary: str, warning: str) -> dict[str, str]:
+        return {
+            'status': 'not_configured',
+            'severity': 'unknown',
+            'updated_at': updated_at,
+            'summary': summary,
+            'warning_text': warning,
+            'source_label': 'Gateway safe manifest',
+            'freshness_label': 'Frescura desconocida',
+            'freshness_state': 'unknown',
+        }
+
+    def _parse_now(self, value: str | datetime | None) -> datetime:
+        if value is None:
+            return datetime.now(timezone.utc)
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        return _parse_timestamp(value)
+
+    def _safe_timestamp(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            _parse_timestamp(value)
+        except ValueError:
+            return None
+        return value
+
+    def _safe_result(self, value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip().lower()
+        allowed = {'success', 'ok', 'pass', 'error', 'failed', 'fail', 'stale', 'warning', 'warn'}
+        return normalized if normalized in allowed else None
+
+    def _safe_bool(self, value: object) -> bool | None:
+        return value if isinstance(value, bool) else None
+
+    def _freshness_label(self, age_minutes: float) -> str:
+        if age_minutes < 1:
+            return 'Actualizado hace menos de 1 min'
+        rounded_minutes = int(age_minutes)
+        return f'Actualizado hace {rounded_minutes} min'
+
 
 
 
