@@ -76,6 +76,8 @@ Phase 15.3b connects the second live source: `backup-health`. The adapter reads 
 
 Phase 15.4a connects the third live source: `project-health`. The adapter reads only a fixed Zoro-owned repo-local status manifest, consumes safe status/timestamp plus boolean `workspace_clean`, `main_branch` and `remote_synced` semantics, routes output through `HealthcheckSourceRegistry`, and degrades missing or unreadable manifests to `not_configured`/`unknown`. It does not execute Git, expose raw branch names, remotes, diffs, untracked file lists, GitHub counts or last-verify detail, and it does not add gateway/cronjob reads.
 
+Phase 15.4b adds the Zoro-owned manifest producer for `project-health`. `scripts/write-project-health-status.py` may query the local Git repo outside the backend, but the manifest still serializes only `status`, `result`, `updated_at`, `workspace_clean`, `main_branch` and `remote_synced`. It writes atomically with non-public permissions and does not include branch names, remotes, SHAs, diffs, untracked files, stdout/stderr, paths, GitHub counts or last-verify detail.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

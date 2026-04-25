@@ -48,6 +48,7 @@
 - conectar en Phase 15.3a el primer adapter vivo `vault-sync` desde manifiesto fijo Franky-owned, sin exponer rutas, ramas, remotes, Git output ni campos raw
 - conectar en Phase 15.3b el adapter vivo `backup-health` desde manifiesto fijo Franky-owned, sin exponer rutas de archivo, nombres de archivos, paths incluidos, stdout/stderr, tamaños ni campos raw
 - conectar en Phase 15.4a el adapter vivo `project-health` desde manifiesto fijo Zoro-owned, consumiendo solo timestamp/result y booleanos `workspace_clean`, `main_branch`, `remote_synced`, sin exponer rama cruda, remotes, diffs, untracked file lists, GitHub counts ni last-verify detail
+- producir en Phase 15.4b ese manifiesto mediante `scripts/write-project-health-status.py` con escritura atómica, permisos no públicos y JSON mínimo; Git se consulta solo en el productor operativo, nunca desde el backend Healthcheck
 - mantener gateway/cronjob reads fuera hasta sus microfases revisadas
 - documentar y verificar manifest ownership and freshness thresholds antes de cualquier lectura viva (`docs/healthcheck-source-policy.md`)
 - bloquear crecimiento accidental hacia consola host genérica con `npm run verify:healthcheck-source-policy`
