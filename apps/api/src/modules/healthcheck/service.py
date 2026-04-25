@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from .domain import (
     HealthcheckEvent,
@@ -15,6 +16,9 @@ from .domain import (
     validate_healthcheck_severity,
     validate_healthcheck_status,
 )
+
+if TYPE_CHECKING:
+    from .registry import HealthcheckSourceSnapshot
 
 SAFE_HEALTHCHECK_RECORDS: tuple[HealthcheckRecord, ...] = (
     HealthcheckRecord('cronjobs', 'Cronjobs', 'warn', 'medium', '2026-04-24T07:41:00Z', 'La revisión nocturna ejecutó, pero queda una advertencia operativa menor en skills del job.', 'Quedan referencias de skills a normalizar.', 'Cron safe summary', 'Actualizado hace 5 min'),
@@ -55,12 +59,19 @@ class HealthcheckService:
         self._events = events
         self._freshness_state_by_module = freshness_state_by_module or {}
 
+    @classmethod
+    def from_source_snapshots(cls, snapshots: tuple['HealthcheckSourceSnapshot', ...]) -> 'HealthcheckService':
+        return cls(
+            records=tuple(snapshot.record for snapshot in snapshots),
+            freshness_state_by_module={snapshot.record.module_id: snapshot.freshness_state for snapshot in snapshots},
+        )
+
     def workspace_status(self) -> str:
         return 'ready' if self._records else 'not_configured'
 
     def get_workspace(self) -> dict:
         modules = [self._to_module(record) for record in self._records]
-        signals = [self._to_signal(record) for record in self._records if record.status in {'warn', 'stale', 'fail'}]
+        signals = [self._to_signal(record) for record in self._records if record.status in {'warn', 'stale', 'fail', 'unknown', 'not_configured'}]
         summary_bar = self._summary_bar(modules)
         events = self._events if self._records else ()
         return {

@@ -43,6 +43,7 @@
 - exponer `GET /api/v1/healthcheck` como workspace read-only saneado
 - resumir `vault-sync`, `project-health`, `backup-health`, `hermes-gateways`, `gateway.<mugiwara-slug>` y `cronjobs` desde catálogo seguro backend-owned
 - mantener vocabulario allowlisted de `status`, `severity`, `freshness.state`, source IDs y check IDs en el dominio backend
+- normalizar payloads de adapters futuros con registro backend-owned allowlist-only antes de serializar; campos crudos o desconocidos se descartan y los source IDs rechazados no se ecoan
 - consumir solo fuentes saneadas y timestamps de frescura
 - no ejecutar shell, Docker, systemd ni leer logs/salidas crudas del host en esta fase
 - representar `stale`/`not_configured`/`unknown` de forma explícita
