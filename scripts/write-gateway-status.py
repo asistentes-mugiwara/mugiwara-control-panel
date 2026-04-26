@@ -117,6 +117,7 @@ def _write_atomic_json(output: Path, manifest: dict[str, object]) -> None:
         os.chmod(temp_path, 0o640)
         os.replace(temp_path, output)
         os.chmod(output, 0o640)
+        _fsync_parent_directory(output.parent)
     except OSError as exc:
         if fd >= 0:
             os.close(fd)
@@ -126,6 +127,14 @@ def _write_atomic_json(output: Path, manifest: dict[str, object]) -> None:
             except FileNotFoundError:
                 pass
         raise GatewayStatusProducerError('manifest could not be written atomically') from exc
+
+
+def _fsync_parent_directory(directory: Path) -> None:
+    dir_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
 
 
 def _validate_manifest_shape(manifest: dict[str, object]) -> None:

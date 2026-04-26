@@ -93,6 +93,9 @@ mustInclude(producer, "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/health
 mustInclude(producer, "['systemctl', '--user', 'is-active', unit_name]", 'gateway status producer')
 mustInclude(producer, "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'gateways')", 'gateway status producer')
 mustInclude(producer, "SAFE_GATEWAY_ENTRY_KEYS = ('active',)", 'gateway status producer')
+mustInclude(producer, 'def _fsync_parent_directory(directory: Path)', 'gateway status producer')
+mustInclude(producer, 'os.open(directory, os.O_RDONLY | os.O_DIRECTORY)', 'gateway status producer')
+mustInclude(producer, 'os.fsync(dir_fd)', 'gateway status producer')
 mustNotInclude(producer, /journalctl|systemctl\s+--user\s+(show|cat|status|list-units|list-unit-files)|get-environment|MainPID|ExecStart|Environment=/i, 'gateway status producer', 'systemd discovery/journal/unit detail')
 mustNotInclude(producer, /stdout.*manifest|stderr.*manifest|raw_output|unit_content|command_line|pid\b/i, 'gateway status producer', 'raw operational output in manifest contract')
 
@@ -100,6 +103,7 @@ mustInclude(service, 'Type=oneshot', 'gateway status systemd service')
 mustInclude(service, 'WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel', 'gateway status systemd service')
 mustInclude(service, 'ExecStart=/usr/bin/env npm run write:gateway-status', 'gateway status systemd service')
 mustInclude(service, '/srv/crew-core/runtime/healthcheck/gateway-status.json', 'gateway status systemd service')
+mustInclude(service, 'TimeoutStartSec=30s', 'gateway status systemd service')
 mustInclude(service, 'NoNewPrivileges=yes', 'gateway status systemd service')
 mustInclude(service, 'PrivateTmp=yes', 'gateway status systemd service')
 mustInclude(service, 'ProtectSystem=full', 'gateway status systemd service')
@@ -128,7 +132,9 @@ for (const [text, label] of [
   mustInclude(text, 'mugiwara-gateway-status.timer', label)
   mustInclude(text, 'scripts/install-gateway-status-user-timer.sh', label)
   mustInclude(text, 'only checks allowlisted `hermes-gateway-<slug>.service` active state', label)
-  mustInclude(text, 'does not inspect journal output, unit file contents, PIDs, command lines, env values, logs, stdout/stderr or alternate output paths', label)
+  mustInclude(text, 'TimeoutStartSec=30s', label)
+  mustInclude(text, '--output', label)
+  mustInclude(text, 'stdout/stderr', label)
 }
 
 if (failures.length > 0) {

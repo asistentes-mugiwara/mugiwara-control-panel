@@ -6,6 +6,7 @@ Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
 Type=oneshot
 WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
 ExecStart=/usr/bin/env npm run write:gateway-status
+TimeoutStartSec=30s
 
 # Keep the runner deterministic and local: no systemd discovery, no journal reads,
 # no unit dumping and no alternate output path. The producer only calls
