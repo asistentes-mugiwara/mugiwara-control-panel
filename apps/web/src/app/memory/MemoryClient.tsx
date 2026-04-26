@@ -138,6 +138,7 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
   const selectedSummary = summaries.find((item) => item.mugiwara_slug === selectedMugiwara)
   const selectedBadges = selectedSummary?.badges ?? []
   const sourceNotice = getMemoryStateNotice(selectedSnapshot, sourceLabelMap[selectedSource], selectedProfile.name)
+  const isSnapshotMode = apiState !== 'ready'
 
   return (
     <>
@@ -177,7 +178,10 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
                 Memory muestra continuidad por Mugiwara y estado resumido de fuentes. No es una superficie editable ni se mezcla con el canon curado del Vault.
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <StatusBadge status={apiState === 'ready' ? 'operativo' : 'revision'} />
+                <StatusBadge
+                  status={apiState === 'ready' ? 'operativo' : 'revision'}
+                  label={isSnapshotMode ? 'Snapshot local visible' : undefined}
+                />
                 <span
                   style={{
                     display: 'inline-flex',
@@ -230,13 +234,16 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
                           <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{profile.role}</span>
                         </div>
                       </div>
-                      <StatusBadge status={summary && summary.fact_count >= 5 ? 'operativo' : 'revision'} />
+                      <StatusBadge
+                        status={summary && summary.fact_count >= 5 ? 'operativo' : 'revision'}
+                        label={isSnapshotMode && summary && summary.fact_count >= 5 ? 'Operativo en último corte' : undefined}
+                      />
                     </div>
                     {summary ? (
                       <>
                         <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{summary.summary}</span>
                         <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
-                          {summary.fact_count} facts · actualizado {formatTimestamp(summary.last_updated)}
+                          {summary.fact_count} facts · {isSnapshotMode ? 'corte del snapshot' : 'actualizado'} {formatTimestamp(summary.last_updated)}
                         </span>
                       </>
                     ) : (
@@ -260,7 +267,10 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
                     <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>{selectedProfile.role}</span>
                   </div>
                 </div>
-                <StatusBadge status={mapSourceStateToStatus(selectedSnapshot.state)} />
+                <StatusBadge
+                  status={mapSourceStateToStatus(selectedSnapshot.state)}
+                  label={isSnapshotMode && mapSourceStateToStatus(selectedSnapshot.state) === 'operativo' ? 'Operativo en último corte' : undefined}
+                />
               </div>
 
               <div role="tablist" aria-label="Fuente de memoria" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -301,10 +311,13 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
               >
                 <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Estado de fuente</span>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <StatusBadge status={mapSourceStateToStatus(selectedSnapshot.state)} />
+                  <StatusBadge
+                    status={mapSourceStateToStatus(selectedSnapshot.state)}
+                    label={isSnapshotMode && mapSourceStateToStatus(selectedSnapshot.state) === 'operativo' ? 'Operativo en último corte' : undefined}
+                  />
                   <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{selectedSnapshot.availability}</span>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                    Última actualización: {formatTimestamp(selectedSnapshot.updated_at)}
+                    {isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: {formatTimestamp(selectedSnapshot.updated_at)}
                   </span>
                 </div>
                 <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{selectedSnapshot.summary}</p>

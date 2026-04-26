@@ -94,6 +94,7 @@ function formatLineCount(markdown: string) {
 
 export default async function MugiwarasPage() {
   const viewModel = await getMugiwarasViewModel()
+  const isSnapshotMode = viewModel.state !== 'ready'
 
   return (
     <>
@@ -109,7 +110,10 @@ export default async function MugiwarasPage() {
         <p style={{ marginTop: 0, marginBottom: '10px', color: appTheme.colors.textSecondary }}>
           Esta vista agrega solo resúmenes saneados por agente. No abre controles de edición y solo muestra el AGENTS.md canónico de crew-core cuando llega desde la API allowlisted.
         </p>
-        <StatusBadge status={viewModel.state === 'ready' ? 'operativo' : 'revision'} />
+        <StatusBadge
+          status={viewModel.state === 'ready' ? 'operativo' : 'revision'}
+          label={isSnapshotMode ? 'Snapshot local visible' : undefined}
+        />
       </SurfaceCard>
 
       {viewModel.notice ? (
@@ -208,11 +212,14 @@ export default async function MugiwarasPage() {
                       <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{profile?.role ?? 'Mugiwara'}</span>
                     </div>
                   </div>
-                  <StatusBadge status={mapMugiwaraStatusToBadgeStatus(mugiwara.status)} />
+                  <StatusBadge
+                    status={mapMugiwaraStatusToBadgeStatus(mugiwara.status)}
+                    label={isSnapshotMode && mapMugiwaraStatusToBadgeStatus(mugiwara.status) === 'operativo' ? 'Operativo en último corte' : undefined}
+                  />
                 </div>
 
                 <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                  Estado visible: <strong>{getMugiwaraStatusLabel(mugiwara.status)}</strong>
+                  Estado visible: <strong>{isSnapshotMode && mugiwara.status === 'operativo' ? 'Operativo en último corte' : getMugiwaraStatusLabel(mugiwara.status)}</strong>
                 </p>
 
                 <div>

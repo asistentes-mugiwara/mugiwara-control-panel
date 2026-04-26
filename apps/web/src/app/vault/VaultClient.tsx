@@ -54,6 +54,7 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
   const workspace = initialWorkspace
   const [selectedDocumentId, setSelectedDocumentId] = useState(workspace.active_document_id)
   const apiNotice = getVaultApiNotice(apiState, apiErrorCode)
+  const isSnapshotMode = Boolean(apiNotice)
 
   const activeDocument = useMemo(
     () => workspace.documents.find((document) => document.id === selectedDocumentId) ?? workspace.documents[0],
@@ -106,7 +107,14 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
                 Vault es una capa editorial y navegable. Resume decisiones duraderas y project summaries; no funciona como memoria operativa por fuente.
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <StatusBadge status={getVaultFreshnessStatus(workspace.freshness.state)} />
+                <StatusBadge
+                  status={getVaultFreshnessStatus(workspace.freshness.state)}
+                  label={
+                    isSnapshotMode && getVaultFreshnessStatus(workspace.freshness.state) === 'operativo'
+                      ? 'Operativo en último corte'
+                      : undefined
+                  }
+                />
                 <span
                   style={{
                     display: 'inline-flex',
@@ -125,7 +133,7 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{workspace.freshness.label}</span>
               </div>
               <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                Última actualización: {formatTimestamp(workspace.freshness.updated_at)}
+                {isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: {formatTimestamp(workspace.freshness.updated_at)}
               </span>
               {freshnessNotice ? (
                 <StatePanel
@@ -173,7 +181,10 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                         <strong>{entry.label}</strong>
-                        <StatusBadge status={entry.kind === 'directory' ? 'revision' : 'operativo'} />
+                        <StatusBadge
+                          status={entry.kind === 'directory' ? 'revision' : 'operativo'}
+                          label={isSnapshotMode && entry.kind !== 'directory' ? 'Operativo en último corte' : undefined}
+                        />
                       </div>
                       <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{entry.path_segment}</span>
                       <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{entry.summary}</span>
@@ -279,7 +290,7 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
                 </div>
 
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                  Actualizado: {formatTimestamp(activeDocument.meta.updated_at)}
+                  {isSnapshotMode ? 'Corte del snapshot' : 'Actualizado'}: {formatTimestamp(activeDocument.meta.updated_at)}
                 </span>
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{activeDocument.meta.context}</span>
               </div>
