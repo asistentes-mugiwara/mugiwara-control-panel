@@ -34,6 +34,7 @@ SAFE_JOB_ENTRY_KEYS = ('last_run_at', 'last_status', 'criticality')
 SUCCESS_STATUSES: frozenset[str] = frozenset({'ok', 'success', 'pass'})
 FAILED_STATUSES: frozenset[str] = frozenset({'error', 'failed', 'fail'})
 DEGRADED_STATUSES: frozenset[str] = frozenset({'warn', 'warning', 'stale', 'dirty', 'diverged'})
+MAX_CRON_REGISTRY_BYTES = 1_048_576
 
 
 class CronjobsStatusProducerError(RuntimeError):
@@ -74,6 +75,7 @@ def _safe_jobs_from_profile(profiles_root: Path, profile: str) -> list[dict[str,
         return []
 
     try:
+        _ensure_registry_size_is_safe(registry_path)
         registry = json.loads(registry_path.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise CronjobsStatusProducerError('cron registry could not be read safely') from exc
@@ -101,6 +103,11 @@ def _safe_jobs_from_profile(profiles_root: Path, profile: str) -> list[dict[str,
             continue
         safe_jobs.append(safe_entry)
     return safe_jobs
+
+
+def _ensure_registry_size_is_safe(registry_path: Path) -> None:
+    if registry_path.stat().st_size > MAX_CRON_REGISTRY_BYTES:
+        raise CronjobsStatusProducerError('cron registry exceeds safe size limit')
 
 
 def _safe_job_entry(raw_job: Mapping[object, object]) -> dict[str, str]:
