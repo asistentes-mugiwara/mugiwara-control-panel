@@ -33,6 +33,7 @@ Este comando imprime la checklist canónica por **viewport** y por **ruta**.
 - header, subtitle, pills y badges legibles
 - cards con ritmo visual consistente
 - estados vacíos/error/stale sin colapsar el layout
+- en `/healthcheck`, la prioridad actual debe verse antes del grid y los checks sanos no deben competir visualmente con incidencias o advertencias
 
 ### Responsive fino
 - grids apilan paneles con dignidad

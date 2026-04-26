@@ -45,3 +45,26 @@ export function getHealthcheckSeverityLabel(severity: HealthcheckSeverity): stri
 
   return map[severity]
 }
+
+
+const statusTriageRank: Record<HealthcheckStatus, number> = {
+  fail: 90,
+  stale: 55,
+  warn: 50,
+  pass: 10,
+}
+
+const severityTriageRank: Record<HealthcheckSeverity, number> = {
+  critical: 100,
+  high: 80,
+  medium: 45,
+  low: 5,
+}
+
+export function getHealthcheckTriageRank(status: HealthcheckStatus, severity: HealthcheckSeverity): number {
+  return Math.max(statusTriageRank[status], severityTriageRank[severity])
+}
+
+export function shouldRenderSeparateSeverityBadge(status: HealthcheckStatus, severity: HealthcheckSeverity): boolean {
+  return mapHealthcheckStatusToBadgeStatus(status) !== mapHealthcheckSeverityToBadgeStatus(severity)
+}
