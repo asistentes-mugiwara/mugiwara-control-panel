@@ -5,6 +5,8 @@ import json
 import stat
 from pathlib import Path
 
+import pytest
+
 
 def _load_producer_module():
     module_path = Path(__file__).resolve().parents[3] / 'scripts' / 'write-cronjobs-status.py'
@@ -168,6 +170,30 @@ def test_cronjobs_status_manifest_producer_degrades_failed_or_missing_critical_j
     assert 'system-backup-nightly' not in serialized
     assert 'stderr' not in serialized
     assert 'secret traceback' not in serialized
+
+
+def test_cronjobs_status_manifest_producer_rejects_oversized_registry_without_leaking_content(tmp_path):
+    producer = _load_producer_module()
+    producer.MAX_CRON_REGISTRY_BYTES = 64
+    profiles_root = tmp_path / 'profiles'
+    cron_dir = profiles_root / 'luffy' / 'cron'
+    cron_dir.mkdir(parents=True)
+    oversized_content = '{"jobs": [], "prompt": "TOKEN /srv/crew-core/.env raw output synthetic-chat-id"}'
+    (cron_dir / 'jobs.json').write_text(oversized_content, encoding='utf-8')
+    output = tmp_path / 'cronjobs-status.json'
+
+    with pytest.raises(producer.CronjobsStatusProducerError) as exc_info:
+        producer.write_cronjobs_status(
+            profiles_root=profiles_root,
+            output_path=output,
+            now='2026-04-26T08:12:00Z',
+        )
+
+    assert 'size limit' in str(exc_info.value)
+    assert not output.exists()
+    serialized_error = str(exc_info.value)
+    for forbidden in ['TOKEN', '/srv/crew-core', '.env', 'raw output', 'synthetic-chat-id', oversized_content]:
+        assert forbidden not in serialized_error
 
 
 def test_cronjobs_status_manifest_producer_cli_accepts_safe_output_and_now(tmp_path):
