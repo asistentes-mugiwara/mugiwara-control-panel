@@ -88,6 +88,8 @@ Phase 15.6b adds the Franky-owned producer/runner for that cronjobs manifest. `s
 
 Issue #43 automates the project-health producer with the user-level `mugiwara-project-health-status.timer` installed by `scripts/install-project-health-status-user-timer.sh`. The timer runs every 15 minutes after boot via `npm run write:project-health-status`, does not run `git fetch`, does not override the fixed manifest output, and `remote_synced` compares `HEAD` with the local upstream ref. A future network-refresh runner must be reviewed separately if operations decide the local upstream ref should be refreshed before each manifest write.
 
+Phase 15.8 closes the Healthcheck real-source block through 15.7b. Canonical state: readers exist for `vault-sync`, `backup-health`, `project-health`, `gateway-status` and `cronjobs`; producers/runners exist for `project-health`, `gateway-status` and `cronjobs-status`; `vault-sync-status` and `backup-health-status` producers remain explicit follow-ups rather than blockers. Healthcheck still degrades missing/unreadable fixed manifests visibly and must not expose host internals.
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

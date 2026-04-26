@@ -29,7 +29,7 @@
 - [x] `git diff --check` → OK.
 
 ## PR / review
-- [ ] Commit con trailers Mugiwara.
-- [ ] PR abierta.
-- [ ] Handoff Franky + Chopper.
-- [ ] Issue #58 cerrado o enlazado al merge.
+- [x] Commit con trailers Mugiwara.
+- [x] PR abierta.
+- [x] Handoff Franky + Chopper completado.
+- [x] Issue #58 cerrado o enlazado al merge.

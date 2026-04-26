@@ -12,5 +12,5 @@
   - `npm run verify:healthcheck-source-policy`
   - `systemd-analyze --user verify ops/systemd/user/mugiwara-gateway-status.service ops/systemd/user/mugiwara-gateway-status.timer`
   - `git diff --check`
-- [ ] PR review Franky + Chopper completada.
-- [ ] Issue #54 comentada/cerrada tras merge.
+- [x] PR review Franky + Chopper completada.
+- [x] Issue #54 comentada/cerrada tras merge.
