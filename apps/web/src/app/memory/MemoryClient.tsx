@@ -10,6 +10,7 @@ import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
+import { SourceStatePills } from '@/shared/ui/status/SourceStatePills'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -155,8 +156,16 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
             title={apiNotice.title}
             description={apiNotice.description}
             detail={apiNotice.detail}
-            eyebrow="Estado API Memory"
-          />
+            eyebrow="Estado de fuente"
+          >
+            <SourceStatePills
+              items={[
+                { label: 'Modo fallback local', tone: 'fallback' },
+                { label: 'Snapshot saneado', tone: 'snapshot' },
+                { label: 'No tiempo real', tone: 'not-realtime' },
+              ]}
+            />
+          </StatePanel>
         </section>
       ) : null}
 
@@ -168,7 +177,7 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
                 Memory muestra continuidad por Mugiwara y estado resumido de fuentes. No es una superficie editable ni se mezcla con el canon curado del Vault.
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <StatusBadge status={apiState === 'ready' ? 'operativo' : 'sin-datos'} />
+                <StatusBadge status={apiState === 'ready' ? 'operativo' : 'revision'} />
                 <span
                   style={{
                     display: 'inline-flex',

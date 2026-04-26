@@ -14,6 +14,7 @@ import {
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
+import { SourceStatePills } from '@/shared/ui/status/SourceStatePills'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -34,10 +35,10 @@ async function getInitialDashboardData(): Promise<{ summary: DashboardSummary; a
       return {
         summary: dashboardSummaryFixture,
         apiNotice: {
-          status: 'sin-datos',
-          title: 'API Dashboard sin datos configurados',
-          description: 'La API respondió sin agregado disponible; se mantiene fixture saneado para no romper la navegación.',
-          detail: response.status,
+          status: 'revision',
+          title: 'Dashboard en modo fallback local',
+          description: 'La API respondió sin agregado disponible. Se muestra un snapshot local saneado para mantener la navegación, pero no representa una lectura en tiempo real.',
+          detail: `Estado técnico: ${response.status}`,
         },
       }
     }
@@ -49,15 +50,18 @@ async function getInitialDashboardData(): Promise<{ summary: DashboardSummary; a
     return {
       summary: dashboardSummaryFixture,
       apiNotice: {
-        status: apiError?.code === 'not_configured' ? 'sin-datos' : 'incidencia',
+        status: apiError?.code === 'not_configured' ? 'revision' : 'incidencia',
         title:
           apiError?.code === 'not_configured'
-            ? 'API Dashboard no configurada'
+            ? 'Dashboard en modo fallback local'
             : apiError?.code === 'invalid_config'
               ? 'Configuración server-only de Dashboard inválida'
               : 'API Dashboard no disponible',
-        description: 'La página mantiene fallback saneado local. No se muestran detalles internos del backend ni salidas operativas crudas.',
-        detail: apiError?.code,
+        description:
+          apiError?.code === 'not_configured'
+            ? 'Mostrando snapshot local saneado. Estos datos sostienen la navegación, pero no son lectura real ni tiempo real.'
+            : 'La página mantiene fallback saneado local. No se muestran detalles internos del backend ni salidas operativas crudas.',
+        detail: apiError?.code ? `Estado técnico: ${apiError.code}` : undefined,
       },
     }
   }
@@ -91,8 +95,16 @@ export default async function DashboardPage() {
           title={apiNotice.title}
           description={apiNotice.description}
           detail={apiNotice.detail}
-          eyebrow="Estado de API"
-        />
+          eyebrow="Estado de fuente"
+        >
+          <SourceStatePills
+            items={[
+              { label: 'Modo fallback local', tone: 'fallback' },
+              { label: 'Snapshot saneado', tone: 'snapshot' },
+              { label: 'No tiempo real', tone: 'not-realtime' },
+            ]}
+          />
+        </StatePanel>
       ) : null}
 
       <section className="layout-grid layout-grid--cards-260">

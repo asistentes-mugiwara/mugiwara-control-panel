@@ -11,7 +11,9 @@ Cada vista del frontend debe contemplar al menos:
 ## Reglas
 - `loading` no debe bloquear navegación completa del shell si solo falla un módulo.
 - `error` debe ser visible sin filtrar detalles internos del host.
-- `empty` debe distinguir “sin datos” de “sin permiso” y de “fuente no configurada”.
+- `empty` debe distinguir “sin datos”, “sin permiso” y “fuente no configurada”.
+- Si una página muestra fixture, fallback o snapshot visible, no debe presentarlo como simple “Sin datos”: debe etiquetarlo como `Modo fallback local`, `Snapshot saneado` y/o `No tiempo real`.
+- Códigos técnicos como `not_configured` pueden mostrarse como detalle secundario (`Estado técnico: ...`), nunca como explicación principal para el usuario.
 - `stale` aplica a healthcheck, system y cualquier dato con timestamp operativo.
 
 ## Por módulo

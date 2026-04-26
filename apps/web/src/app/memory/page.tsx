@@ -25,10 +25,10 @@ async function getInitialMemoryData(): Promise<InitialMemoryData> {
         apiDetails: {},
         apiState: 'fallback',
         apiNotice: {
-          status: 'sin-datos',
-          title: 'API Memory sin datos configurados',
-          description: 'La API respondió sin catálogo disponible; se mantiene fixture saneado para no romper la lectura.',
-          detail: summary.status,
+          status: 'revision',
+          title: 'Memory en modo fallback local',
+          description: 'La API respondió sin catálogo disponible. Se muestra un snapshot local saneado para sostener la navegación; no es lectura real ni tiempo real.',
+          detail: `Estado técnico: ${summary.status}`,
         },
       }
     }
@@ -66,18 +66,18 @@ async function getInitialMemoryData(): Promise<InitialMemoryData> {
       apiDetails: {},
       apiState: 'fallback',
       apiNotice: {
-        status: apiError?.code === 'not_configured' ? 'sin-datos' : 'incidencia',
+        status: apiError?.code === 'not_configured' ? 'revision' : 'incidencia',
         title:
           apiError?.code === 'not_configured'
-            ? 'API Memory no configurada'
+            ? 'Memory en modo fallback local'
             : apiError?.code === 'invalid_config'
               ? 'Configuración server-only de Memory inválida'
               : 'API Memory no disponible',
         description:
           apiError?.code === 'not_configured'
-            ? 'Configura `MUGIWARA_CONTROL_PANEL_API_URL` solo en el entorno server para conectar esta vista al backend.'
+            ? 'Mostrando snapshot local saneado. Estos resúmenes sostienen la navegación, pero no son lectura real ni tiempo real.'
             : 'La página mantiene el fallback saneado local. No se muestran dumps crudos ni detalles técnicos de memoria.',
-        detail: apiError?.code,
+        detail: apiError?.code ? `Estado técnico: ${apiError.code}` : undefined,
       },
     }
   }

@@ -45,8 +45,9 @@ export function mapSkillsViewStateToBadgeStatus(state: 'loading' | 'ready' | 'em
     case 'ready':
       return 'operativo'
     case 'empty':
-    case 'not_configured':
       return 'sin-datos'
+    case 'not_configured':
+      return 'revision'
     case 'error':
       return 'incidencia'
     case 'loading':

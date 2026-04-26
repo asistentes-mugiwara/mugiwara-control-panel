@@ -23,6 +23,7 @@ import { skillSurfaceFixture } from '@/modules/skills/view-models/skill-surface.
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
+import { SourceStatePills } from '@/shared/ui/status/SourceStatePills'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -75,17 +76,17 @@ function getSkillsViewNotice(state: SkillsViewState, connectionLabel: string, er
       }
     case 'not_configured':
       return {
-        status: 'sin-datos' as const,
-        title: 'BFF de Skills sin configuración server-only',
-        description: 'Configura `MUGIWARA_CONTROL_PANEL_API_URL` solo en el runtime server para conectar esta vista al backend real.',
-        detail: 'El navegador no necesita conocer la URL del backend.',
+        status: 'revision' as const,
+        title: 'Skills con fuente no configurada',
+        description: 'El BFF same-origin está disponible, pero falta la configuración server-only hacia el backend. No se muestran datos productivos ni URL interna al navegador.',
+        detail: 'Estado técnico: not_configured',
       }
     case 'error':
       return {
         status: 'incidencia' as const,
-        title: 'No se pudo cargar la fuente real de skills',
-        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta saneada del BFF impiden mostrar catálogo y detalle con garantías.',
-        detail: errorMessage ?? 'Sin detalle adicional.',
+        title: 'Skills con fuente degradada',
+        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta saneada del BFF impiden mostrar catálogo y detalle con garantías. No se exponen URLs internas ni salidas crudas.',
+        detail: 'Estado técnico: error',
       }
     case 'empty':
       return {
@@ -385,7 +386,7 @@ export default function SkillsPage() {
       <PageHeader
         eyebrow="Skills"
         title="Skills"
-        subtitle="Catálogo conectado a backend real con preview y guardado controlado: actor visible, PUT allowlisted y manejo explícito de conflicto stale."
+        subtitle="Catálogo preparado para backend real con preview y guardado controlado; el estado de origen indica si la fuente está conectada."
         mugiwaraSlug="zoro"
         detailPills={["Edición allowlisted", "Diff explícito", "Auditoría visible"]}
       />
@@ -567,15 +568,27 @@ export default function SkillsPage() {
                 description={sourceNotice.description}
                 detail={sourceNotice.detail}
                 eyebrow="Estado de fuente"
-              />
+              >
+                <SourceStatePills
+                  items={
+                    viewState === 'not_configured'
+                      ? [{ label: 'Fuente no configurada', tone: 'not-configured' }]
+                      : viewState === 'empty'
+                        ? [{ label: 'API real conectada', tone: 'connected' }, { label: 'Sin datos productivos', tone: 'not-configured' }]
+                        : [{ label: 'Error/degradado', tone: 'degraded' }]
+                  }
+                />
+              </StatePanel>
             ) : (
               <StatePanel
                 status="operativo"
                 title="BFF same-origin conectado"
-                description="Catálogo, detalle y auditoría están listos para operar sobre la allowlist activa sin exponer la URL del backend al navegador."
+                description="Catálogo, detalle y auditoría llegan desde la API real a través de la allowlist activa sin exponer la URL del backend al navegador."
                 detail={`Conexión: ${apiConnectionLabel}`}
                 eyebrow="Estado de fuente"
-              />
+              >
+                <SourceStatePills items={[{ label: 'API real conectada', tone: 'connected' }]} />
+              </StatePanel>
             )}
           </div>
         </SurfaceCard>
