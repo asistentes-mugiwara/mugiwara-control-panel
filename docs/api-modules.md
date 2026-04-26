@@ -6,6 +6,8 @@
 - `memory`
 - `vault`
 - `healthcheck`
+- `dashboard`
+- `usage`
 - `system`
 
 ## Responsabilidad por módulo
@@ -64,6 +66,13 @@
 - exponer `GET /api/v1/dashboard` como agregación read-only para la home operativa
 - componer solo resúmenes seguros y links allowlisted
 - degradar Healthcheck no configurado a warning/stale visible, nunca a sano silencioso
+
+### `usage`
+- exponer `GET /api/v1/usage/current` como primera frontera read-only del bloque Usage (#51)
+- consumir solo la SQLite saneada allowlisted de Codex usage producida fuera del backend
+- serializar snapshot actual, plan, ventana 5h, ciclo semanal Codex, frescura y recomendación sin paths runtime ni raw payload
+- degradar DB ausente/ilegible/sin snapshots a `not_configured`/`unknown` visible, nunca a dato sano silencioso
+- mantener actividad Hermes local, calendario y ventanas históricas para subfases separadas y saneadas
 
 ### `system`
 - estado general del servidor y señales operativas de alto nivel
