@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from ...shared.contracts import resource_response
-from .service import USAGE_REFRESH_INTERVAL_MINUTES, UsageCalendarRange, UsageService
+from .service import DEFAULT_USAGE_WINDOWS_LIMIT, MAX_USAGE_WINDOWS_LIMIT, USAGE_REFRESH_INTERVAL_MINUTES, UsageCalendarRange, UsageService
 
 router = APIRouter(prefix='/api/v1/usage', tags=['usage'])
 _service = UsageService()
@@ -42,5 +42,24 @@ def get_usage_calendar(range: UsageCalendarRange = 'current_cycle', service: Usa
             'source': 'codex-usage-snapshot-sqlite',
             'range': range,
             'timezone': 'Europe/Madrid',
+        },
+    )
+
+
+@router.get('/five-hour-windows')
+def get_usage_five_hour_windows(
+    limit: int = Query(DEFAULT_USAGE_WINDOWS_LIMIT, ge=1, le=MAX_USAGE_WINDOWS_LIMIT),
+    service: UsageService = Depends(get_usage_service),
+) -> dict:
+    windows = service.get_five_hour_windows(limit)
+    return resource_response(
+        resource='usage.five_hour_windows',
+        status=service.five_hour_windows_status_for(windows),
+        data=windows,
+        meta={
+            'read_only': True,
+            'sanitized': True,
+            'source': 'codex-usage-snapshot-sqlite',
+            'limit': limit,
         },
     )

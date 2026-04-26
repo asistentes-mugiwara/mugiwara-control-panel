@@ -244,6 +244,18 @@ export type UsageCalendar = {
   empty_reason?: 'not_configured' | 'unknown'
 }
 
+export type UsageFiveHourWindows = {
+  windows: Array<{
+    started_at: string
+    ended_at: string
+    peak_used_percent: number | null
+    delta_percent: number | null
+    samples_count: number
+    status: UsageWindowStatus
+  }>
+  empty_reason: 'not_configured' | null
+}
+
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
 export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
 export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
@@ -255,4 +267,5 @@ export type HealthcheckWorkspaceResponse = ResourceEnvelope<HealthcheckWorkspace
 export type HealthcheckSummaryResponse = ResourceEnvelope<{ items: HealthcheckSummary[] }, { count: number }>
 export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: true; sanitized: true; source: string; refresh_interval_minutes: number }>
 export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
+export type UsageFiveHourWindowsResponse = ResourceEnvelope<UsageFiveHourWindows, { read_only: true; sanitized: true; source: string; limit: number }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>
