@@ -4,7 +4,13 @@
 Abrir el bloque Usage para GitHub #51 sin mezclarlo con Git control (#40), header metrics (#36) ni productores Healthcheck pendientes. La feature debe exponer uso Codex/Hermes en modo read-only, con contratos saneados y progreso por microfases.
 
 ## Por qué ahora
-Pablo ha pedido comenzar Phase 17.0 y 17.1. El issue #51 ya contiene UX/product input de Usopp y existe una fuente operativa saneada producida por Franky: `codex-usage-snapshot.py` escribe snapshots cada 15 minutos en una SQLite fija bajo runtime privado. El estado real del repo no tiene todavía `openspec/phase-17*` ni módulo `usage`.
+Pablo pidió comenzar Phase 17.0 y 17.1 y PR #69 ya consumió esa numeración para Usage. El issue #51 contiene UX/product input de Usopp y existe una fuente operativa saneada producida por Franky: `codex-usage-snapshot.py` escribe snapshots cada 15 minutos en una SQLite fija bajo runtime privado.
+
+## Corrección de roadmap
+Antes de PR #69 existía un plan verbal que proponía usar Phase 17.x para productores Healthcheck pendientes (`vault-sync-status` y `backup-health-status`). Esa asignación quedó contradicha por la ejecución ya mergeada de Usage. Para evitar drift:
+- **Phase 17.x queda canónicamente reservada a Usage / GitHub #51**.
+- **Los productores Healthcheck pendientes pasan a Phase 18.x**.
+- Si se pide “continúa 17.x”, debe interpretarse como continuar Usage salvo que Pablo indique explícitamente lo contrario.
 
 ## Principios operativos
 - Backend como frontera de seguridad: ruta fija allowlisted, sin filesystem arbitrario, sin shell, sin raw payload.
