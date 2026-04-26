@@ -1,11 +1,18 @@
 import {
   getHealthcheckSeverityLabel,
   getHealthcheckStatusLabel,
+  getHealthcheckTriageRank,
   mapHealthcheckSeverityToBadgeStatus,
   mapHealthcheckStatusToBadgeStatus,
+  shouldRenderSeparateSeverityBadge,
 } from '@/modules/healthcheck/view-models/healthcheck-mappers'
 import { fetchHealthcheckWorkspace, HealthcheckApiError } from '@/modules/healthcheck/api/healthcheck-http'
-import { healthcheckWorkspaceFixture, type HealthcheckWorkspace } from '@/modules/healthcheck/view-models/healthcheck-summary.fixture'
+import {
+  healthcheckWorkspaceFixture,
+  type HealthcheckModuleCard,
+  type HealthcheckSummaryItem,
+  type HealthcheckWorkspace,
+} from '@/modules/healthcheck/view-models/healthcheck-summary.fixture'
 import type { AppStatus } from '@/shared/theme/tokens'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
@@ -59,6 +66,103 @@ async function getInitialHealthcheckData(): Promise<{ workspace: HealthcheckWork
   }
 }
 
+
+function getHealthcheckAccent(status: HealthcheckModuleCard['status'], severity: HealthcheckModuleCard['severity']) {
+  if (status === 'fail' || severity === 'critical' || severity === 'high') {
+    return 'danger' as const
+  }
+
+  if (status === 'warn' || severity === 'medium') {
+    return 'warning' as const
+  }
+
+  if (status === 'stale') {
+    return 'gold' as const
+  }
+
+  return 'sky' as const
+}
+
+function getHealthcheckCardTone(status: HealthcheckModuleCard['status'], severity: HealthcheckModuleCard['severity']) {
+  if (status === 'pass' && severity === 'low') {
+    return {
+      borderColor: 'rgba(255,255,255,0.08)',
+      background: 'rgba(255,255,255,0.015)',
+      opacity: 0.86,
+    }
+  }
+
+  if (status === 'fail' || severity === 'critical' || severity === 'high') {
+    return {
+      borderColor: 'rgba(201,65,40,0.55)',
+      background: 'rgba(201,65,40,0.08)',
+      opacity: 1,
+    }
+  }
+
+  return {
+    borderColor: appTheme.colors.borderSubtle,
+    background: appTheme.colors.bgSurface1,
+    opacity: 1,
+  }
+}
+
+function sortByHealthcheckTriage<T extends { status: HealthcheckModuleCard['status']; severity: HealthcheckModuleCard['severity']; updated_at?: string; freshness?: { updated_at: string } }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const rankDelta = getHealthcheckTriageRank(right.status, right.severity) - getHealthcheckTriageRank(left.status, left.severity)
+
+    if (rankDelta !== 0) {
+      return rankDelta
+    }
+
+    const leftDate = new Date(left.updated_at ?? left.freshness?.updated_at ?? '').getTime()
+    const rightDate = new Date(right.updated_at ?? right.freshness?.updated_at ?? '').getTime()
+
+    return (Number.isNaN(rightDate) ? 0 : rightDate) - (Number.isNaN(leftDate) ? 0 : leftDate)
+  })
+}
+
+function getPriorityCopy(module: HealthcheckModuleCard | null) {
+  if (!module) {
+    return null
+  }
+
+  if (module.status === 'fail' || module.severity === 'critical' || module.severity === 'high') {
+    return {
+      status: 'incidencia' as const,
+      title: `Prioridad actual: ${module.label}`,
+      description: module.summary,
+      detail: `${getHealthcheckStatusLabel(module.status)} · Severidad ${getHealthcheckSeverityLabel(module.severity)} · ${formatTimestamp(module.updated_at)}`,
+    }
+  }
+
+  if (module.status === 'warn' || module.status === 'stale' || module.severity === 'medium') {
+    return {
+      status: module.status === 'stale' ? ('stale' as const) : ('revision' as const),
+      title: `Acción requerida: revisar ${module.label}`,
+      description: module.summary,
+      detail: `${getHealthcheckStatusLabel(module.status)} · Severidad ${getHealthcheckSeverityLabel(module.severity)} · ${formatTimestamp(module.updated_at)}`,
+    }
+  }
+
+  return null
+}
+
+function HealthcheckStatusBadges({ status, severity }: Pick<HealthcheckModuleCard | HealthcheckSummaryItem, 'status' | 'severity'>) {
+  const statusBadge = mapHealthcheckStatusToBadgeStatus(status)
+  const severityBadge = mapHealthcheckSeverityToBadgeStatus(severity)
+
+  return (
+    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <StatusBadge status={statusBadge} />
+      {shouldRenderSeparateSeverityBadge(status, severity) ? <StatusBadge status={severityBadge} /> : null}
+      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>
+        Severidad {getHealthcheckSeverityLabel(severity)}
+      </span>
+    </div>
+  )
+}
+
 function formatTimestamp(value: string | null) {
   if (!value) {
     return 'Sin actualización'
@@ -78,6 +182,9 @@ function formatTimestamp(value: string | null) {
 
 export default async function HealthcheckPage() {
   const { workspace, apiNotice } = await getInitialHealthcheckData()
+  const sortedModules = sortByHealthcheckTriage(workspace.modules)
+  const sortedSignals = sortByHealthcheckTriage(workspace.signals)
+  const priorityNotice = getPriorityCopy(sortedModules[0] ?? null)
   const healthSummaryNotice =
     workspace.summary_bar.incidents > 0
       ? {
@@ -147,7 +254,15 @@ export default async function HealthcheckPage() {
             </div>
           </div>
 
-          {healthSummaryNotice ? (
+          {priorityNotice ? (
+            <StatePanel
+              status={priorityNotice.status}
+              title={priorityNotice.title}
+              description={priorityNotice.description}
+              detail={priorityNotice.detail}
+              eyebrow="Acción requerida"
+            />
+          ) : healthSummaryNotice ? (
             <StatePanel
               status={healthSummaryNotice.status}
               title={healthSummaryNotice.title}
@@ -159,27 +274,35 @@ export default async function HealthcheckPage() {
         </div>
       </SurfaceCard>
 
-      <section className="section-block layout-grid layout-grid--cards-240">
-        {workspace.modules.map((module) => (
-          <SurfaceCard key={module.module_id} title={module.label} elevated eyebrow="Check" accent={module.status === 'fail' ? 'danger' : module.status === 'warn' ? 'warning' : module.status === 'stale' ? 'gold' : 'sky'}>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <StatusBadge status={mapHealthcheckStatusToBadgeStatus(module.status)} />
-                <StatusBadge status={mapHealthcheckSeverityToBadgeStatus(module.severity)} />
-              </div>
-              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                Estado: <strong>{getHealthcheckStatusLabel(module.status)}</strong>
-              </span>
-              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                Severidad: <strong>{getHealthcheckSeverityLabel(module.severity)}</strong>
-              </span>
-              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                Última señal: {formatTimestamp(module.updated_at)}
-              </span>
-              <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{module.summary}</p>
+      <section className="section-block layout-grid layout-grid--cards-240" aria-label="Checks priorizados">
+        {sortedModules.map((module, index) => {
+          const tone = getHealthcheckCardTone(module.status, module.severity)
+
+          return (
+            <div
+              key={module.module_id}
+              style={{
+                border: `1px solid ${tone.borderColor}`,
+                borderRadius: appTheme.radius.lg,
+                background: tone.background,
+                opacity: tone.opacity,
+              }}
+            >
+              <SurfaceCard title={module.label} elevated={index < 3} eyebrow={index === 0 ? 'Prioridad actual' : 'Check'} accent={getHealthcheckAccent(module.status, module.severity)}>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <HealthcheckStatusBadges status={module.status} severity={module.severity} />
+                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                    Estado: <strong>{getHealthcheckStatusLabel(module.status)}</strong>
+                  </span>
+                  <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
+                    Última señal: {formatTimestamp(module.updated_at)}
+                  </span>
+                  <p style={{ margin: 0, color: module.status === 'pass' && module.severity === 'low' ? appTheme.colors.textMuted : appTheme.colors.textSecondary }}>{module.summary}</p>
+                </div>
+              </SurfaceCard>
             </div>
-          </SurfaceCard>
-        ))}
+          )
+        })}
       </section>
 
       <section className="section-block layout-grid layout-grid--content-aside">
@@ -220,7 +343,7 @@ export default async function HealthcheckPage() {
           <SurfaceCard title="Señales del sistema" elevated eyebrow="Diagnóstico" accent="sky">
             {workspace.signals.length > 0 ? (
               <div style={{ display: 'grid', gap: '10px' }}>
-                {workspace.signals.map((check) => (
+                {sortedSignals.map((check) => (
                   <div
                     key={check.check_id}
                     style={{
@@ -235,10 +358,7 @@ export default async function HealthcheckPage() {
                       <strong>{check.label}</strong>
                       <code style={{ fontSize: '12px', color: appTheme.colors.textMuted }}>{check.check_id}</code>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <StatusBadge status={mapHealthcheckStatusToBadgeStatus(check.status)} />
-                      <StatusBadge status={mapHealthcheckSeverityToBadgeStatus(check.severity)} />
-                    </div>
+                    <HealthcheckStatusBadges status={check.status} severity={check.severity} />
                     <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{check.warning_text}</span>
                     <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
                       {check.source_label} · {check.freshness.label}

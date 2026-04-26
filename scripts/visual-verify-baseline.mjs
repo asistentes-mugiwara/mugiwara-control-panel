@@ -84,6 +84,9 @@ const routes = [
     title: 'Salud del sistema',
     checks: [
       'resumen agregado, módulos, eventos y señales respetan wrap y stacking',
+      'la prioridad actual aparece antes del grid cuando hay incidencia o advertencia',
+      'badges de estado/severidad no duplican el mismo significado visual',
+      'checks sanos mantienen menor peso visual que incidencias o advertencias',
       'principios de seguridad y badges semánticos siguen legibles en móvil',
       'ninguna card crítica rompe el grid en tablet',
     ],

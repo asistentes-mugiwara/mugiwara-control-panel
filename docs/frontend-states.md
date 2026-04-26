@@ -42,6 +42,9 @@ Cada vista del frontend debe contemplar al menos:
 ### Healthcheck
 - `stale`: healthchecks o cron con frescura fuera del umbral
 - `error`: fuente de estado no disponible
+- La vista debe priorizar visualmente `fail`, `high` y `critical` antes que checks sanos.
+- Cuando haya degradación, debe existir una señal superior de `Acción requerida` o prioridad actual sin añadir controles operativos.
+- Los badges de estado/severidad no deben duplicar el mismo significado visual; si coinciden, se muestra un solo badge y la severidad queda como texto de apoyo.
 
 ## Contratos frontend esperados del backend
 - listas resumidas para navegación
