@@ -17,4 +17,4 @@
 ## Verify
 - [x] `git diff --check` en repo proyecto.
 - [x] `git diff --check` en vault.
-- [ ] commits/push realizados.
+- [x] commits/push realizados.
