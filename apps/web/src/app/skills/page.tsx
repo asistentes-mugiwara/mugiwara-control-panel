@@ -86,7 +86,7 @@ function getSkillsViewNotice(state: SkillsViewState, connectionLabel: string, er
         status: 'incidencia' as const,
         title: 'Skills con fuente degradada',
         description: 'La superficie mantiene el shell, pero la conectividad o la respuesta saneada del BFF impiden mostrar catálogo y detalle con garantías. No se exponen URLs internas ni salidas crudas.',
-        detail: errorMessage ? `Estado técnico: ${errorMessage}` : 'Estado técnico: error',
+        detail: 'Estado técnico: error',
       }
     case 'empty':
       return {
@@ -386,7 +386,7 @@ export default function SkillsPage() {
       <PageHeader
         eyebrow="Skills"
         title="Skills"
-        subtitle="Catálogo conectado a backend real con preview y guardado controlado: actor visible, PUT allowlisted y manejo explícito de conflicto stale."
+        subtitle="Catálogo preparado para backend real con preview y guardado controlado; el estado de origen indica si la fuente está conectada."
         mugiwaraSlug="zoro"
         detailPills={["Edición allowlisted", "Diff explícito", "Auditoría visible"]}
       />

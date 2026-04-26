@@ -68,7 +68,7 @@ async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
       return getMugiwarasConfigNotice(error)
     }
 
-    const detail = error instanceof MugiwarasApiError ? `${error.code}: ${error.message}` : error instanceof Error ? error.message : 'Error desconocido'
+    const errorCode = error instanceof MugiwarasApiError ? error.code : 'fetch_failed'
     return {
       state: 'error',
       cards: mugiwaraCardFixture,
@@ -78,7 +78,7 @@ async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
         title: 'No se pudo cargar la API read-only de Mugiwara',
         description:
           'La UI cae al fixture saneado para no romper el shell. No se muestra AGENTS.md si la fuente backend no está disponible y no se exponen detalles host.',
-        detail: `Estado técnico: ${detail}`,
+        detail: `Estado técnico: ${errorCode}`,
       },
     }
   }
