@@ -97,6 +97,17 @@ const routes = [
       'ninguna card crítica rompe el grid en tablet',
     ],
   },
+  {
+    path: '/usage',
+    title: 'Uso Codex/Hermes',
+    checks: [
+      'las cards de ventana 5h, ciclo semanal Codex, plan y recomendación apilan sin overflow',
+      'el ciclo se etiqueta como ciclo semanal Codex y no como calendario lunes-domingo',
+      'stale, not_configured o fallback quedan visibles como fuente degradada/no tiempo real',
+      'fórmulas y privacidad hacen wrap sin filtrar detalles internos del host',
+      'no aparecen calendario, ventanas históricas ni actividad Hermes antes de sus fases',
+    ],
+  },
 ]
 
 function renderMarkdown() {

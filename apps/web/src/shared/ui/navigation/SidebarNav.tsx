@@ -14,6 +14,7 @@ const routes = [
   { href: '/memory', label: 'Memory', icon: '◎' },
   { href: '/vault', label: 'Vault', icon: '◈' },
   { href: '/healthcheck', label: 'Healthcheck', icon: '✓' },
+  { href: '/usage', label: 'Uso', icon: '◌' },
 ] as const
 
 type SidebarNavProps = {

@@ -44,6 +44,7 @@ Después:
 - `memory`
 - `vault`
 - `healthcheck`
+- `usage` current-state
 
 ## Fase 3 — pantalla productiva
 Después:
@@ -86,6 +87,7 @@ apps/web/src/app/
   vault/page.tsx
   vault/[...path]/page.tsx          # opcional si la navegación es por ruta
   healthcheck/page.tsx
+  usage/page.tsx                    # Usage Codex/Hermes current-state
 ```
 
 ## 3.2 Módulos funcionales
@@ -113,6 +115,10 @@ apps/web/src/modules/
     index.ts
   healthcheck/
     components/
+    view-models/
+    index.ts
+  usage/
+    api/
     view-models/
     index.ts
 ```

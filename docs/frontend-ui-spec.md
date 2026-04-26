@@ -66,6 +66,7 @@ Diseñar un shell de navegación estable y escaneable que:
 4. `memory`
 5. `vault`
 6. `healthcheck`
+7. `usage`
 
 ## 2.2 Jerarquía de rutas sugerida
 ```text
@@ -81,7 +82,8 @@ Diseñar un shell de navegación estable y escaneable que:
 │   └── /memory/[slug]             # opcional o resuelto por selector/tab
 ├── /vault
 │   └── /vault/[...path]           # navegación documental si se implementa por ruta
-└── /healthcheck
+├── /healthcheck
+└── /usage                         # Usage Codex/Hermes current-state; calendario en fases posteriores
 ```
 
 ## 2.3 IA del shell
@@ -92,6 +94,7 @@ Diseñar un shell de navegación estable y escaneable que:
 - Memory
 - Vault
 - Healthcheck
+- Uso
 
 ### Topbar
 - identidad del producto
