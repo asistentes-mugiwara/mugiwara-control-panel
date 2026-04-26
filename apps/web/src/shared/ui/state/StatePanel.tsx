@@ -3,21 +3,33 @@ import type { ReactNode } from 'react'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, statusColorMap, type AppStatus } from '@/shared/theme/tokens'
 
+type StatePanelAriaRole = 'status' | 'alert' | 'region' | 'group'
+
 type StatePanelProps = {
   status: AppStatus
   title: string
   description: string
   detail?: string | null
   eyebrow?: string
+  ariaRole?: StatePanelAriaRole
+  ariaLabel?: string
   children?: ReactNode
 }
 
-export function StatePanel({ status, title, description, detail, eyebrow, children }: StatePanelProps) {
+const statePanelAriaLiveByRole: Partial<Record<StatePanelAriaRole, 'polite' | 'assertive'>> = {
+  status: 'polite',
+  alert: 'assertive',
+}
+
+export function StatePanel({ status, title, description, detail, eyebrow, ariaRole, ariaLabel, children }: StatePanelProps) {
   const accentColor = statusColorMap[status]
+  const ariaLive = ariaRole ? statePanelAriaLiveByRole[ariaRole] : undefined
 
   return (
     <div
-      role="status"
+      role={ariaRole}
+      aria-label={ariaLabel}
+      aria-live={ariaLive}
       style={{
         display: 'grid',
         gap: '10px',

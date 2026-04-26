@@ -292,6 +292,8 @@ export default async function HealthcheckPage() {
               description={priorityNotice.description}
               detail={priorityNotice.detail}
               eyebrow="Acción requerida"
+              ariaRole={priorityNotice.status === 'incidencia' ? 'alert' : 'region'}
+              ariaLabel="Prioridad actual de Healthcheck"
             />
           ) : healthSummaryNotice ? (
             <StatePanel

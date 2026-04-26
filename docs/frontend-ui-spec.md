@@ -194,6 +194,13 @@ Las calaveras de cada Mugiwara sustituyen al pixel art como ancla visual princip
 - grid clara y espaciado generoso
 - detalles temáticos mínimos: mapa, bitácora, cubierta, navegación
 
+## 3.7.1 Semántica accesible de estados
+- Los paneles de estado compartidos deben separar tono visual de semántica ARIA.
+- Los estados vacíos, fallback, snapshot o informativos son contenido estático por defecto y no deben anunciarse todos como live regions.
+- Las actualizaciones dinámicas pueden usar semántica `status` con anuncio polite cuando haya beneficio claro.
+- Las incidencias urgentes o bloques de acción requerida pueden usar `alert` de forma explícita y acotada.
+- Si un panel necesita nombre accesible sin anunciarse como live region, usar `region`/`group` con etiqueta explícita.
+
 ## 3.8 Ideas rescatadas de exploración visual de landing
 Se revisó una propuesta de landing temática para `Mugiwara Control Panel`. **No debe tomarse como arquitectura del shell**, pero sí deja hallazgos visuales y narrativos útiles para estas 6 páginas.
 
