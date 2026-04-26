@@ -19,6 +19,7 @@ Se ejecutó como microfase única, no se dividió más. La frontera era homogén
 - `npm run verify:visual-baseline` — OK, checklist incluye `/skills`.
 - `git diff --check` — OK.
 - Browser smoke `/skills` en `not_configured` — panel raíz dominante, workspace bloqueado, sin overflow evidente; consola sin errores JS, con 503 esperados de BFF no configurado.
+- Ronda Usopp 1 pidió cambios: reducir peso repetido en `Estado del origen` y corregir overflow interno en desktop medio. Se resolvió compactando esa tarjeta como contexto BFF secundario y verificando DOM sin `article` con `scrollWidth > clientWidth`.
 
 ## Continuidad
 Reviewer esperado: Usopp. Chopper no es necesario en esta microfase porque no cambió plumbing de errores, runtime config, BFF ni superficie de seguridad.

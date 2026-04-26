@@ -33,6 +33,7 @@ export function StatePanel({ status, title, description, detail, eyebrow, ariaRo
       style={{
         display: 'grid',
         gap: '10px',
+        minWidth: 0,
         padding: '14px',
         borderRadius: appTheme.radius.md,
         border: `1px solid ${accentColor}`,
@@ -40,21 +41,22 @@ export function StatePanel({ status, title, description, detail, eyebrow, ariaRo
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'grid', gap: '4px' }}>
+        <div style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
           {eyebrow ? <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{eyebrow}</span> : null}
-          <strong style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</strong>
+          <strong className="text-break" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</strong>
         </div>
         <StatusBadge status={status} />
       </div>
 
-      <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>{description}</p>
-      {detail ? <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{detail}</span> : null}
+      <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>{description}</p>
+      {detail ? <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{detail}</span> : null}
 
       {children ? (
         <div
           style={{
             display: 'grid',
             gap: '8px',
+            minWidth: 0,
             paddingTop: '10px',
             borderTop: `1px solid ${appTheme.colors.borderSubtle}`,
           }}

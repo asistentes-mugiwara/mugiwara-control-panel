@@ -584,33 +584,41 @@ export default function SkillsPage() {
         </SurfaceCard>
 
         <SurfaceCard title="Estado del origen" elevated eyebrow="Enlace" accent="sky">
-          <div style={{ display: 'grid', gap: '10px' }}>
-            <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+          <div style={{ display: 'grid', gap: '10px', minWidth: 0 }}>
+            <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               El navegador habla con una frontera BFF same-origin; la URL real del backend queda solo en configuración server-only
               y los errores llegan saneados sin romper el shell ni el build.
             </p>
             <StatusBadge status={mapSkillsViewStateToBadgeStatus(viewState)} />
-            <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+            <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
               Conexión: {apiConnectionLabel}
             </span>
             {sourceNotice ? (
-              <StatePanel
-                status={sourceNotice.status}
-                title={sourceNotice.title}
-                description={sourceNotice.description}
-                detail={sourceNotice.detail}
-                eyebrow="Estado de fuente"
-              >
-                <SourceStatePills
-                  items={
-                    viewState === 'not_configured'
-                      ? [{ label: 'Fuente no configurada', tone: 'not-configured' }]
-                      : viewState === 'empty'
+              isRootUnavailable ? (
+                <div style={{ display: 'grid', gap: '8px', minWidth: 0 }}>
+                  <strong className="text-break" style={{ color: appTheme.colors.textPrimary, fontSize: '15px' }}>Frontera BFF conservada</strong>
+                  <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>
+                    El diagnóstico principal está arriba. Aquí solo se confirma que el navegador sigue usando same-origin y que la URL interna del backend no se expone.
+                  </p>
+                  <SourceStatePills items={[{ label: viewState === 'not_configured' ? 'Fuente no configurada' : 'Error/degradado', tone: viewState === 'not_configured' ? 'not-configured' : 'degraded' }]} />
+                </div>
+              ) : (
+                <StatePanel
+                  status={sourceNotice.status}
+                  title={sourceNotice.title}
+                  description={sourceNotice.description}
+                  detail={sourceNotice.detail}
+                  eyebrow="Estado de fuente"
+                >
+                  <SourceStatePills
+                    items={
+                      viewState === 'empty'
                         ? [{ label: 'API real conectada', tone: 'connected' }, { label: 'Sin datos productivos', tone: 'not-configured' }]
                         : [{ label: 'Error/degradado', tone: 'degraded' }]
-                  }
-                />
-              </StatePanel>
+                    }
+                  />
+                </StatePanel>
+              )
             ) : (
               <StatePanel
                 status="operativo"
