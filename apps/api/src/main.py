@@ -8,6 +8,7 @@ from .modules.memory.router import router as memory_router
 from .modules.vault.router import router as vault_router
 from .modules.healthcheck.router import router as healthcheck_router
 from .modules.dashboard.router import router as dashboard_router
+from .modules.usage.router import router as usage_router
 
 SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -63,6 +64,7 @@ app.include_router(memory_router)
 app.include_router(vault_router)
 app.include_router(healthcheck_router)
 app.include_router(dashboard_router)
+app.include_router(usage_router)
 
 
 @app.get('/health')

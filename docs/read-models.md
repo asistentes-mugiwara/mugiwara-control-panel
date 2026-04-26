@@ -90,6 +90,21 @@ Issue #43 automates the project-health producer with the user-level `mugiwara-pr
 
 Phase 15.8 closes the Healthcheck real-source block through 15.7b. Canonical state: readers exist for `vault-sync`, `backup-health`, `project-health`, `gateway-status` and `cronjobs`; producers/runners exist for `project-health`, `gateway-status` and `cronjobs-status`; `vault-sync-status` and `backup-health-status` producers remain explicit follow-ups rather than blockers. Healthcheck still degrades missing/unreadable fixed manifests visibly and must not expose host internals.
 
+### `usage.current`
+Campos esperados:
+- `current_snapshot` con `captured_at`, `source_label` y `freshness`
+- `plan` con tipo de plan, `allowed`, `limit_reached` y límites adicionales
+- `primary_window` para la `Ventana 5h`: porcentaje usado, rango, reset y estado
+- `secondary_cycle` para el `Ciclo semanal Codex`: porcentaje usado, rango, reset y estado
+- `recommendation` con estado/copy operativo
+- `methodology` con fórmulas de reset y privacidad
+
+Uso:
+- responder rápido si la ventana 5h o el ciclo semanal Codex están en zona normal/alta/crítica
+- mantener explícito que el ciclo semanal Codex no equivale a semana natural lunes-domingo
+- exponer solo métricas saneadas desde la fuente SQLite allowlisted, sin email, user/account IDs, tokens, prompts, headers, logs ni raw payload
+- degradar fuente ausente/ilegible a `not_configured`/`unknown` sin path runtime
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`
