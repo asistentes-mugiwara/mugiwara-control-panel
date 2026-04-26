@@ -67,6 +67,19 @@ async function getInitialDashboardData(): Promise<{ summary: DashboardSummary; a
   }
 }
 
+function formatTimestamp(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Fecha no disponible'
+  }
+
+  return new Intl.DateTimeFormat('es-ES', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date)
+}
+
 function getSnapshotAwareCountNote(note: string, isSnapshotMode: boolean) {
   if (!isSnapshotMode) {
     return note
@@ -116,7 +129,7 @@ export default async function DashboardPage() {
         </StatePanel>
       ) : null}
 
-      <section className="layout-grid layout-grid--cards-260">
+      <section className="layout-grid layout-grid--dashboard-metrics">
         {summary.counts.map((count) => (
           <CountGridItem key={count.label} count={count} isSnapshotMode={isSnapshotMode} />
         ))}
@@ -133,7 +146,7 @@ export default async function DashboardPage() {
         <SurfaceCard title="Frescura" elevated eyebrow="Bitácora" accent="gold">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>{summary.freshness.label}</p>
           <p style={{ marginTop: 0, marginBottom: '8px', color: appTheme.colors.textSecondary }}>
-            {isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: {summary.freshness.updated_at}
+            {isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: {formatTimestamp(summary.freshness.updated_at)}
           </p>
           <StatusBadge
             status={mapDashboardFreshnessToStatus(summary.freshness)}
