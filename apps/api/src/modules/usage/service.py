@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
+from zoneinfo import ZoneInfo
 import sqlite3
 
 CODEX_USAGE_DB_PATH = Path('/srv/crew-core/runtime/usage/codex-usage.sqlite')
 USAGE_REFRESH_INTERVAL_MINUTES = 15
 USAGE_STALE_AFTER_MINUTES = 45
+USAGE_CALENDAR_TIMEZONE = ZoneInfo('Europe/Madrid')
+UsageCalendarRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -56,6 +59,39 @@ def _window_status(percent: float | None, *, limit_reached: bool | None = None) 
     if percent >= 80:
         return 'high'
     return 'normal'
+
+
+def _isoformat_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def _local_midnight(value: datetime) -> datetime:
+    local = value.astimezone(USAGE_CALENDAR_TIMEZONE)
+    return datetime.combine(local.date(), time.min, tzinfo=USAGE_CALENDAR_TIMEZONE)
+
+
+def _calendar_status(peak_primary: float | None, secondary_delta: float | None) -> str:
+    if peak_primary is None and secondary_delta is None:
+        return 'unknown'
+    if peak_primary is not None and peak_primary >= 95:
+        return 'critical'
+    if peak_primary is not None and peak_primary >= 80:
+        return 'high'
+    if secondary_delta is not None and secondary_delta >= 25:
+        return 'high'
+    return 'normal'
+
+
+def _positive_delta(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0 if len(values) == 1 else 0.0
+    total = 0.0
+    previous = values[0]
+    for value in values[1:]:
+        if value >= previous:
+            total += value - previous
+        previous = value
+    return round(total, 2)
 
 
 @dataclass(frozen=True)
@@ -148,6 +184,52 @@ class UsageService:
             },
         }
 
+    def get_calendar(self, range_name: UsageCalendarRange) -> dict[str, Any]:
+        latest = self._load_latest_snapshot()
+        if latest is None:
+            return {
+                'range': range_name,
+                'timezone': 'Europe/Madrid',
+                'current_cycle': None,
+                'days': [],
+                'empty_reason': 'not_configured',
+            }
+
+        latest_captured = _parse_datetime(latest.captured_at)
+        cycle_start = _parse_datetime(latest.secondary_cycle_start_at)
+        cycle_reset = _parse_datetime(latest.secondary_reset_at)
+        if latest_captured is None:
+            return {
+                'range': range_name,
+                'timezone': 'Europe/Madrid',
+                'current_cycle': None,
+                'days': [],
+                'empty_reason': 'unknown',
+            }
+
+        start_at, end_at = self._calendar_window(range_name, latest_captured, cycle_start, cycle_reset)
+        snapshots = self._load_snapshots_between(start_at, end_at)
+        return {
+            'range': range_name,
+            'timezone': 'Europe/Madrid',
+            'current_cycle': {
+                'started_at': latest.secondary_cycle_start_at,
+                'reset_at': latest.secondary_reset_at,
+                'label': 'Ciclo semanal Codex',
+            },
+            'days': self._calendar_days(snapshots, start_at=start_at, end_at=end_at, cycle_start=cycle_start, cycle_reset=cycle_reset),
+        }
+
+    @staticmethod
+    def calendar_status_for(payload: dict[str, Any]) -> str:
+        if payload.get('empty_reason') == 'not_configured':
+            return 'not_configured'
+        if payload.get('empty_reason') == 'unknown':
+            return 'unknown'
+        if len(payload.get('days', [])) == 0:
+            return 'not_configured'
+        return 'ready'
+
     def _empty_current(self) -> dict[str, Any]:
         return {
             'current_snapshot': {
@@ -208,6 +290,86 @@ class UsageService:
             return {'state': 'alto', 'label': 'Alto', 'message': 'Conviene vigilar. Prioriza tareas importantes y evita exploraciones largas.'}
         return {'state': 'normal', 'label': 'Normal', 'message': 'Uso dentro de rango. Ritmo sano.'}
 
+    def _calendar_window(
+        self,
+        range_name: UsageCalendarRange,
+        latest_captured: datetime,
+        cycle_start: datetime | None,
+        cycle_reset: datetime | None,
+    ) -> tuple[datetime, datetime]:
+        if range_name == 'current_cycle' and cycle_start is not None and cycle_reset is not None:
+            return cycle_start, min(latest_captured, cycle_reset)
+        if range_name == 'previous_cycle' and cycle_start is not None and cycle_reset is not None:
+            cycle_length = cycle_reset - cycle_start
+            return cycle_start - cycle_length, cycle_start
+        days = 30 if range_name == '30d' else 7
+        end_at = latest_captured
+        start_at = _local_midnight(latest_captured) - timedelta(days=days - 1)
+        return start_at.astimezone(timezone.utc), end_at
+
+    def _calendar_days(
+        self,
+        snapshots: list[UsageSnapshot],
+        *,
+        start_at: datetime,
+        end_at: datetime,
+        cycle_start: datetime | None,
+        cycle_reset: datetime | None,
+    ) -> list[dict[str, Any]]:
+        grouped: dict[str, list[UsageSnapshot]] = {}
+        for snapshot in snapshots:
+            captured = _parse_datetime(snapshot.captured_at)
+            if captured is None:
+                continue
+            date_key = captured.astimezone(USAGE_CALENDAR_TIMEZONE).date().isoformat()
+            grouped.setdefault(date_key, []).append(snapshot)
+
+        days: list[dict[str, Any]] = []
+        for date_key in sorted(grouped):
+            day_snapshots = sorted(grouped[date_key], key=lambda item: item.captured_at)
+            local_day = datetime.fromisoformat(date_key).date()
+            day_start = datetime.combine(local_day, time.min, tzinfo=USAGE_CALENDAR_TIMEZONE)
+            day_end = day_start + timedelta(days=1)
+            segment_start = max(day_start, start_at.astimezone(USAGE_CALENDAR_TIMEZONE))
+            segment_end = min(day_end, end_at.astimezone(USAGE_CALENDAR_TIMEZONE))
+            reason = None
+            if cycle_start is not None and cycle_start.astimezone(USAGE_CALENDAR_TIMEZONE).date() == local_day:
+                reason = 'cycle_started_today'
+            elif cycle_reset is not None and cycle_reset.astimezone(USAGE_CALENDAR_TIMEZONE).date() == local_day:
+                reason = 'cycle_resets_today'
+
+            secondary_values_by_cycle: dict[tuple[str | None, str | None], list[float]] = {}
+            for snapshot in day_snapshots:
+                if snapshot.secondary_used_percent is None:
+                    continue
+                cycle_key = (snapshot.secondary_cycle_start_at, snapshot.secondary_reset_at)
+                secondary_values_by_cycle.setdefault(cycle_key, []).append(snapshot.secondary_used_percent)
+            secondary_delta = round(sum(_positive_delta(values) for values in secondary_values_by_cycle.values()), 2) if secondary_values_by_cycle else None
+            primary_values = [value for value in (snapshot.primary_used_percent for snapshot in day_snapshots) if value is not None]
+            peak_primary = round(max(primary_values), 2) if primary_values else None
+            primary_windows = {
+                snapshot.primary_window_start_at
+                for snapshot in day_snapshots
+                if snapshot.primary_window_start_at is not None
+            }
+
+            days.append(
+                {
+                    'date': date_key,
+                    'codex_segment': {
+                        'started_at': _isoformat_utc(segment_start),
+                        'ended_at': _isoformat_utc(segment_end),
+                        'partial': reason is not None,
+                        'reason': reason,
+                    },
+                    'secondary_delta_percent': secondary_delta,
+                    'primary_windows_count': len(primary_windows),
+                    'peak_primary_used_percent': peak_primary,
+                    'status': _calendar_status(peak_primary, secondary_delta),
+                }
+            )
+        return days
+
     def _load_latest_snapshot(self) -> UsageSnapshot | None:
         if not self.db_path.exists() or not self.db_path.is_file():
             return None
@@ -247,6 +409,49 @@ class UsageService:
 
         if row is None:
             return None
+        return self._snapshot_from_row(row)
+
+    def _load_snapshots_between(self, start_at: datetime, end_at: datetime) -> list[UsageSnapshot]:
+        if not self.db_path.exists() or not self.db_path.is_file():
+            return []
+        try:
+            con = sqlite3.connect(f'file:{self.db_path}?mode=ro', uri=True)
+            con.row_factory = sqlite3.Row
+            rows = con.execute(
+                """
+                SELECT
+                    captured_at,
+                    plan_type,
+                    allowed,
+                    limit_reached,
+                    primary_used_percent,
+                    primary_window_seconds,
+                    primary_window_start_at,
+                    primary_reset_at,
+                    primary_reset_after_seconds,
+                    secondary_used_percent,
+                    secondary_window_seconds,
+                    secondary_cycle_start_at,
+                    secondary_reset_at,
+                    secondary_reset_after_seconds,
+                    additional_limits_count
+                FROM codex_usage_snapshots
+                WHERE captured_at_epoch >= ? AND captured_at_epoch <= ?
+                ORDER BY captured_at_epoch ASC, id ASC
+                """,
+                (int(start_at.timestamp()), int(end_at.timestamp())),
+            ).fetchall()
+        except sqlite3.Error:
+            return []
+        finally:
+            try:
+                con.close()
+            except UnboundLocalError:
+                pass
+        return [self._snapshot_from_row(row) for row in rows]
+
+    @staticmethod
+    def _snapshot_from_row(row: sqlite3.Row) -> UsageSnapshot:
         return UsageSnapshot(
             captured_at=str(row['captured_at']),
             plan_type=row['plan_type'],

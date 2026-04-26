@@ -69,10 +69,12 @@
 
 ### `usage`
 - exponer `GET /api/v1/usage/current` como primera frontera read-only del bloque Usage (#51)
+- exponer `GET /api/v1/usage/calendar?range=current_cycle|previous_cycle|7d|30d` como primer read model histórico saneado del bloque Usage
 - consumir solo la SQLite saneada allowlisted de Codex usage producida fuera del backend
 - serializar snapshot actual, plan, ventana 5h, ciclo semanal Codex, frescura y recomendación sin paths runtime ni raw payload
+- serializar calendario por fecha natural en zona `Europe/Madrid`, deltas diarios del ciclo semanal Codex calculados por segmento continuo para no contar resets como consumo, tramos parciales por inicio/reset de ciclo, número de ventanas 5h y pico diario sin prompts, raw payload ni actividad Hermes
 - degradar DB ausente/ilegible/sin snapshots a `not_configured`/`unknown` visible, nunca a dato sano silencioso
-- mantener actividad Hermes local, calendario y ventanas históricas para subfases separadas y saneadas
+- mantener actividad Hermes local y ventanas históricas dedicadas para subfases separadas y saneadas
 
 ### `system`
 - estado general del servidor y señales operativas de alto nivel
