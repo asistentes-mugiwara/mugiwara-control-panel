@@ -15,7 +15,7 @@ Añadir el primer read model histórico saneado de Usage: calendario por fecha n
 ## Alcance 17.3a
 - Endpoint `GET /api/v1/usage/calendar?range=current_cycle|previous_cycle|7d|30d`.
 - Agregación por fecha natural en `Europe/Madrid`.
-- Deltas diarios del `ciclo semanal Codex`.
+- Deltas diarios del `ciclo semanal Codex`, calculados por segmentos continuos de ciclo para no contar resets como consumo.
 - Detección de tramo parcial cuando el día coincide con inicio/reset de ciclo.
 - Conteo de ventanas 5h del día y pico diario 5h.
 - Tipos TS compartidos `UsageCalendar*`.
@@ -36,7 +36,7 @@ Añadir el primer read model histórico saneado de Usage: calendario por fecha n
 - El calendario usa fecha natural para UX, pero no afirma causalidad Hermes/Codex.
 
 ## DoD 17.3a
-- Tests backend cubren agrupación por fecha natural, tramo parcial por inicio de ciclo, delta diario, ventanas 5h, pico 5h y rechazo saneado de rango inválido.
+- Tests backend cubren agrupación por fecha natural, tramo parcial por inicio de ciclo, delta diario sin contar resets como consumo, ventanas 5h, pico 5h y rechazo saneado de rango inválido.
 - Respuesta usa `resource='usage.calendar'`, `read_only`, `sanitized`, source fija y timezone `Europe/Madrid`.
 - Payload no contiene paths runtime, raw payload ni datos prohibidos.
 - Contrato TS y docs vivos actualizados.

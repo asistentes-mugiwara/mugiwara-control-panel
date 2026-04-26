@@ -297,3 +297,63 @@ def test_usage_calendar_rejects_unknown_ranges_without_echoing_sensitive_values(
     payload = response.json()
     assert payload == {'detail': {'code': 'validation_error', 'message': 'Request validation failed.'}}
     assert '/srv/crew-core/runtime/usage' not in str(payload)
+
+
+def test_usage_calendar_does_not_count_cycle_reset_as_daily_delta(tmp_path):
+    db_path = tmp_path / 'codex-usage.sqlite'
+    con = sqlite3.connect(db_path)
+    _create_usage_schema(con)
+    # Same Europe/Madrid natural date, but two different Codex cycles around reset.
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T17:30:00+00:00',
+        primary_used_percent=40.0,
+        primary_window_start_at='2026-04-26T13:00:00+00:00',
+        primary_reset_at='2026-04-26T18:00:00+00:00',
+        secondary_used_percent=98.0,
+        secondary_cycle_start_at='2026-04-19T18:25:51+00:00',
+        secondary_reset_at='2026-04-26T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T18:20:00+00:00',
+        primary_used_percent=50.0,
+        primary_window_start_at='2026-04-26T13:00:00+00:00',
+        primary_reset_at='2026-04-26T18:25:51+00:00',
+        secondary_used_percent=100.0,
+        secondary_cycle_start_at='2026-04-19T18:25:51+00:00',
+        secondary_reset_at='2026-04-26T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T18:30:00+00:00',
+        plan_type='pro',
+        primary_used_percent=0.0,
+        primary_window_start_at='2026-04-26T18:25:51+00:00',
+        primary_reset_at='2026-04-26T23:25:51+00:00',
+        secondary_used_percent=0.0,
+        secondary_cycle_start_at='2026-04-26T18:25:51+00:00',
+        secondary_reset_at='2026-05-03T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T19:30:00+00:00',
+        plan_type='pro',
+        primary_used_percent=1.0,
+        primary_window_start_at='2026-04-26T18:25:51+00:00',
+        primary_reset_at='2026-04-26T23:25:51+00:00',
+        secondary_used_percent=2.0,
+        secondary_cycle_start_at='2026-04-26T18:25:51+00:00',
+        secondary_reset_at='2026-05-03T18:25:51+00:00',
+    )
+    con.commit()
+    con.close()
+    _override_usage_service(UsageService(db_path=db_path, now=lambda: '2026-04-26T20:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/calendar?range=7d')
+
+    assert response.status_code == 200
+    rows = response.json()['data']['days']
+    reset_day = next(row for row in rows if row['date'] == '2026-04-26')
+    assert reset_day['secondary_delta_percent'] == 4.0
+    assert reset_day['status'] == 'normal'

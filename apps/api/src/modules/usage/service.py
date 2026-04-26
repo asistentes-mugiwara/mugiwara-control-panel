@@ -82,6 +82,18 @@ def _calendar_status(peak_primary: float | None, secondary_delta: float | None) 
     return 'normal'
 
 
+def _positive_delta(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0 if len(values) == 1 else 0.0
+    total = 0.0
+    previous = values[0]
+    for value in values[1:]:
+        if value >= previous:
+            total += value - previous
+        previous = value
+    return round(total, 2)
+
+
 @dataclass(frozen=True)
 class UsageSnapshot:
     captured_at: str
@@ -326,9 +338,14 @@ class UsageService:
             elif cycle_reset is not None and cycle_reset.astimezone(USAGE_CALENDAR_TIMEZONE).date() == local_day:
                 reason = 'cycle_resets_today'
 
-            secondary_values = [value for value in (snapshot.secondary_used_percent for snapshot in day_snapshots) if value is not None]
+            secondary_values_by_cycle: dict[tuple[str | None, str | None], list[float]] = {}
+            for snapshot in day_snapshots:
+                if snapshot.secondary_used_percent is None:
+                    continue
+                cycle_key = (snapshot.secondary_cycle_start_at, snapshot.secondary_reset_at)
+                secondary_values_by_cycle.setdefault(cycle_key, []).append(snapshot.secondary_used_percent)
+            secondary_delta = round(sum(_positive_delta(values) for values in secondary_values_by_cycle.values()), 2) if secondary_values_by_cycle else None
             primary_values = [value for value in (snapshot.primary_used_percent for snapshot in day_snapshots) if value is not None]
-            secondary_delta = round(max(secondary_values) - min(secondary_values), 2) if len(secondary_values) >= 2 else 0.0 if len(secondary_values) == 1 else None
             peak_primary = round(max(primary_values), 2) if primary_values else None
             primary_windows = {
                 snapshot.primary_window_start_at

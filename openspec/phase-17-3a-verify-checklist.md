@@ -10,6 +10,7 @@
 - [x] Calendario agrupa por fecha natural en `Europe/Madrid`.
 - [x] Tramo parcial se marca para inicio/reset del ciclo semanal Codex.
 - [x] Deltas diarios, conteo de ventanas 5h y pico 5h calculados desde snapshots saneados.
+- [x] Regresión cubierta: un reset/cambio de ciclo en la misma fecha natural no infla `secondary_delta_percent` como falso consumo.
 - [x] Rechazo de rangos inválidos no ecoa input sensible.
 - [x] Contrato TS `UsageCalendarResponse` añadido.
 - [x] Docs vivas actualizadas.

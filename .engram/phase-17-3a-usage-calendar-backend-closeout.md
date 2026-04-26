@@ -22,7 +22,7 @@
 - No se exponen paths runtime, raw payload, prompts, user/account IDs, tokens ni logs.
 
 ## Verify
-- `PYTHONPATH=. pytest apps/api/tests/test_usage_api.py -q`.
+- `PYTHONPATH=. pytest apps/api/tests/test_usage_api.py -q` (6 tests; incluye regresión de reset/cambio de ciclo en la misma fecha natural).
 - `python3 -m py_compile apps/api/src/modules/usage/service.py apps/api/src/modules/usage/router.py apps/api/tests/test_usage_api.py`.
 - `npm --prefix apps/web run typecheck`.
 - `git diff --check`.

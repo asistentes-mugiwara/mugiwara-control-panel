@@ -110,7 +110,7 @@ Campos esperados:
 - `range` (`current_cycle`, `previous_cycle`, `7d`, `30d`)
 - `timezone` fija `Europe/Madrid`
 - `current_cycle` con rango del ciclo semanal Codex de referencia
-- `days[]` con fecha natural, tramo Codex del día, delta diario del ciclo semanal Codex, número de ventanas 5h, pico 5h y estado diario saneado
+- `days[]` con fecha natural, tramo Codex del día, delta diario del ciclo semanal Codex calculado por segmento continuo de ciclo para no contar resets como consumo, número de ventanas 5h, pico 5h y estado diario saneado
 
 Uso:
 - exponer calendario por fecha natural como primera vista histórica de Usage
