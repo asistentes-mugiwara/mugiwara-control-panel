@@ -299,6 +299,105 @@ def test_usage_calendar_rejects_unknown_ranges_without_echoing_sensitive_values(
     assert '/srv/crew-core/runtime/usage' not in str(payload)
 
 
+def test_usage_five_hour_windows_groups_latest_windows_without_leaking_runtime_path(tmp_path):
+    db_path = tmp_path / 'codex-usage.sqlite'
+    con = sqlite3.connect(db_path)
+    _create_usage_schema(con)
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T10:10:00+00:00',
+        primary_used_percent=5.0,
+        primary_window_start_at='2026-04-26T10:00:00+00:00',
+        primary_reset_at='2026-04-26T15:00:00+00:00',
+        secondary_used_percent=80.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T12:00:00+00:00',
+        primary_used_percent=35.0,
+        primary_window_start_at='2026-04-26T10:00:00+00:00',
+        primary_reset_at='2026-04-26T15:00:00+00:00',
+        secondary_used_percent=82.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T15:05:00+00:00',
+        primary_used_percent=2.0,
+        primary_window_start_at='2026-04-26T15:00:00+00:00',
+        primary_reset_at='2026-04-26T20:00:00+00:00',
+        secondary_used_percent=83.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T19:00:00+00:00',
+        primary_used_percent=97.0,
+        primary_window_start_at='2026-04-26T15:00:00+00:00',
+        primary_reset_at='2026-04-26T20:00:00+00:00',
+        secondary_used_percent=90.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-26T19:15:00+00:00',
+        primary_used_percent=98.0,
+        primary_window_start_at='2026-04-26T15:00:01+00:00',
+        primary_reset_at='2026-04-26T20:00:01+00:00',
+        secondary_used_percent=91.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    con.commit()
+    con.close()
+    _override_usage_service(UsageService(db_path=db_path, now=lambda: '2026-04-26T20:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/five-hour-windows?limit=2')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'usage.five_hour_windows'
+    assert payload['status'] == 'ready'
+    assert payload['meta'] == {
+        'read_only': True,
+        'sanitized': True,
+        'source': 'codex-usage-snapshot-sqlite',
+        'limit': 2,
+    }
+    assert payload['data']['empty_reason'] is None
+    windows = payload['data']['windows']
+    assert [window['started_at'] for window in windows] == ['2026-04-26T15:00:00+00:00', '2026-04-26T10:00:00+00:00']
+    assert windows[0] == {
+        'started_at': '2026-04-26T15:00:00+00:00',
+        'ended_at': '2026-04-26T20:00:00+00:00',
+        'peak_used_percent': 98.0,
+        'delta_percent': 96.0,
+        'samples_count': 3,
+        'status': 'critical',
+    }
+    assert windows[1]['peak_used_percent'] == 35.0
+    assert windows[1]['delta_percent'] == 30.0
+    assert '/srv/crew-core/runtime/usage' not in str(payload)
+    assert 'raw_payload_value' not in str(payload)
+
+
+def test_usage_five_hour_windows_degrades_when_snapshot_db_is_absent(tmp_path):
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing.sqlite', now=lambda: '2026-04-26T14:40:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/five-hour-windows')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['status'] == 'not_configured'
+    assert payload['data'] == {'windows': [], 'empty_reason': 'not_configured'}
+    assert 'missing.sqlite' not in str(payload)
+
+
 def test_usage_calendar_does_not_count_cycle_reset_as_daily_delta(tmp_path):
     db_path = tmp_path / 'codex-usage.sqlite'
     con = sqlite3.connect(db_path)

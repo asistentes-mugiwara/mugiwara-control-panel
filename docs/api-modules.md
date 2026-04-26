@@ -73,8 +73,10 @@
 - consumir solo la SQLite saneada allowlisted de Codex usage producida fuera del backend
 - serializar snapshot actual, plan, ventana 5h, ciclo semanal Codex, frescura y recomendación sin paths runtime ni raw payload
 - serializar calendario por fecha natural en zona `Europe/Madrid`, deltas diarios del ciclo semanal Codex calculados por segmento continuo para no contar resets como consumo, tramos parciales por inicio/reset de ciclo, número de ventanas 5h y pico diario sin prompts, raw payload ni actividad Hermes
+- exponer `GET /api/v1/usage/five-hour-windows?limit=8` como read model dedicado de últimas ventanas 5h, agrupado por inicio/reset de ventana normalizado a minuto UTC y limitado a `1..24`
+- serializar ventanas 5h solo con inicio, fin, pico %, delta positivo intra-ventana, muestras y estado; sin paths runtime, prompts, raw payload ni actividad Hermes
 - degradar DB ausente/ilegible/sin snapshots a `not_configured`/`unknown` visible, nunca a dato sano silencioso
-- mantener actividad Hermes local y ventanas históricas dedicadas para subfases separadas y saneadas
+- mantener actividad Hermes local para subfase separada y saneada
 
 ### `system`
 - estado general del servidor y señales operativas de alto nivel

@@ -12,6 +12,8 @@ USAGE_REFRESH_INTERVAL_MINUTES = 15
 USAGE_STALE_AFTER_MINUTES = 45
 USAGE_CALENDAR_TIMEZONE = ZoneInfo('Europe/Madrid')
 UsageCalendarRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
+MAX_USAGE_WINDOWS_LIMIT = 24
+DEFAULT_USAGE_WINDOWS_LIMIT = 8
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -63,6 +65,14 @@ def _window_status(percent: float | None, *, limit_reached: bool | None = None) 
 
 def _isoformat_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat()
+
+
+def _window_bucket_timestamp(value: str) -> str:
+    parsed = _parse_datetime(value)
+    if parsed is None:
+        return value
+    normalized = parsed.astimezone(timezone.utc).replace(second=0, microsecond=0)
+    return normalized.isoformat()
 
 
 def _local_midnight(value: datetime) -> datetime:
@@ -219,6 +229,49 @@ class UsageService:
             },
             'days': self._calendar_days(snapshots, start_at=start_at, end_at=end_at, cycle_start=cycle_start, cycle_reset=cycle_reset),
         }
+
+    def get_five_hour_windows(self, limit: int = DEFAULT_USAGE_WINDOWS_LIMIT) -> dict[str, Any]:
+        safe_limit = max(1, min(MAX_USAGE_WINDOWS_LIMIT, limit))
+        snapshots = self._load_latest_snapshots(limit=safe_limit * 96)
+        if not snapshots:
+            return {'windows': [], 'empty_reason': 'not_configured'}
+
+        grouped: dict[tuple[str, str], list[UsageSnapshot]] = {}
+        for snapshot in snapshots:
+            if snapshot.primary_window_start_at is None or snapshot.primary_reset_at is None:
+                continue
+            started_at = _window_bucket_timestamp(snapshot.primary_window_start_at)
+            ended_at = _window_bucket_timestamp(snapshot.primary_reset_at)
+            grouped.setdefault((started_at, ended_at), []).append(snapshot)
+
+        windows: list[dict[str, Any]] = []
+        for (started_at, ended_at), window_snapshots in grouped.items():
+            ordered = sorted(window_snapshots, key=lambda item: item.captured_at)
+            values = [value for value in (item.primary_used_percent for item in ordered) if value is not None]
+            peak = round(max(values), 2) if values else None
+            delta = _positive_delta(values) if values else None
+            windows.append(
+                {
+                    'started_at': started_at,
+                    'ended_at': ended_at,
+                    'peak_used_percent': peak,
+                    'delta_percent': delta,
+                    'samples_count': len(ordered),
+                    'status': _window_status(peak),
+                }
+            )
+
+        windows.sort(key=lambda item: item['started_at'], reverse=True)
+        windows = windows[:safe_limit]
+        return {'windows': windows, 'empty_reason': None if windows else 'not_configured'}
+
+    @staticmethod
+    def five_hour_windows_status_for(payload: dict[str, Any]) -> str:
+        if payload.get('empty_reason') == 'not_configured':
+            return 'not_configured'
+        if not payload.get('windows'):
+            return 'not_configured'
+        return 'ready'
 
     @staticmethod
     def calendar_status_for(payload: dict[str, Any]) -> str:
@@ -410,6 +463,46 @@ class UsageService:
         if row is None:
             return None
         return self._snapshot_from_row(row)
+
+    def _load_latest_snapshots(self, *, limit: int) -> list[UsageSnapshot]:
+        if not self.db_path.exists() or not self.db_path.is_file():
+            return []
+        try:
+            con = sqlite3.connect(f'file:{self.db_path}?mode=ro', uri=True)
+            con.row_factory = sqlite3.Row
+            rows = con.execute(
+                """
+                SELECT
+                    captured_at,
+                    plan_type,
+                    allowed,
+                    limit_reached,
+                    primary_used_percent,
+                    primary_window_seconds,
+                    primary_window_start_at,
+                    primary_reset_at,
+                    primary_reset_after_seconds,
+                    secondary_used_percent,
+                    secondary_window_seconds,
+                    secondary_cycle_start_at,
+                    secondary_reset_at,
+                    secondary_reset_after_seconds,
+                    additional_limits_count
+                FROM codex_usage_snapshots
+                ORDER BY captured_at_epoch DESC, id DESC
+                LIMIT ?
+                """,
+                (max(1, min(MAX_USAGE_WINDOWS_LIMIT * 96, limit)),),
+            ).fetchall()
+        except sqlite3.Error:
+            return []
+        finally:
+            try:
+                con.close()
+            except UnboundLocalError:
+                pass
+        snapshots = [self._snapshot_from_row(row) for row in rows]
+        return sorted(snapshots, key=lambda item: item.captured_at)
 
     def _load_snapshots_between(self, start_at: datetime, end_at: datetime) -> list[UsageSnapshot]:
         if not self.db_path.exists() or not self.db_path.is_file():

@@ -118,6 +118,18 @@ Uso:
 - no incluir actividad Hermes, prompts, conversaciones, tokens, raw payload, rutas runtime ni causalidad por perfil
 - aceptar solo rangos allowlisted; valores desconocidos deben caer en error de validación saneado sin ecoar input
 
+### `usage.five_hour_windows`
+Campos esperados:
+- `windows[]` con `started_at`, `ended_at`, `peak_used_percent`, `delta_percent`, `samples_count` y `status`
+- `empty_reason` (`not_configured` o `null`)
+
+Uso:
+- exponer las últimas ventanas 5h dedicadas de Codex como read model histórico saneado
+- agrupar únicamente por `primary_window_start_at`/`primary_reset_at` normalizados a minuto UTC desde la SQLite allowlisted en modo lectura
+- calcular delta como suma de incrementos positivos dentro de la misma ventana 5h, evitando convertir resets o descensos en consumo negativo
+- no incluir actividad Hermes, prompts, conversaciones, tokens, raw payload, rutas runtime ni causalidad por perfil
+- limitar la respuesta con `limit` validado (`1..24`) y degradar fuente ausente/ilegible a `not_configured` sin path runtime
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`
