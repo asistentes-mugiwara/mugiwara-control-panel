@@ -41,6 +41,7 @@ const routes = [
       'KPIs visibles sin truncados torpes',
       'cards de severidad/frescura/módulos mantienen ritmo visual',
       'accesos rápidos envuelven bien en tablet/mobile',
+      'si la API no está configurada, el aviso indica Modo fallback local, Snapshot saneado y No tiempo real',
     ],
   },
   {
@@ -50,6 +51,7 @@ const routes = [
       'cards de agentes no cortan slug/rol/skills enlazadas',
       'chips de skills y links secundarios hacen wrap limpio',
       'la identidad Mugiwara sigue visible sin saturar el layout',
+      'si cae a fixture, el aviso distingue fixture saneado de AGENTS.md canónico API-backed',
     ],
   },
   {
@@ -59,6 +61,7 @@ const routes = [
       'workspace, frontera de edición y auditoría conservan orden al apilarse',
       'skill_id, fingerprint, repo_path y preview largo no rompen el contenedor',
       'estados vacíos/no configurados siguen siendo legibles en viewport estrecho',
+      'la fuente distingue API real conectada, fuente no configurada, sin datos productivos o error degradado',
     ],
   },
   {
@@ -68,6 +71,7 @@ const routes = [
       'selector de Mugiwara y panel de fuentes bajan bien a stacked layout',
       'facts, badges y tabs mantienen lectura clara en móvil',
       'estados stale/error/sin datos no desplazan mal la jerarquía',
+      'fallback visible queda marcado como snapshot saneado/no tiempo real',
     ],
   },
   {
@@ -77,6 +81,7 @@ const routes = [
       'árbol, documento y metadatos colapsan sin forzar tres columnas en ancho medio',
       'breadcrumbs, path y TOC no producen overflow horizontal',
       'la lectura documental sigue siendo dominante frente a la ficha lateral',
+      'fallback documental local queda distinguido de lectura API real',
     ],
   },
   {
@@ -87,6 +92,7 @@ const routes = [
       'la prioridad actual aparece antes del grid cuando hay incidencia o advertencia',
       'badges de estado/severidad no duplican el mismo significado visual',
       'checks sanos mantienen menor peso visual que incidencias o advertencias',
+      'si la API no está configurada, queda claro que los checks son snapshot local saneado y no tiempo real',
       'principios de seguridad y badges semánticos siguen legibles en móvil',
       'ninguna card crítica rompe el grid en tablet',
     ],

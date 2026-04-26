@@ -6,6 +6,7 @@ import type { VaultWorkspace } from '@/modules/vault/view-models/vault-workspace
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
+import { SourceStatePills } from '@/shared/ui/status/SourceStatePills'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme } from '@/shared/theme/tokens'
 
@@ -40,12 +41,12 @@ function getVaultApiNotice(apiState: VaultClientProps['apiState'], apiErrorCode?
   const isNotConfigured = apiErrorCode === 'not_configured'
 
   return {
-    status: isNotConfigured ? ('sin-datos' as const) : ('incidencia' as const),
-    title: isNotConfigured ? 'Vault API no configurada' : 'Vault en fallback saneado',
+    status: isNotConfigured ? ('revision' as const) : ('incidencia' as const),
+    title: isNotConfigured ? 'Vault en modo fallback local' : 'Vault en fallback saneado',
     description: isNotConfigured
-      ? 'La página muestra fixture documental local porque falta la configuración server-only de la API. No se exponen rutas internas ni detalles del backend.'
-      : 'La carga real del Vault no está disponible y la página muestra un fallback documental local. Este estado degradado queda visible para no ocultar misconfiguración operativa.',
-    detail: apiErrorCode ? `Estado controlado: ${apiErrorCode}` : null,
+      ? 'Mostrando snapshot documental local saneado. Mantiene la navegación del canon, pero no representa lectura real ni tiempo real de la API.'
+      : 'La carga real del Vault no está disponible y la página muestra un fallback documental local. Este estado degradado queda visible sin exponer rutas internas ni detalles del backend.',
+    detail: apiErrorCode ? `Estado técnico: ${apiErrorCode}` : null,
   }
 }
 
@@ -87,8 +88,16 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
               title={apiNotice.title}
               description={apiNotice.description}
               detail={apiNotice.detail}
-              eyebrow="Estado de API"
-            />
+              eyebrow="Estado de fuente"
+            >
+              <SourceStatePills
+                items={[
+                  { label: 'Modo fallback local', tone: 'fallback' },
+                  { label: 'Snapshot saneado', tone: 'snapshot' },
+                  { label: 'No tiempo real', tone: 'not-realtime' },
+                ]}
+              />
+            </StatePanel>
           ) : null}
 
           <SurfaceCard title="Canon curado" elevated eyebrow="Archivo" accent="gold">

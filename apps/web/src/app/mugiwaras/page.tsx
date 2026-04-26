@@ -13,6 +13,7 @@ import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
+import { SourceStatePills } from '@/shared/ui/status/SourceStatePills'
 import { StatusBadge } from '@/shared/ui/status/StatusBadge'
 import { appTheme, type AppStatus } from '@/shared/theme/tokens'
 
@@ -38,11 +39,11 @@ function getMugiwarasConfigNotice(error: MugiwarasApiError | null): MugiwarasVie
     cards: mugiwaraCardFixture,
     crewRulesDocument: null,
     notice: {
-      status: error?.code === 'invalid_config' ? 'incidencia' : 'sin-datos',
-      title: error?.code === 'invalid_config' ? 'Configuración server-only de Mugiwara inválida' : 'Backend de Mugiwara no configurado',
+      status: error?.code === 'invalid_config' ? 'incidencia' : 'revision',
+      title: error?.code === 'invalid_config' ? 'Configuración server-only de Mugiwara inválida' : 'Tripulación en modo fallback local',
       description:
-        'La página mantiene el fixture saneado, pero la lectura canónica de /srv/crew-core/AGENTS.md requiere MUGIWARA_CONTROL_PANEL_API_URL válida en el runtime server.',
-      detail: error?.code ?? 'Variable ausente en el runtime actual.',
+        'Mostrando fixture saneado de tripulación. Mantiene la navegación, pero AGENTS.md canónico solo aparece cuando la API allowlisted está conectada.',
+      detail: error?.code ? `Estado técnico: ${error.code}` : 'Estado técnico: not_configured',
     },
   }
 }
@@ -76,8 +77,8 @@ async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
         status: 'incidencia',
         title: 'No se pudo cargar la API read-only de Mugiwara',
         description:
-          'La UI cae al fixture saneado para no romper el shell. No se muestra AGENTS.md si la fuente backend no está disponible.',
-        detail,
+          'La UI cae al fixture saneado para no romper el shell. No se muestra AGENTS.md si la fuente backend no está disponible y no se exponen detalles host.',
+        detail: `Estado técnico: ${detail}`,
       },
     }
   }
@@ -108,7 +109,7 @@ export default async function MugiwarasPage() {
         <p style={{ marginTop: 0, marginBottom: '10px', color: appTheme.colors.textSecondary }}>
           Esta vista agrega solo resúmenes saneados por agente. No abre controles de edición y solo muestra el AGENTS.md canónico de crew-core cuando llega desde la API allowlisted.
         </p>
-        <StatusBadge status={viewModel.state === 'ready' ? 'operativo' : 'sin-datos'} />
+        <StatusBadge status={viewModel.state === 'ready' ? 'operativo' : 'revision'} />
       </SurfaceCard>
 
       {viewModel.notice ? (
@@ -119,7 +120,15 @@ export default async function MugiwarasPage() {
             description={viewModel.notice.description}
             detail={viewModel.notice.detail}
             eyebrow="Estado de fuente"
-          />
+          >
+            <SourceStatePills
+              items={[
+                { label: 'Modo fallback local', tone: 'fallback' },
+                { label: 'Snapshot saneado', tone: 'snapshot' },
+                { label: viewModel.state === 'error' ? 'Error/degradado' : 'Fuente no configurada', tone: viewModel.state === 'error' ? 'degraded' : 'not-configured' },
+              ]}
+            />
+          </StatePanel>
         </section>
       ) : null}
 
