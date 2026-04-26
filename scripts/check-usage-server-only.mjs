@@ -25,6 +25,18 @@ if (http.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL') || page.includes
 if (!http.includes('/api/v1/usage/current')) {
   failures.push('usage adapter must call the fixed current endpoint')
 }
+if (!http.includes('/api/v1/usage/calendar?range=')) {
+  failures.push('usage adapter must call the fixed calendar endpoint with allowlisted range')
+}
+if (!http.includes('UsageCalendarRange') || !http.includes('UsageCalendarResponse')) {
+  failures.push('usage adapter must type calendar ranges and responses via shared contracts')
+}
+if (!page.includes('Calendario por fecha natural') || !page.includes('Europe/Madrid')) {
+  failures.push('usage page must render the natural-date calendar with timezone context')
+}
+if (!page.includes('usage-calendar-grid') || !page.includes('primary_windows_count')) {
+  failures.push('usage page must render a responsive calendar grid without generic table overflow')
+}
 if (http.includes('path=') || http.includes('target=') || http.includes('method=')) {
   failures.push('usage adapter must not grow generic proxy parameters')
 }
