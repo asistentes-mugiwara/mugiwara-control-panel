@@ -18,6 +18,7 @@ const paths = {
   readModelsDoc: join(repoRoot, 'docs/read-models.md'),
   projectHealthProducer: join(repoRoot, 'scripts/write-project-health-status.py'),
   gatewayStatusProducer: join(repoRoot, 'scripts/write-gateway-status.py'),
+  cronjobsStatusProducer: join(repoRoot, 'scripts/write-cronjobs-status.py'),
 }
 
 const failures = []
@@ -61,6 +62,7 @@ const apiModulesDoc = read(paths.apiModulesDoc, 'API modules document')
 const readModelsDoc = read(paths.readModelsDoc, 'read models document')
 const projectHealthProducer = read(paths.projectHealthProducer, 'project-health manifest producer')
 const gatewayStatusProducer = read(paths.gatewayStatusProducer, 'gateway status manifest producer')
+const cronjobsStatusProducer = read(paths.cronjobsStatusProducer, 'cronjobs status manifest producer')
 
 let packageJson
 try {
@@ -83,6 +85,14 @@ if (packageJson && packageJson.scripts?.['write:gateway-status'] !== 'python3 sc
 
 if (packageJson && packageJson.scripts?.['verify:gateway-status-runner'] !== 'node scripts/check-gateway-status-runner.mjs') {
   failures.push('package.json must expose verify:gateway-status-runner')
+}
+
+if (packageJson && packageJson.scripts?.['write:cronjobs-status'] !== 'python3 scripts/write-cronjobs-status.py') {
+  failures.push('package.json must expose write:cronjobs-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
+  failures.push('package.json must expose verify:cronjobs-status-runner')
 }
 
 const forbiddenHostConsolePatterns = [
@@ -184,6 +194,23 @@ for (const snippet of requiredGatewayStatusProducerSnippets) {
   mustInclude(gatewayStatusProducer, snippet, 'gateway status manifest producer')
 }
 
+const requiredCronjobsStatusProducerSnippets = [
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/cronjobs-status.json')",
+  "DEFAULT_PROFILES_ROOT = Path('/home/agentops/.hermes/profiles')",
+  "ALLOWED_CRON_PROFILES: tuple[str, ...]",
+  "CRITICAL_JOB_NAMES: frozenset[str]",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'jobs')",
+  "SAFE_JOB_ENTRY_KEYS = ('last_run_at', 'last_status', 'criticality')",
+  "registry_path = profiles_root / profile / 'cron' / 'jobs.json'",
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+]
+
+for (const snippet of requiredCronjobsStatusProducerSnippets) {
+  mustInclude(cronjobsStatusProducer, snippet, 'cronjobs status manifest producer')
+}
+
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
@@ -215,7 +242,11 @@ const requiredDocSnippets = [
   'Phase 15.6a also allows the fixed `cronjobs-status` manifest reader',
   'it consumes only `updated_at`, manifest result and per-job safe status/freshness/criticality semantics',
   'does not expose job names, owner profiles, prompt bodies, commands, delivery targets, chat IDs, logs, stdout/stderr or raw outputs',
-  'These phases still do not add cronjob producers',
+  'Phase 15.6b adds `scripts/write-cronjobs-status.py` as the reviewed producer',
+  'allowlisted Hermes profile cron registries',
+  'mugiwara-cronjobs-status.timer',
+  'scripts/install-cronjobs-status-user-timer.sh',
+  'does not serialize job names, owner profiles, prompt bodies, commands, delivery targets, chat IDs, logs, stdout/stderr, raw outputs, host paths, tokens or credentials',
   'GitHub issue/PR counts or last-verify aggregation',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]

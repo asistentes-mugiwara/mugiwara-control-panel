@@ -1,0 +1,20 @@
+[Unit]
+Description=Mugiwara Control Panel cronjobs status manifest producer
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:cronjobs-status
+
+# Keep the runner deterministic and local: no profile-local single view, no prompt
+# dumping, no command/output inspection and no alternate output path. The producer
+# reads allowlisted Hermes profile cron registries and writes only safe freshness
+# semantics to /srv/crew-core/runtime/healthcheck/cronjobs-status.json.
+
+# Basic hardening for a user service. Do not make /srv read-only: the producer must
+# update the fixed runtime manifest path.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
