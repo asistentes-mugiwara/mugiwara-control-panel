@@ -24,6 +24,7 @@
     "verify:project-health-runner": "node scripts/check-project-health-runner.mjs",
     "verify:gateway-status-runner": "node scripts/check-gateway-status-runner.mjs",
     "verify:cronjobs-status-runner": "node scripts/check-cronjobs-status-runner.mjs",
+    "verify:statepanel-aria": "node scripts/check-statepanel-aria.mjs",
     "write:project-health-status": "python3 scripts/write-project-health-status.py",
     "write:gateway-status": "python3 scripts/write-gateway-status.py",
     "write:cronjobs-status": "python3 scripts/write-cronjobs-status.py",

@@ -262,6 +262,17 @@ Card base con variantes:
 Props:
 - `status: 'operativo' | 'revision' | 'incidencia' | 'stale' | 'sin-datos'`
 
+### `StatePanel`
+Shared panel for empty, fallback, degraded, informational and priority states.
+
+Accessibility contract:
+- Default semantics are intentionally quiet: no ARIA live role is emitted unless the caller opts in.
+- Static empty/fallback/explanatory panels should keep the default quiet semantics.
+- Use `ariaRole="status"` only for genuinely dynamic status updates that benefit from polite announcement.
+- Use `ariaRole="alert"` only for urgent incidents or action-required panels that should be announced assertively.
+- Use `ariaRole="region"` or `ariaRole="group"` with `ariaLabel` for named landmark/grouping semantics without live-region noise.
+- `StatePanel` visual status and accessible announcement semantics are separate decisions.
+
 ### `MetricCard`
 Props:
 - `label`
