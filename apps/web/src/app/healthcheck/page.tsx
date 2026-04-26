@@ -152,13 +152,24 @@ function getPriorityCopy(module: HealthcheckModuleCard | null) {
   return null
 }
 
-function HealthcheckStatusBadges({ status, severity }: Pick<HealthcheckModuleCard | HealthcheckSummaryItem, 'status' | 'severity'>) {
+function getSnapshotAwareHealthcheckStatusLabel(status: HealthcheckModuleCard['status'], isSnapshotMode: boolean) {
+  if (!isSnapshotMode) {
+    return getHealthcheckStatusLabel(status)
+  }
+
+  return status === 'pass' ? 'Operativo en último corte' : getHealthcheckStatusLabel(status)
+}
+
+function HealthcheckStatusBadges({ status, severity, isSnapshotMode = false }: Pick<HealthcheckModuleCard | HealthcheckSummaryItem, 'status' | 'severity'> & { isSnapshotMode?: boolean }) {
   const statusBadge = mapHealthcheckStatusToBadgeStatus(status)
   const severityBadge = mapHealthcheckSeverityToBadgeStatus(severity)
 
   return (
     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-      <StatusBadge status={statusBadge} />
+      <StatusBadge
+        status={statusBadge}
+        label={isSnapshotMode && statusBadge === 'operativo' ? 'Operativo en último corte' : undefined}
+      />
       {shouldRenderSeparateSeverityBadge(status, severity) ? <StatusBadge status={severityBadge} /> : null}
       <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>
         Severidad {getHealthcheckSeverityLabel(severity)}
@@ -186,6 +197,7 @@ function formatTimestamp(value: string | null) {
 
 export default async function HealthcheckPage() {
   const { workspace, apiNotice } = await getInitialHealthcheckData()
+  const isSnapshotMode = Boolean(apiNotice)
   const sortedModules = sortByHealthcheckTriage(workspace.modules)
   const sortedSignals = sortByHealthcheckTriage(workspace.signals)
   const priorityNotice = getPriorityCopy(sortedModules[0] ?? null)
@@ -240,8 +252,15 @@ export default async function HealthcheckPage() {
             <div style={{ display: 'grid', gap: '8px' }}>
               <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Estado general</span>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <StatusBadge status={mapHealthcheckStatusToBadgeStatus(workspace.summary_bar.overall_status)} />
-                <span style={{ color: appTheme.colors.textSecondary }}>{getHealthcheckStatusLabel(workspace.summary_bar.overall_status)}</span>
+                <StatusBadge
+                  status={mapHealthcheckStatusToBadgeStatus(workspace.summary_bar.overall_status)}
+                  label={
+                    isSnapshotMode && mapHealthcheckStatusToBadgeStatus(workspace.summary_bar.overall_status) === 'operativo'
+                      ? 'Operativo en último corte'
+                      : undefined
+                  }
+                />
+                <span style={{ color: appTheme.colors.textSecondary }}>{getSnapshotAwareHealthcheckStatusLabel(workspace.summary_bar.overall_status, isSnapshotMode)}</span>
               </div>
             </div>
 
@@ -261,7 +280,7 @@ export default async function HealthcheckPage() {
             </div>
 
             <div style={{ display: 'grid', gap: '8px' }}>
-              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Actualizado</span>
+              <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>{isSnapshotMode ? 'Corte del snapshot' : 'Actualizado'}</span>
               <span style={{ color: appTheme.colors.textSecondary }}>{formatTimestamp(workspace.summary_bar.updated_at)}</span>
             </div>
           </div>
@@ -302,12 +321,12 @@ export default async function HealthcheckPage() {
             >
               <SurfaceCard title={module.label} elevated={index < 3} eyebrow={index === 0 ? 'Prioridad actual' : 'Check'} accent={getHealthcheckAccent(module.status, module.severity)}>
                 <div style={{ display: 'grid', gap: '10px' }}>
-                  <HealthcheckStatusBadges status={module.status} severity={module.severity} />
+                  <HealthcheckStatusBadges status={module.status} severity={module.severity} isSnapshotMode={isSnapshotMode} />
                   <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                    Estado: <strong>{getHealthcheckStatusLabel(module.status)}</strong>
+                    Estado: <strong>{getSnapshotAwareHealthcheckStatusLabel(module.status, isSnapshotMode)}</strong>
                   </span>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
-                    Última señal: {formatTimestamp(module.updated_at)}
+                    {isSnapshotMode ? 'Última señal del snapshot' : 'Última señal'}: {formatTimestamp(module.updated_at)}
                   </span>
                   <p style={{ margin: 0, color: module.status === 'pass' && module.severity === 'low' ? appTheme.colors.textMuted : appTheme.colors.textSecondary }}>{module.summary}</p>
                 </div>
@@ -318,7 +337,7 @@ export default async function HealthcheckPage() {
       </section>
 
       <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title="Eventos recientes" elevated eyebrow="Bitácora" accent="gold">
+        <SurfaceCard title={isSnapshotMode ? 'Eventos del snapshot' : 'Eventos recientes'} elevated eyebrow="Bitácora" accent="gold">
           {workspace.events.length > 0 ? (
             <div style={{ display: 'grid', gap: '10px' }}>
               {workspace.events.map((event) => (
@@ -334,7 +353,14 @@ export default async function HealthcheckPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                     <strong>{event.source}</strong>
-                    <StatusBadge status={mapHealthcheckStatusToBadgeStatus(event.status)} />
+                    <StatusBadge
+                      status={mapHealthcheckStatusToBadgeStatus(event.status)}
+                      label={
+                        isSnapshotMode && mapHealthcheckStatusToBadgeStatus(event.status) === 'operativo'
+                          ? 'Operativo en último corte'
+                          : undefined
+                      }
+                    />
                   </div>
                   <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{formatTimestamp(event.timestamp)}</span>
                   <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{event.detail}</p>
@@ -370,7 +396,7 @@ export default async function HealthcheckPage() {
                       <strong>{check.label}</strong>
                       <code style={{ fontSize: '12px', color: appTheme.colors.textMuted }}>{check.check_id}</code>
                     </div>
-                    <HealthcheckStatusBadges status={check.status} severity={check.severity} />
+                    <HealthcheckStatusBadges status={check.status} severity={check.severity} isSnapshotMode={isSnapshotMode} />
                     <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{check.warning_text}</span>
                     <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>
                       {check.source_label} · {check.freshness.label}

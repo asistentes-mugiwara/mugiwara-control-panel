@@ -2,6 +2,7 @@ import { appTheme, statusColorMap, type AppStatus } from '@/shared/theme/tokens'
 
 type StatusBadgeProps = {
   status: AppStatus
+  label?: string
 }
 
 const statusLabelMap: Record<AppStatus, string> = {
@@ -12,8 +13,9 @@ const statusLabelMap: Record<AppStatus, string> = {
   'sin-datos': 'Sin datos',
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, label }: StatusBadgeProps) {
   const color = statusColorMap[status]
+  const displayLabel = label ?? statusLabelMap[status]
 
   return (
     <span
@@ -28,9 +30,9 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         letterSpacing: '0.01em',
         background: appTheme.colors.bgSurface2,
       }}
-      aria-label={`Estado ${statusLabelMap[status]}`}
+      aria-label={`Estado ${displayLabel}`}
     >
-      {statusLabelMap[status]}
+      {displayLabel}
     </span>
   )
 }

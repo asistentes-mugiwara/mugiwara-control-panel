@@ -67,17 +67,26 @@ async function getInitialDashboardData(): Promise<{ summary: DashboardSummary; a
   }
 }
 
-function CountGridItem({ count }: { count: DashboardCount }) {
+function getSnapshotAwareCountNote(note: string, isSnapshotMode: boolean) {
+  if (!isSnapshotMode) {
+    return note
+  }
+
+  return note === 'lectura activa' ? 'snapshot disponible' : note
+}
+
+function CountGridItem({ count, isSnapshotMode }: { count: DashboardCount; isSnapshotMode: boolean }) {
   return (
-    <SurfaceCard title={count.label} elevated accent="sky" eyebrow="Lectura operativa">
+    <SurfaceCard title={count.label} elevated accent="sky" eyebrow={isSnapshotMode ? 'Lectura de snapshot' : 'Lectura operativa'}>
       <p style={{ margin: '0 0 6px', fontSize: '30px', fontWeight: 700 }}>{count.value}</p>
-      <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{count.note}</p>
+      <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{getSnapshotAwareCountNote(count.note, isSnapshotMode)}</p>
     </SurfaceCard>
   )
 }
 
 export default async function DashboardPage() {
   const { summary, apiNotice } = await getInitialDashboardData()
+  const isSnapshotMode = Boolean(apiNotice)
 
   return (
     <>
@@ -109,7 +118,7 @@ export default async function DashboardPage() {
 
       <section className="layout-grid layout-grid--cards-260">
         {summary.counts.map((count) => (
-          <CountGridItem key={count.label} count={count} />
+          <CountGridItem key={count.label} count={count} isSnapshotMode={isSnapshotMode} />
         ))}
       </section>
 
@@ -124,9 +133,12 @@ export default async function DashboardPage() {
         <SurfaceCard title="Frescura" elevated eyebrow="Bitácora" accent="gold">
           <p style={{ marginTop: 0, marginBottom: '8px' }}>{summary.freshness.label}</p>
           <p style={{ marginTop: 0, marginBottom: '8px', color: appTheme.colors.textSecondary }}>
-            Última actualización: {summary.freshness.updated_at}
+            {isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: {summary.freshness.updated_at}
           </p>
-          <StatusBadge status={mapDashboardFreshnessToStatus(summary.freshness)} />
+          <StatusBadge
+            status={mapDashboardFreshnessToStatus(summary.freshness)}
+            label={isSnapshotMode && mapDashboardFreshnessToStatus(summary.freshness) === 'operativo' ? 'Operativo en último corte' : undefined}
+          />
         </SurfaceCard>
 
         <SurfaceCard title="Módulos monitoreados" eyebrow="Cubierta" accent="sky">
