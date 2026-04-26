@@ -20,7 +20,8 @@
 - [x] HTML smoke confirms no raw ISO timestamp in `/dashboard` response.
 
 ## Review / closeout
-- [ ] Open PR linked to issue #47.
-- [ ] Request Usopp review for visual confirmation.
-- [ ] Update vault Project Summary after merge.
+- [x] Open PR linked to issue #47: PR #67.
+- [x] Request Usopp review for visual confirmation: Usopp `approve` via PR comment; formal GitHub approval blocked by shared account.
+- [x] PR #67 merged to `main` as `5c30592a2f367c0834fa65948acd328647a2f04d`; issue #47 closed.
+- [x] Update vault Project Summary after merge.
 - [ ] Save Engram observation after merge.

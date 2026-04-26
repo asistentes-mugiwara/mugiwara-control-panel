@@ -23,6 +23,8 @@ There is no backend, API contract, dependency, security or runtime change. Split
 - `git diff --check` passed.
 - Browser smoke on `http://127.0.0.1:3100/dashboard` confirmed 4 metric columns at desktop viewport, no horizontal overflow, formatted timestamp (`23/4/26, 16:45`) and no console errors.
 - HTML smoke confirmed no raw ISO timestamp in the Dashboard response.
+- PR #67 merged to `main` as `5c30592a2f367c0834fa65948acd328647a2f04d`; issue #47 closed.
+- Vault Project Summary updated and pushed as `b12fb5e`.
 
 ## Continuity
 If review finds visual imbalance at an exact viewport, prefer tuning only the `layout-grid--dashboard-metrics` breakpoints/class. Do not expand into header metrics (#36), new Dashboard modules or backend Healthcheck work.
