@@ -166,6 +166,57 @@ export type SystemSignal = {
   freshness: Freshness
 }
 
+export type UsageFreshness = {
+  state: 'fresh' | 'stale' | 'unknown'
+  age_minutes: number | null
+  label: string
+}
+
+export type UsageWindowStatus = 'normal' | 'high' | 'critical' | 'limit_reached' | 'unknown'
+
+export type UsageCurrent = {
+  current_snapshot: {
+    captured_at: string | null
+    source_label: string
+    freshness: UsageFreshness
+  }
+  plan: {
+    type: string
+    allowed: boolean | null
+    limit_reached: boolean | null
+    additional_limits_count: number
+  }
+  primary_window: {
+    label: 'Ventana 5h'
+    used_percent: number | null
+    window_seconds: number | null
+    started_at: string | null
+    reset_at: string | null
+    reset_after_seconds: number | null
+    status: UsageWindowStatus
+  }
+  secondary_cycle: {
+    label: 'Ciclo semanal Codex'
+    used_percent: number | null
+    window_seconds: number | null
+    started_at: string | null
+    reset_at: string | null
+    reset_after_seconds: number | null
+    status: UsageWindowStatus
+  }
+  recommendation: {
+    state: 'normal' | 'alto' | 'critico' | 'limite_alcanzado' | 'datos_antiguos' | 'sin_datos'
+    label: string
+    message: string
+  }
+  methodology: {
+    cycle_copy: string
+    primary_window_formula: string
+    secondary_cycle_formula: string
+    privacy: string
+  }
+}
+
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
 export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
 export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
@@ -175,4 +226,5 @@ export type VaultIndexResponse = ResourceEnvelope<VaultIndex, { safe_root: strin
 export type VaultDocumentResponse = ResourceEnvelope<VaultDocument, { path: string; markdown_only: true }>
 export type HealthcheckWorkspaceResponse = ResourceEnvelope<HealthcheckWorkspace, { count: number; read_only: true; sanitized: true; source: string }>
 export type HealthcheckSummaryResponse = ResourceEnvelope<{ items: HealthcheckSummary[] }, { count: number }>
+export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: true; sanitized: true; source: string; refresh_interval_minutes: number }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>
