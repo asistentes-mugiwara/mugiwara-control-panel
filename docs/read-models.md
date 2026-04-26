@@ -105,6 +105,19 @@ Uso:
 - exponer solo métricas saneadas desde la fuente SQLite allowlisted, sin email, user/account IDs, tokens, prompts, headers, logs ni raw payload
 - degradar fuente ausente/ilegible a `not_configured`/`unknown` sin path runtime
 
+### `usage.calendar`
+Campos esperados:
+- `range` (`current_cycle`, `previous_cycle`, `7d`, `30d`)
+- `timezone` fija `Europe/Madrid`
+- `current_cycle` con rango del ciclo semanal Codex de referencia
+- `days[]` con fecha natural, tramo Codex del día, delta diario del ciclo semanal Codex, número de ventanas 5h, pico 5h y estado diario saneado
+
+Uso:
+- exponer calendario por fecha natural como primera vista histórica de Usage
+- indicar `tramo parcial` solo cuando la fecha coincide con inicio/reset del ciclo semanal Codex
+- no incluir actividad Hermes, prompts, conversaciones, tokens, raw payload, rutas runtime ni causalidad por perfil
+- aceptar solo rangos allowlisted; valores desconocidos deben caer en error de validación saneado sin ecoar input
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

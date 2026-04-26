@@ -217,6 +217,33 @@ export type UsageCurrent = {
   }
 }
 
+export type UsageCalendarRange = 'current_cycle' | 'previous_cycle' | '7d' | '30d'
+export type UsageCalendarDayStatus = 'normal' | 'high' | 'critical' | 'unknown'
+
+export type UsageCalendar = {
+  range: UsageCalendarRange
+  timezone: 'Europe/Madrid'
+  current_cycle: {
+    started_at: string | null
+    reset_at: string | null
+    label: 'Ciclo semanal Codex'
+  } | null
+  days: Array<{
+    date: string
+    codex_segment: {
+      started_at: string
+      ended_at: string
+      partial: boolean
+      reason: 'cycle_started_today' | 'cycle_resets_today' | null
+    }
+    secondary_delta_percent: number | null
+    primary_windows_count: number
+    peak_primary_used_percent: number | null
+    status: UsageCalendarDayStatus
+  }>
+  empty_reason?: 'not_configured' | 'unknown'
+}
+
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
 export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
 export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
@@ -227,4 +254,5 @@ export type VaultDocumentResponse = ResourceEnvelope<VaultDocument, { path: stri
 export type HealthcheckWorkspaceResponse = ResourceEnvelope<HealthcheckWorkspace, { count: number; read_only: true; sanitized: true; source: string }>
 export type HealthcheckSummaryResponse = ResourceEnvelope<{ items: HealthcheckSummary[] }, { count: number }>
 export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: true; sanitized: true; source: string; refresh_interval_minutes: number }>
+export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>
