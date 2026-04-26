@@ -140,6 +140,41 @@ button {
   white-space: nowrap;
 }
 
+.usage-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+
+.usage-calendar-day {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.usage-calendar-day__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.usage-calendar-day__metrics dt {
+  color: #9aa7bd;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-calendar-day__metrics dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+}
+
 .responsive-code {
   overflow-x: auto;
   white-space: pre-wrap;
@@ -297,6 +332,10 @@ button {
 
   .surface-card {
     padding: 16px !important;
+  }
+
+  .usage-calendar-day__metrics {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

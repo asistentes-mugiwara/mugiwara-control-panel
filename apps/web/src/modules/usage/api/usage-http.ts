@@ -3,7 +3,7 @@ import 'server-only'
 import http from 'node:http'
 import https from 'node:https'
 
-import type { UsageCurrentResponse } from '@contracts/read-models'
+import type { UsageCalendarRange, UsageCalendarResponse, UsageCurrentResponse } from '@contracts/read-models'
 
 export const USAGE_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'
 
@@ -66,7 +66,7 @@ function parseJsonPayload<T>(body: string): T {
   }
 }
 
-async function requestUsageJson(url: string): Promise<UsageCurrentResponse> {
+async function requestUsageJson<T>(url: string): Promise<T> {
   const parsed = new URL(url)
   const transport = parsed.protocol === 'https:' ? https : http
 
@@ -97,7 +97,7 @@ async function requestUsageJson(url: string): Promise<UsageCurrentResponse> {
           }
 
           try {
-            resolve(parseJsonPayload<UsageCurrentResponse>(body))
+            resolve(parseJsonPayload<T>(body))
           } catch (error) {
             reject(error)
           }
@@ -122,5 +122,17 @@ export async function fetchUsageCurrent(): Promise<UsageCurrentResponse> {
     throw new UsageApiError('not_configured', { status: 0, code: 'not_configured' })
   }
 
-  return requestUsageJson(`${baseUrl}/api/v1/usage/current`)
+  return requestUsageJson<UsageCurrentResponse>(`${baseUrl}/api/v1/usage/current`)
+}
+
+export async function fetchUsageCalendar(range: UsageCalendarRange = 'current_cycle'): Promise<UsageCalendarResponse> {
+  const baseUrl = getUsageApiBaseUrl()
+
+  if (!baseUrl) {
+    throw new UsageApiError('not_configured', { status: 0, code: 'not_configured' })
+  }
+
+  const allowedRanges: UsageCalendarRange[] = ['current_cycle', 'previous_cycle', '7d', '30d']
+  const safeRange = allowedRanges.includes(range) ? range : 'current_cycle'
+  return requestUsageJson<UsageCalendarResponse>(`${baseUrl}/api/v1/usage/calendar?range=${encodeURIComponent(safeRange)}`)
 }

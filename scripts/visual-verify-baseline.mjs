@@ -105,7 +105,8 @@ const routes = [
       'el ciclo se etiqueta como ciclo semanal Codex y no como calendario lunes-domingo',
       'stale, not_configured o fallback quedan visibles como fuente degradada/no tiempo real',
       'fórmulas y privacidad hacen wrap sin filtrar detalles internos del host',
-      'no aparecen calendario, ventanas históricas ni actividad Hermes antes de sus fases',
+      'el calendario por fecha natural aparece como grid/cards responsive sin scroll horizontal obligatorio',
+      'actividad Hermes agregada y endpoint dedicado de ventanas históricas siguen fuera de esta fase',
     ],
   },
 ]

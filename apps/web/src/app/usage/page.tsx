@@ -1,7 +1,8 @@
 import type { ResourceStatus } from '@contracts/resource'
-import type { UsageCurrent, UsageWindowStatus } from '@contracts/read-models'
+import type { UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageWindowStatus } from '@contracts/read-models'
 
-import { fetchUsageCurrent, UsageApiError } from '@/modules/usage/api/usage-http'
+import { fetchUsageCalendar, fetchUsageCurrent, UsageApiError } from '@/modules/usage/api/usage-http'
+import { usageCalendarFixture } from '@/modules/usage/view-models/usage-calendar.fixture'
 import { usageCurrentFixture } from '@/modules/usage/view-models/usage-current.fixture'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
@@ -22,6 +23,7 @@ type UsageNotice = {
 
 type UsagePageData = {
   usage: UsageCurrent
+  calendar: UsageCalendar
   resourceStatus: ResourceStatus | 'fallback'
   notice: UsageNotice | null
   isSnapshotMode: boolean
@@ -44,23 +46,35 @@ const recommendationStatusMap: Record<UsageCurrent['recommendation']['state'], A
   sin_datos: 'sin-datos',
 }
 
+const calendarStatusMap: Record<UsageCalendarDayStatus, { appStatus: AppStatus; label: string; accent: 'sky' | 'success' | 'warning' | 'danger' }> = {
+  normal: { appStatus: 'operativo', label: 'Normal', accent: 'success' },
+  high: { appStatus: 'revision', label: 'Alto', accent: 'warning' },
+  critical: { appStatus: 'incidencia', label: 'Crítico', accent: 'danger' },
+  unknown: { appStatus: 'sin-datos', label: 'Sin datos', accent: 'sky' },
+}
+
 async function getInitialUsageData(): Promise<UsagePageData> {
   try {
-    const response = await fetchUsageCurrent()
-    const usage = response.data
+    const [currentResponse, calendarResponse] = await Promise.all([fetchUsageCurrent(), fetchUsageCalendar('current_cycle')])
+    const usage = currentResponse.data
+    const calendar = calendarResponse.data
 
-    if (response.status !== 'ready') {
+    const responseStatus = currentResponse.status !== 'ready' ? currentResponse.status : calendarResponse.status
+
+    if (responseStatus !== 'ready') {
       return {
         usage,
-        resourceStatus: response.status,
-        isSnapshotMode: response.status === 'stale',
-        notice: noticeFromResourceStatus(response.status),
+        calendar,
+        resourceStatus: responseStatus,
+        isSnapshotMode: responseStatus === 'stale',
+        notice: noticeFromResourceStatus(responseStatus),
       }
     }
 
     return {
       usage,
-      resourceStatus: response.status,
+      calendar,
+      resourceStatus: currentResponse.status,
       notice: null,
       isSnapshotMode: false,
     }
@@ -69,6 +83,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
 
     return {
       usage: usageCurrentFixture,
+      calendar: usageCalendarFixture,
       resourceStatus: 'fallback',
       isSnapshotMode: true,
       notice: {
@@ -152,6 +167,48 @@ function formatTimestamp(value: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date)
+}
+
+function formatNaturalDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('es-ES', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  }).format(date)
+}
+
+function formatDeltaPercent(value: number | null) {
+  if (value === null) {
+    return '—'
+  }
+
+  return `+${Math.round(value)}%`
+}
+
+function calendarPartialCopy(reason: UsageCalendar['days'][number]['codex_segment']['reason']) {
+  if (reason === 'cycle_started_today') {
+    return 'Tramo parcial: inicio del ciclo semanal Codex'
+  }
+
+  if (reason === 'cycle_resets_today') {
+    return 'Tramo parcial: reset del ciclo semanal Codex'
+  }
+
+  return 'Día completo dentro del ciclo semanal Codex'
+}
+
+function formatPeakPrimary(value: number | null) {
+  if (value === null) {
+    return 'Sin pico 5h'
+  }
+
+  return `${Math.round(value)}% pico 5h`
 }
 
 function formatPercent(value: number | null) {
@@ -252,8 +309,71 @@ function WindowCard({
   )
 }
 
+function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalendar; isSnapshotMode: boolean }) {
+  const days = calendar.days.slice(-10)
+
+  return (
+    <SurfaceCard title="Calendario por fecha natural" eyebrow={`Ciclo semanal Codex · ${calendar.timezone}`} accent="gold" elevated>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
+          Primera lectura histórica saneada: agrupa por fecha natural Europe/Madrid, sin prompts, conversaciones, tokens ni actividad Hermes. El delta diario se calcula por segmentos continuos del ciclo semanal Codex para no contar resets como consumo.
+        </p>
+        {isSnapshotMode ? (
+          <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
+            Calendario mostrado desde snapshot/fallback saneado: útil para validar composición visual, no para decidir consumo real.
+          </p>
+        ) : null}
+        <div className="usage-calendar-grid" role="list" aria-label="Calendario Usage por fecha natural">
+          {days.length > 0 ? (
+            days.map((day) => {
+              const status = calendarStatusMap[day.status]
+              return (
+                <article className="usage-calendar-day" key={day.date} role="listitem" aria-label={`${formatNaturalDate(day.date)}: ${status.label}`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start' }}>
+                    <div>
+                      <p style={{ margin: 0, color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{day.date}</p>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '18px' }}>{formatNaturalDate(day.date)}</h3>
+                    </div>
+                    <StatusBadge status={status.appStatus} label={status.label} />
+                  </div>
+                  <dl className="usage-calendar-day__metrics">
+                    <div>
+                      <dt>Delta ciclo</dt>
+                      <dd>{formatDeltaPercent(day.secondary_delta_percent)}</dd>
+                    </div>
+                    <div>
+                      <dt>Ventanas 5h</dt>
+                      <dd>{day.primary_windows_count}</dd>
+                    </div>
+                    <div>
+                      <dt>Pico diario</dt>
+                      <dd>{formatPeakPrimary(day.peak_primary_used_percent)}</dd>
+                    </div>
+                  </dl>
+                  <p style={{ margin: 0, color: day.codex_segment.partial ? appTheme.colors.brandGold400 : appTheme.colors.textSecondary, lineHeight: 1.5 }}>
+                    {calendarPartialCopy(day.codex_segment.reason)}
+                  </p>
+                </article>
+              )
+            })
+          ) : (
+            <StatePanel
+              status="sin-datos"
+              title="Calendario sin datos"
+              description={calendar.empty_reason === 'not_configured' ? 'La fuente Usage calendar aún no está configurada.' : 'No hay días suficientes para componer el calendario saneado.'}
+              eyebrow="Usage calendar"
+              ariaRole="region"
+              ariaLabel="Calendario Usage sin datos"
+            />
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
 export default async function UsagePage() {
-  const { usage, notice, isSnapshotMode } = await getInitialUsageData()
+  const { usage, calendar, notice, isSnapshotMode } = await getInitialUsageData()
   const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
@@ -320,13 +440,17 @@ export default async function UsagePage() {
         </SurfaceCard>
       </section>
 
+      <section className="section-block" aria-label="Calendario Usage">
+        <UsageCalendarPanel calendar={calendar} isSnapshotMode={isSnapshotMode} />
+      </section>
+
       <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.2" accent="gold">
+        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.3b" accent="gold">
           <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
             <li>Snapshot actual saneado de Codex usage.</li>
             <li>Ventana 5h y ciclo semanal Codex con rangos calculados por reset.</li>
-            <li>Estado de fuente y recomendación operativa sin datos por conversación.</li>
-            <li>Calendario, ventanas históricas y actividad Hermes agregada quedan para 17.3/17.4.</li>
+            <li>Calendario por fecha natural Europe/Madrid con delta diario, ventanas 5h y pico diario saneados.</li>
+            <li>Actividad Hermes agregada y endpoint dedicado de ventanas históricas quedan para 17.4.</li>
           </ul>
         </SurfaceCard>
         <SurfaceCard title="Seguridad de datos" eyebrow="Deny by default" accent="sky">
