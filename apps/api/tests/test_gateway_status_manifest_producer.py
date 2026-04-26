@@ -98,7 +98,7 @@ def test_gateway_status_manifest_producer_degrades_inactive_gateway_without_leak
     assert 'stdout' not in serialized
 
 
-def test_gateway_status_manifest_producer_cli_accepts_safe_output_and_now(tmp_path):
+def test_gateway_status_manifest_producer_cli_accepts_safe_manual_output_and_now(tmp_path):
     producer = _load_producer_module()
     output = tmp_path / 'gateway-status.json'
     fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
@@ -109,3 +109,41 @@ def test_gateway_status_manifest_producer_cli_accepts_safe_output_and_now(tmp_pa
     manifest = json.loads(output.read_text(encoding='utf-8'))
     assert manifest['status'] == 'success'
     assert manifest['updated_at'] == '2026-04-25T21:10:00Z'
+
+
+def test_gateway_status_manifest_producer_fsyncs_parent_directory_after_replace(tmp_path, monkeypatch):
+    producer = _load_producer_module()
+    output = tmp_path / 'runtime' / 'healthcheck' / 'gateway-status.json'
+    fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    opened_dirs: list[str] = []
+    fsynced_fds: list[int] = []
+    closed_fds: list[int] = []
+    real_open = producer.os.open
+    real_close = producer.os.close
+
+    def tracking_open(path, flags, *args, **kwargs):
+        fd = real_open(path, flags, *args, **kwargs)
+        if Path(path) == output.parent and flags & producer.os.O_DIRECTORY:
+            opened_dirs.append(str(path))
+        return fd
+
+    def tracking_fsync(fd):
+        fsynced_fds.append(fd)
+
+    def tracking_close(fd):
+        closed_fds.append(fd)
+        return real_close(fd)
+
+    monkeypatch.setattr(producer.os, 'open', tracking_open)
+    monkeypatch.setattr(producer.os, 'fsync', tracking_fsync)
+    monkeypatch.setattr(producer.os, 'close', tracking_close)
+
+    producer.write_gateway_status(
+        output_path=output,
+        now='2026-04-25T21:15:00Z',
+        systemctl_runner=fake_systemctl,
+    )
+
+    assert opened_dirs == [str(output.parent)]
+    assert fsynced_fds
+    assert fsynced_fds[-1] in closed_fds
