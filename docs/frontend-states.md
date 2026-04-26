@@ -29,9 +29,11 @@ Cada vista del frontend debe contemplar al menos:
 - `error`: fallo al cargar la ficha o el índice
 
 ### Skills
-- `empty`: sin skills en la categoría/filtro
-- `error`: fallo de listado o detalle
-- `ready`: detalle editable solo si el backend lo autoriza
+- `not_configured`: la primera señal visible debe explicar que falta `MUGIWARA_CONTROL_PANEL_API_URL` en runtime server; catálogo, detalle, preview y guardado quedan bloqueados sin pedir seleccionar una skill.
+- `empty`: sin skills en la categoría/filtro con API real conectada.
+- `error`: fallo de listado o detalle; mostrar una causa raíz saneada y mantener catálogo/editor/preview como estados secundarios, sin repetir el diagnóstico en cada zona.
+- `ready`: detalle editable solo si el backend lo autoriza.
+- En `not_configured` o error raíz, la información de BFF/frontera sigue visible como contexto secundario: no debe dominar la acción requerida ni exponer URL interna del backend.
 
 ### Memory
 - `empty`: memoria no inicializada para ese agente

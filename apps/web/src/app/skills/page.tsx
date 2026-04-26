@@ -77,16 +77,16 @@ function getSkillsViewNotice(state: SkillsViewState, connectionLabel: string, er
     case 'not_configured':
       return {
         status: 'revision' as const,
-        title: 'Skills con fuente no configurada',
-        description: 'El BFF same-origin está disponible, pero falta la configuración server-only hacia el backend. No se muestran datos productivos ni URL interna al navegador.',
-        detail: 'Estado técnico: not_configured',
+        title: 'Skills no está conectado al backend',
+        description: 'No se puede cargar el catálogo ni habilitar edición porque falta configurar MUGIWARA_CONTROL_PANEL_API_URL en el runtime server. La página conserva el shell y el perímetro seguro, pero no hay skills reales disponibles en este estado.',
+        detail: 'Bloqueado: catálogo, detalle, preview y guardado. Seguro: BFF same-origin, sin URL interna en el navegador.',
       }
     case 'error':
       return {
         status: 'incidencia' as const,
-        title: 'Skills con fuente degradada',
-        description: 'La superficie mantiene el shell, pero la conectividad o la respuesta saneada del BFF impiden mostrar catálogo y detalle con garantías. No se exponen URLs internas ni salidas crudas.',
-        detail: 'Estado técnico: error',
+        title: 'Skills no puede cargar la fuente real',
+        description: 'La página mantiene el shell y el perímetro seguro, pero la fuente real no permite cargar catálogo, detalle ni edición con garantías.',
+        detail: errorMessage ?? 'Bloqueado: catálogo, detalle, preview y guardado. Seguro: errores saneados sin URL interna ni salidas crudas.',
       }
     case 'empty':
       return {
@@ -243,6 +243,7 @@ export default function SkillsPage() {
   }, [audit, selectedSkill])
 
   const sourceNotice = getSkillsViewNotice(viewState, apiConnectionLabel, errorMessage)
+  const isRootUnavailable = viewState === 'not_configured' || viewState === 'error'
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
   const normalizedActor = actorInput.trim()
   const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && normalizedActor && saveState !== 'saving')
@@ -391,12 +392,41 @@ export default function SkillsPage() {
         detailPills={["Edición allowlisted", "Diff explícito", "Auditoría visible"]}
       />
 
-      <SurfaceCard title="Workspace de edición" elevated eyebrow="Dojo" accent="success">
+      {isRootUnavailable && sourceNotice ? (
+        <SurfaceCard title="Acción requerida" elevated eyebrow="Fuente raíz" accent={viewState === 'error' ? 'danger' : 'gold'}>
+          <StatePanel
+            status={sourceNotice.status}
+            title={sourceNotice.title}
+            description={sourceNotice.description}
+            detail={sourceNotice.detail}
+            eyebrow="Estado principal"
+            ariaRole={viewState === 'error' ? 'alert' : 'status'}
+          >
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <SourceStatePills items={[{ label: viewState === 'not_configured' ? 'Configurar backend server-only' : 'Revisar fuente Skills', tone: viewState === 'not_configured' ? 'not-configured' : 'degraded' }]} />
+              <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, display: 'grid', gap: '6px' }}>
+                <li>Falta una fuente real: no se ofrece selección de skill ni edición productiva.</li>
+                <li>La frontera BFF sigue same-origin y no expone la URL interna del backend.</li>
+                <li>Siguiente paso operativo: configurar el runtime server y recargar la página.</li>
+              </ul>
+            </div>
+          </StatePanel>
+        </SurfaceCard>
+      ) : null}
+
+      <SurfaceCard
+        title={isRootUnavailable ? 'Workspace bloqueado' : 'Workspace de edición'}
+        elevated
+        eyebrow="Dojo"
+        accent={isRootUnavailable ? 'sky' : 'success'}
+      >
         <div style={{ display: 'grid', gap: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', alignItems: 'start' }}>
             <div style={{ display: 'grid', gap: '8px', maxWidth: '720px' }}>
               <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
-                Esta vista no es un catálogo pasivo: aquí existe edición controlada sobre skills allowlisted, con preview de diff, actor visible y guardado auditado.
+                {isRootUnavailable
+                  ? 'La edición controlada queda bloqueada hasta que el catálogo real de skills esté disponible desde el backend configurado.'
+                  : 'Esta vista no es un catálogo pasivo: aquí existe edición controlada sobre skills allowlisted, con preview de diff, actor visible y guardado auditado.'}
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <StatusBadge status={workspaceStatus} />
@@ -411,7 +441,7 @@ export default function SkillsPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {selectedSkill?.editable ? 'Modo edición allowlisted' : selectedSkill ? 'Modo referencia' : 'Selecciona una skill'}
+                  {isRootUnavailable ? 'Fuente real no disponible' : selectedSkill?.editable ? 'Modo edición allowlisted' : selectedSkill ? 'Modo referencia' : 'Selecciona una skill'}
                 </span>
                 <span
                   style={{
@@ -424,7 +454,7 @@ export default function SkillsPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {editableCount} editable(s) · {readOnlyCount} referencia(s)
+                  {isRootUnavailable ? 'catálogo bloqueado' : `${editableCount} editable(s) · ${readOnlyCount} referencia(s)`}
                 </span>
               </div>
             </div>
@@ -433,11 +463,13 @@ export default function SkillsPage() {
               <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Skill activa</span>
               <strong className="text-break" style={{ fontSize: '18px' }}>{selectedSkill?.display_name ?? 'Ninguna seleccionada'}</strong>
               <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                {selectedSkill?.editable
-                  ? 'Lista para edición controlada cuando haya cambios y actor visible.'
-                  : selectedSkill
-                    ? 'Se muestra como referencia documental: sin escritura productiva.'
-                    : 'Selecciona una entrada del catálogo para abrir el workspace.'}
+                {isRootUnavailable
+                  ? 'No hay selección posible hasta conectar la fuente real de skills.'
+                  : selectedSkill?.editable
+                    ? 'Lista para edición controlada cuando haya cambios y actor visible.'
+                    : selectedSkill
+                      ? 'Se muestra como referencia documental: sin escritura productiva.'
+                      : 'Selecciona una entrada del catálogo para abrir el workspace.'}
               </span>
             </div>
           </div>
@@ -552,33 +584,41 @@ export default function SkillsPage() {
         </SurfaceCard>
 
         <SurfaceCard title="Estado del origen" elevated eyebrow="Enlace" accent="sky">
-          <div style={{ display: 'grid', gap: '10px' }}>
-            <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
+          <div style={{ display: 'grid', gap: '10px', minWidth: 0 }}>
+            <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               El navegador habla con una frontera BFF same-origin; la URL real del backend queda solo en configuración server-only
               y los errores llegan saneados sin romper el shell ni el build.
             </p>
             <StatusBadge status={mapSkillsViewStateToBadgeStatus(viewState)} />
-            <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+            <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
               Conexión: {apiConnectionLabel}
             </span>
             {sourceNotice ? (
-              <StatePanel
-                status={sourceNotice.status}
-                title={sourceNotice.title}
-                description={sourceNotice.description}
-                detail={sourceNotice.detail}
-                eyebrow="Estado de fuente"
-              >
-                <SourceStatePills
-                  items={
-                    viewState === 'not_configured'
-                      ? [{ label: 'Fuente no configurada', tone: 'not-configured' }]
-                      : viewState === 'empty'
+              isRootUnavailable ? (
+                <div style={{ display: 'grid', gap: '8px', minWidth: 0 }}>
+                  <strong className="text-break" style={{ color: appTheme.colors.textPrimary, fontSize: '15px' }}>Frontera BFF conservada</strong>
+                  <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>
+                    El diagnóstico principal está arriba. Aquí solo se confirma que el navegador sigue usando same-origin y que la URL interna del backend no se expone.
+                  </p>
+                  <SourceStatePills items={[{ label: viewState === 'not_configured' ? 'Fuente no configurada' : 'Error/degradado', tone: viewState === 'not_configured' ? 'not-configured' : 'degraded' }]} />
+                </div>
+              ) : (
+                <StatePanel
+                  status={sourceNotice.status}
+                  title={sourceNotice.title}
+                  description={sourceNotice.description}
+                  detail={sourceNotice.detail}
+                  eyebrow="Estado de fuente"
+                >
+                  <SourceStatePills
+                    items={
+                      viewState === 'empty'
                         ? [{ label: 'API real conectada', tone: 'connected' }, { label: 'Sin datos productivos', tone: 'not-configured' }]
                         : [{ label: 'Error/degradado', tone: 'degraded' }]
-                  }
-                />
-              </StatePanel>
+                    }
+                  />
+                </StatePanel>
+              )
             ) : (
               <StatePanel
                 status="operativo"
@@ -615,9 +655,13 @@ export default function SkillsPage() {
             {sourceNotice ? (
               <StatePanel
                 status={sourceNotice.status}
-                title={sourceNotice.title}
-                description={sourceNotice.description}
-                detail={sourceNotice.detail}
+                title={isRootUnavailable ? 'Catálogo bloqueado por fuente raíz' : sourceNotice.title}
+                description={
+                  isRootUnavailable
+                    ? 'No hay catálogo real que seleccionar en este estado. La causa se explica arriba; aquí solo se mantiene el hueco de navegación sin duplicar el diagnóstico.'
+                    : sourceNotice.description
+                }
+                detail={isRootUnavailable ? null : sourceNotice.detail}
                 eyebrow="Catálogo"
               />
             ) : null}
@@ -681,10 +725,10 @@ export default function SkillsPage() {
 
         <div style={{ display: 'grid', gap: '14px' }}>
           <SurfaceCard
-            title={selectedSkill?.editable ? 'Editor allowlisted' : selectedSkill ? 'Detalle de referencia' : 'Editor allowlisted'}
+            title={isRootUnavailable ? 'Editor bloqueado' : selectedSkill?.editable ? 'Editor allowlisted' : selectedSkill ? 'Detalle de referencia' : 'Editor allowlisted'}
             elevated
-            eyebrow={selectedSkill?.editable ? 'Forja' : selectedSkill ? 'Referencia' : 'Forja'}
-            accent={selectedSkill?.editable ? 'success' : selectedSkill ? 'sky' : 'success'}
+            eyebrow={isRootUnavailable ? 'En espera' : selectedSkill?.editable ? 'Forja' : selectedSkill ? 'Referencia' : 'Forja'}
+            accent={isRootUnavailable ? 'sky' : selectedSkill?.editable ? 'success' : selectedSkill ? 'sky' : 'success'}
           >
             {selectedSkill ? (
               <div style={{ display: 'grid', gap: '12px' }}>
@@ -1003,9 +1047,13 @@ export default function SkillsPage() {
             ) : (
               <StatePanel
                 status={sourceNotice?.status ?? 'revision'}
-                title={sourceNotice?.title ?? 'Detalle pendiente de fuente real'}
-                description={sourceNotice?.description ?? 'El detalle aparecerá aquí cuando la fuente real esté disponible.'}
-                detail={sourceNotice?.detail ?? null}
+                title={isRootUnavailable ? 'Editor deshabilitado hasta conectar Skills' : sourceNotice?.title ?? 'Detalle pendiente de fuente real'}
+                description={
+                  isRootUnavailable
+                    ? 'Sin catálogo real no se muestra editor, detalle ni referencia productiva. La acción principal es resolver la conexión de fuente, no seleccionar una skill.'
+                    : sourceNotice?.description ?? 'El detalle aparecerá aquí cuando la fuente real esté disponible.'
+                }
+                detail={isRootUnavailable ? null : sourceNotice?.detail ?? null}
                 eyebrow="Estado de detalle"
               />
             )}
@@ -1026,10 +1074,10 @@ export default function SkillsPage() {
                   <StatusBadge status={getSaveStateStatus(saveState)} />
                 </div>
                 <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
-                  Actor visible: <strong>{normalizedActor || 'sin definir'}</strong>
+                  Actor visible: <strong>{isRootUnavailable ? 'no aplica' : normalizedActor || 'sin definir'}</strong>
                 </span>
                 <span style={{ color: saveState === 'error' ? appTheme.colors.stateDanger : appTheme.colors.textSecondary, fontSize: '13px' }}>
-                  {saveMessage ?? 'Todavía no se ha ejecutado un guardado en esta selección.'}
+                  {isRootUnavailable ? 'Sin operación disponible hasta conectar la fuente real de Skills.' : saveMessage ?? 'Todavía no se ha ejecutado un guardado en esta selección.'}
                 </span>
                 {saveState === 'stale' ? (
                   <span style={{ color: appTheme.colors.stateStale, fontSize: '13px' }}>
@@ -1054,7 +1102,14 @@ export default function SkillsPage() {
                 />
               ) : null}
 
-              {previewResponse ? (
+              {isRootUnavailable ? (
+                <StatePanel
+                  status={sourceNotice?.status ?? 'revision'}
+                  title="Preview y auditoría en espera de fuente real"
+                  description="No hay skill editable, preview ni rastro auditado que consultar hasta que el catálogo real esté conectado. El panel queda visible como contexto secundario, no como llamada a la acción."
+                  eyebrow="Estado bloqueado"
+                />
+              ) : previewResponse ? (
                 <>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
@@ -1102,7 +1157,7 @@ export default function SkillsPage() {
                   gap: '10px',
                 }}
               >
-                {latestAudit ? (
+                {isRootUnavailable ? null : latestAudit ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                       <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>

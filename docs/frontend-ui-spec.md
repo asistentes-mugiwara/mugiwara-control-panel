@@ -374,6 +374,13 @@ Lista compacta de últimas señales o cambios.
 - guardar
 - validación visual de permisos
 
+### Estado raíz no configurado
+- Si Skills no está conectado al backend (`not_configured`) o la fuente real falla antes de cargar catálogo, la vista prioriza un único panel superior de `Acción requerida`.
+- Ese panel explica qué falta, qué queda bloqueado y qué se mantiene seguro; los códigos técnicos quedan como detalle secundario o desaparecen de la explicación principal.
+- El workspace no debe pedir “Selecciona una skill” cuando el catálogo no está disponible.
+- Catálogo, editor y preview/auditoría pueden conservar su hueco estructural, pero con copy secundario y sin repetir la misma causa raíz.
+- Las tarjetas de frontera BFF, edición allowlisted y auditoría permanecen visibles como contexto de seguridad, no como llamada principal a la acción.
+
 ## 4.6 Memory
 ### `MemorySourceTabs`
 - Built-in
