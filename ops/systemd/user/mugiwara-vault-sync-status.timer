@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh Mugiwara Control Panel vault-sync status manifest periodically
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=20min
+RandomizedDelaySec=120s
+Persistent=true
+Unit=mugiwara-vault-sync-status.service
+
+[Install]
+WantedBy=timers.target

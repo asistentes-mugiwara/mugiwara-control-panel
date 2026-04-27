@@ -20,6 +20,7 @@ const paths = {
   gatewayStatusProducer: join(repoRoot, 'scripts/write-gateway-status.py'),
   cronjobsStatusProducer: join(repoRoot, 'scripts/write-cronjobs-status.py'),
   vaultSyncStatusProducer: join(repoRoot, 'scripts/write-vault-sync-status.py'),
+  vaultSyncStatusRunner: join(repoRoot, 'scripts/check-vault-sync-status-runner.mjs'),
 }
 
 const failures = []
@@ -65,6 +66,7 @@ const projectHealthProducer = read(paths.projectHealthProducer, 'project-health 
 const gatewayStatusProducer = read(paths.gatewayStatusProducer, 'gateway status manifest producer')
 const cronjobsStatusProducer = read(paths.cronjobsStatusProducer, 'cronjobs status manifest producer')
 const vaultSyncStatusProducer = read(paths.vaultSyncStatusProducer, 'vault-sync status manifest producer')
+const vaultSyncStatusRunner = read(paths.vaultSyncStatusRunner, 'vault-sync status runner guardrail')
 
 let packageJson
 try {
@@ -99,6 +101,10 @@ if (packageJson && packageJson.scripts?.['write:vault-sync-status'] !== 'python3
 
 if (packageJson && packageJson.scripts?.['verify:vault-sync-status-producer'] !== 'node scripts/check-vault-sync-status-producer.mjs') {
   failures.push('package.json must expose verify:vault-sync-status-producer')
+}
+
+if (packageJson && packageJson.scripts?.['verify:vault-sync-status-runner'] !== 'node scripts/check-vault-sync-status-runner.mjs') {
+  failures.push('package.json must expose verify:vault-sync-status-runner')
 }
 
 if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
@@ -238,6 +244,22 @@ for (const snippet of requiredVaultSyncStatusProducerSnippets) {
   mustInclude(vaultSyncStatusProducer, snippet, 'vault-sync status manifest producer')
 }
 
+const requiredVaultSyncStatusRunnerSnippets = [
+  'mugiwara-vault-sync-status.service',
+  'mugiwara-vault-sync-status.timer',
+  'scripts/install-vault-sync-status-user-timer.sh',
+  'ExecStart=/usr/bin/env npm run write:vault-sync-status',
+  'TimeoutStartSec=620s',
+  'OnUnitActiveSec=20min',
+  '--output',
+  '--sync-script',
+  '--timeout-seconds',
+]
+
+for (const snippet of requiredVaultSyncStatusRunnerSnippets) {
+  mustInclude(vaultSyncStatusRunner, snippet, 'vault-sync status runner guardrail')
+}
+
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
@@ -277,7 +299,11 @@ const requiredDocSnippets = [
   'GitHub issue/PR counts or last-verify aggregation',
   'Phase 18.1 adds `scripts/write-vault-sync-status.py`',
   'runs the fixed Franky-owned `/srv/crew-core/scripts/vault-sync.sh` operational source outside the backend and consumes only the exit code',
-  'There is no unit/timer in Phase 18.1',
+  'mugiwara-vault-sync-status.timer',
+  'scripts/install-vault-sync-status-user-timer.sh',
+  'runs `npm run write:vault-sync-status`',
+  'does not pass `--output`, `--sync-script` or `--timeout-seconds`',
+  'TimeoutStartSec=620s',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 
