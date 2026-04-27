@@ -29,6 +29,22 @@ npm run verify:perimeter-policy
 | --- | --- | --- | --- |
 | `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. Debe apuntar a loopback, red privada o Tailscale/private hostname; no es configuración pública de navegador. |
 | `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` | `/skills` BFF write routes | Server-only | Allowlist separada por comas de orígenes exactos `http:`/`https:` permitidos para `POST`/`PUT` de Skills. Debe contener solo orígenes privados/locales/Tailscale; si falta, las escrituras BFF devuelven `403 trusted_origins_not_configured`. |
+| `MUGIWARA_HERMES_PROFILES_ROOT` | Backend `usage.hermes_activity` | Server-only | Raíz local de perfiles Hermes usada solo por el backend para agregados read-only. Si falta, el endpoint degrada a `not_configured`; el valor runtime y las rutas de bases de datos no se serializan en API ni UI. |
+
+## Usage
+`/usage` usa fuentes server-side/read-only desde Phase 17:
+
+1. El frontend consume el backend mediante adapter `server-only` y `MUGIWARA_CONTROL_PANEL_API_URL`, sin `NEXT_PUBLIC_*` ni lectura directa de env en la página.
+2. `GET /api/v1/usage/current`, `calendar` y `five-hour-windows` leen únicamente la SQLite saneada de Codex usage.
+3. `GET /api/v1/usage/hermes-activity` lee actividad Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en el backend; abre perfiles allowlisted en modo lectura y serializa únicamente agregados por perfil/rango.
+4. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; si la fuente falta o falla, degrada a `not_configured`.
+5. La UI de actividad queda para 17.4d; 17.4c solo fija el contrato backend saneado.
+
+Antes de cerrar cambios que toquen Usage config, ejecutar:
+
+```bash
+npm run verify:usage-server-only
+```
 
 ## Memory
 `/memory` usa el patrón server-only desde Phase 12.3c:

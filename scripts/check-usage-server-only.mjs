@@ -7,11 +7,19 @@ const repoRoot = process.cwd()
 const httpPath = join(repoRoot, 'apps/web/src/modules/usage/api/usage-http.ts')
 const pagePath = join(repoRoot, 'apps/web/src/app/usage/page.tsx')
 const navPath = join(repoRoot, 'apps/web/src/shared/ui/navigation/SidebarNav.tsx')
+const usageServicePath = join(repoRoot, 'apps/api/src/modules/usage/service.py')
+const usageRouterPath = join(repoRoot, 'apps/api/src/modules/usage/router.py')
 const failures = []
 
 const http = readFileSync(httpPath, 'utf8')
 const page = readFileSync(pagePath, 'utf8')
 const nav = readFileSync(navPath, 'utf8')
+const usageService = readFileSync(usageServicePath, 'utf8')
+const usageRouter = readFileSync(usageRouterPath, 'utf8')
+const activityLoader = usageService.slice(
+  usageService.indexOf('def _load_hermes_profile_activity'),
+  usageService.indexOf('def _load_latest_snapshot'),
+)
 
 if (!http.includes("import 'server-only'")) {
   failures.push('usage http adapter must be server-only guarded')
@@ -66,6 +74,26 @@ if (!page.includes('Ciclo semanal Codex') || !page.includes('ciclo semanal Codex
 }
 if (!nav.includes("href: '/usage'") || !nav.includes("label: 'Uso'")) {
   failures.push('sidebar navigation must expose Uso /usage')
+}
+if (!usageRouter.includes("@router.get('/hermes-activity')") || !usageRouter.includes("resource='usage.hermes_activity'")) {
+  failures.push('usage backend must expose the fixed hermes activity endpoint')
+}
+if (!usageRouter.includes("range: UsageActivityRange = '7d'")) {
+  failures.push('usage hermes activity endpoint must use an allowlisted range type')
+}
+if (!usageService.includes("HERMES_PROFILES_ROOT_ENV = 'MUGIWARA_HERMES_PROFILES_ROOT'")) {
+  failures.push('usage hermes activity must use a private server-side profiles root env')
+}
+if (!usageService.includes('HERMES_ACTIVITY_PROFILES =') || !usageService.includes("'luffy'") || !usageService.includes("'jinbe'")) {
+  failures.push('usage hermes activity must use an explicit Mugiwara profile allowlist')
+}
+if (!usageService.includes("file:{state_db}?mode=ro")) {
+  failures.push('usage hermes activity must open Hermes profile state read-only')
+}
+for (const forbidden of ['SELECT *', 'system_prompt', 'model_config', 'user_id', 'token_count', 'input_tokens', 'output_tokens', 'reasoning_tokens', 'estimated_cost_usd', 'actual_cost_usd', 'billing_base_url', 'title']) {
+  if (activityLoader.includes(forbidden)) {
+    failures.push(`usage hermes activity must not select or serialize sensitive session field: ${forbidden}`)
+  }
 }
 
 if (failures.length > 0) {

@@ -3,7 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from ...shared.contracts import resource_response
-from .service import DEFAULT_USAGE_WINDOWS_LIMIT, MAX_USAGE_WINDOWS_LIMIT, USAGE_REFRESH_INTERVAL_MINUTES, UsageCalendarRange, UsageService
+from .service import (
+    DEFAULT_USAGE_WINDOWS_LIMIT,
+    HERMES_ACTIVITY_SOURCE_LABEL,
+    MAX_USAGE_WINDOWS_LIMIT,
+    USAGE_REFRESH_INTERVAL_MINUTES,
+    UsageActivityRange,
+    UsageCalendarRange,
+    UsageService,
+)
 
 router = APIRouter(prefix='/api/v1/usage', tags=['usage'])
 _service = UsageService()
@@ -61,5 +69,21 @@ def get_usage_five_hour_windows(
             'sanitized': True,
             'source': 'codex-usage-snapshot-sqlite',
             'limit': limit,
+        },
+    )
+
+
+@router.get('/hermes-activity')
+def get_usage_hermes_activity(range: UsageActivityRange = '7d', service: UsageService = Depends(get_usage_service)) -> dict:
+    activity = service.get_hermes_activity(range)
+    return resource_response(
+        resource='usage.hermes_activity',
+        status=service.hermes_activity_status_for(activity),
+        data=activity,
+        meta={
+            'read_only': True,
+            'sanitized': True,
+            'source': HERMES_ACTIVITY_SOURCE_LABEL,
+            'range': range,
         },
     )

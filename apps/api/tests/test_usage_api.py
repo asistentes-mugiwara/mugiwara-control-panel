@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from fastapi.testclient import TestClient
 
@@ -127,6 +128,114 @@ def _insert_usage_snapshot(
 
 def _override_usage_service(service: UsageService):
     app.dependency_overrides[get_usage_service] = lambda: service
+
+
+def _epoch(value: str) -> float:
+    return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+
+
+def _create_hermes_state_db(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path)
+    con.execute(
+        """
+        CREATE TABLE sessions (
+            id TEXT PRIMARY KEY,
+            source TEXT NOT NULL,
+            user_id TEXT,
+            model TEXT,
+            model_config TEXT,
+            system_prompt TEXT,
+            parent_session_id TEXT,
+            started_at REAL NOT NULL,
+            ended_at REAL,
+            end_reason TEXT,
+            message_count INTEGER DEFAULT 0,
+            tool_call_count INTEGER DEFAULT 0,
+            input_tokens INTEGER DEFAULT 0,
+            output_tokens INTEGER DEFAULT 0,
+            cache_read_tokens INTEGER DEFAULT 0,
+            cache_write_tokens INTEGER DEFAULT 0,
+            reasoning_tokens INTEGER DEFAULT 0,
+            billing_provider TEXT,
+            billing_base_url TEXT,
+            billing_mode TEXT,
+            estimated_cost_usd REAL,
+            actual_cost_usd REAL,
+            cost_status TEXT,
+            cost_source TEXT,
+            pricing_version TEXT,
+            title TEXT,
+            FOREIGN KEY (parent_session_id) REFERENCES sessions(id)
+        )
+        """
+    )
+    for row in rows:
+        con.execute(
+            """
+            INSERT INTO sessions (
+                id, source, user_id, model, model_config, system_prompt, parent_session_id,
+                started_at, ended_at, end_reason, message_count, tool_call_count,
+                input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                reasoning_tokens, billing_provider, billing_base_url, billing_mode,
+                estimated_cost_usd, actual_cost_usd, cost_status, cost_source,
+                pricing_version, title
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row['id'],
+                row.get('source', 'telegram'),
+                row.get('user_id', 'secret-user-123'),
+                row.get('model', 'secret-model-name'),
+                row.get('model_config', '{"api_key":"synthetic-token"}'),
+                row.get('system_prompt', 'raw prompt body should never leak'),
+                row.get('parent_session_id'),
+                _epoch(row['started_at']),
+                _epoch(row.get('ended_at', row['started_at'])),
+                row.get('end_reason', 'stop'),
+                row.get('message_count', 0),
+                row.get('tool_call_count', 0),
+                row.get('input_tokens', 999999),
+                row.get('output_tokens', 999999),
+                row.get('cache_read_tokens', 999999),
+                row.get('cache_write_tokens', 999999),
+                row.get('reasoning_tokens', 999999),
+                row.get('billing_provider', 'secret-provider'),
+                row.get('billing_base_url', 'https://token.example.invalid'),
+                row.get('billing_mode', 'secret-mode'),
+                row.get('estimated_cost_usd', 42.0),
+                row.get('actual_cost_usd', 43.0),
+                row.get('cost_status', 'secret-cost'),
+                row.get('cost_source', 'secret-source'),
+                row.get('pricing_version', 'secret-pricing'),
+                row.get('title', 'conversation title should never leak'),
+            ),
+        )
+    con.commit()
+    con.close()
+
+
+def _assert_no_usage_activity_leakage(payload: dict[str, Any]) -> None:
+    serialized = str(payload).lower()
+    forbidden = [
+        'state.db',
+        '/home/agentops',
+        'secret-user-123',
+        'synthetic-token',
+        'raw prompt body',
+        'conversation title',
+        'secret-model-name',
+        'token.example.invalid',
+        '999999',
+        '42.0',
+        '43.0',
+        'chat_id',
+        'delivery',
+        'cookie',
+        'authorization',
+    ]
+    for marker in forbidden:
+        assert marker not in serialized
 
 
 def teardown_function():
@@ -408,6 +517,85 @@ def test_usage_five_hour_windows_rejects_invalid_limits_without_echoing_sensitiv
         payload = response.json()
         assert payload == {'detail': {'code': 'validation_error', 'message': 'Request validation failed.'}}
         assert '/srv/crew-core/runtime/usage' not in str(payload)
+
+
+def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensitive_state(tmp_path):
+    profiles_root = tmp_path / 'profiles'
+    _create_hermes_state_db(
+        profiles_root / 'zoro' / 'state.db',
+        [
+            {'id': 'zoro-session-1', 'started_at': '2026-04-25T12:00:00+00:00', 'message_count': 8, 'tool_call_count': 3},
+            {'id': 'zoro-session-2', 'started_at': '2026-04-26T09:00:00+00:00', 'message_count': 4, 'tool_call_count': 1},
+            {'id': 'old-zoro-session', 'started_at': '2026-04-10T09:00:00+00:00', 'message_count': 50, 'tool_call_count': 50},
+        ],
+    )
+    _create_hermes_state_db(
+        profiles_root / 'franky' / 'state.db',
+        [
+            {'id': 'franky-session-1', 'started_at': '2026-04-24T10:00:00+00:00', 'message_count': 5, 'tool_call_count': 1},
+        ],
+    )
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing-codex.sqlite', hermes_profiles_root=profiles_root, now=lambda: '2026-04-27T10:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/hermes-activity?range=7d')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'usage.hermes_activity'
+    assert payload['status'] == 'ready'
+    assert payload['meta'] == {
+        'read_only': True,
+        'sanitized': True,
+        'source': 'hermes-profile-state-aggregate',
+        'range': '7d',
+    }
+    assert payload['data']['range']['name'] == '7d'
+    assert payload['data']['totals'] == {
+        'profiles_count': 2,
+        'sessions_count': 3,
+        'messages_count': 17,
+        'tool_calls_count': 5,
+        'dominant_profile': 'zoro',
+    }
+    profiles = payload['data']['profiles']
+    assert profiles[0] == {
+        'profile': 'zoro',
+        'sessions_count': 2,
+        'messages_count': 12,
+        'tool_calls_count': 4,
+        'first_activity_at': '2026-04-25T12:00:00+00:00',
+        'last_activity_at': '2026-04-26T09:00:00+00:00',
+        'activity_level': 'medium',
+    }
+    assert profiles[1]['profile'] == 'franky'
+    assert profiles[1]['activity_level'] == 'low'
+    assert payload['data']['privacy']['correlation'] == 'orientativa'
+    _assert_no_usage_activity_leakage(payload)
+
+
+def test_usage_hermes_activity_degrades_when_profiles_root_is_not_configured(tmp_path):
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing-codex.sqlite', hermes_profiles_root=None, now=lambda: '2026-04-27T10:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/hermes-activity?range=7d')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['status'] == 'not_configured'
+    assert payload['data']['profiles'] == []
+    assert payload['data']['totals']['profiles_count'] == 0
+    _assert_no_usage_activity_leakage(payload)
+
+
+def test_usage_hermes_activity_rejects_unknown_ranges_without_echoing_sensitive_values(tmp_path):
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing.sqlite', hermes_profiles_root=tmp_path / 'profiles', now=lambda: '2026-04-27T10:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/hermes-activity?range=/home/agentops/.hermes/profiles/zoro/state.db')
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload == {'detail': {'code': 'validation_error', 'message': 'Request validation failed.'}}
+    assert '/home/agentops' not in str(payload)
+    assert 'state.db' not in str(payload)
 
 
 def test_usage_calendar_does_not_count_cycle_reset_as_daily_delta(tmp_path):
