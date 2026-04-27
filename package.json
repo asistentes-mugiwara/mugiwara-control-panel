@@ -22,6 +22,7 @@
     "verify:health-dashboard-server-only": "node scripts/check-health-dashboard-server-only.mjs",
     "verify:healthcheck-source-policy": "node scripts/check-healthcheck-source-policy.mjs",
     "verify:vault-sync-status-producer": "node scripts/check-vault-sync-status-producer.mjs",
+    "verify:vault-sync-status-runner": "node scripts/check-vault-sync-status-runner.mjs",
     "verify:project-health-runner": "node scripts/check-project-health-runner.mjs",
     "verify:gateway-status-runner": "node scripts/check-gateway-status-runner.mjs",
     "verify:cronjobs-status-runner": "node scripts/check-cronjobs-status-runner.mjs",

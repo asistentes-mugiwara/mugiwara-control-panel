@@ -1,0 +1,21 @@
+[Unit]
+Description=Mugiwara Control Panel vault-sync status manifest producer
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:vault-sync-status
+TimeoutStartSec=620s
+
+# Keep the runner deterministic and local: no command overrides, no alternate
+# output path and no alternate sync script. The producer runs the fixed
+# /srv/crew-core/scripts/vault-sync.sh operational source and only serializes
+# status/result timestamps to /srv/crew-core/runtime/healthcheck/vault-sync-status.json.
+
+# Basic hardening for a user service. Do not make /srv read-only: the producer
+# must run the Franky-owned vault sync script and update the fixed runtime manifest.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
