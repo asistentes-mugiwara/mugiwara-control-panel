@@ -1,10 +1,11 @@
 import type { ResourceStatus } from '@contracts/resource'
-import type { UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageFiveHourWindows, UsageWindowStatus } from '@contracts/read-models'
+import type { UsageActivityLevel, UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageFiveHourWindows, UsageHermesActivity, UsageWindowStatus } from '@contracts/read-models'
 
-import { fetchUsageCalendar, fetchUsageCurrent, fetchUsageFiveHourWindows, UsageApiError } from '@/modules/usage/api/usage-http'
+import { fetchUsageCalendar, fetchUsageCurrent, fetchUsageFiveHourWindows, fetchUsageHermesActivity, UsageApiError } from '@/modules/usage/api/usage-http'
 import { usageCalendarFixture } from '@/modules/usage/view-models/usage-calendar.fixture'
 import { usageCurrentFixture } from '@/modules/usage/view-models/usage-current.fixture'
 import { usageFiveHourWindowsFixture } from '@/modules/usage/view-models/usage-five-hour-windows.fixture'
+import { usageHermesActivityFixture } from '@/modules/usage/view-models/usage-hermes-activity.fixture'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
@@ -26,6 +27,7 @@ type UsagePageData = {
   usage: UsageCurrent
   calendar: UsageCalendar
   fiveHourWindows: UsageFiveHourWindows
+  hermesActivity: UsageHermesActivity
   resourceStatus: ResourceStatus | 'fallback'
   notice: UsageNotice | null
   isSnapshotMode: boolean
@@ -55,24 +57,39 @@ const calendarStatusMap: Record<UsageCalendarDayStatus, { appStatus: AppStatus; 
   unknown: { appStatus: 'sin-datos', label: 'Sin datos', accent: 'sky' },
 }
 
+const activityLevelMap: Record<UsageActivityLevel, { label: string; appStatus: AppStatus; accent: 'sky' | 'success' | 'warning' | 'danger' }> = {
+  low: { label: 'Baja', appStatus: 'operativo', accent: 'success' },
+  medium: { label: 'Media', appStatus: 'revision', accent: 'warning' },
+  high: { label: 'Alta', appStatus: 'incidencia', accent: 'danger' },
+}
+
 async function getInitialUsageData(): Promise<UsagePageData> {
   try {
-    const [currentResponse, calendarResponse, fiveHourWindowsResponse] = await Promise.all([
+    const [currentResponse, calendarResponse, fiveHourWindowsResponse, hermesActivityResponse] = await Promise.all([
       fetchUsageCurrent(),
       fetchUsageCalendar('current_cycle'),
       fetchUsageFiveHourWindows(8),
+      fetchUsageHermesActivity('7d'),
     ])
     const usage = currentResponse.data
     const calendar = calendarResponse.data
     const fiveHourWindows = fiveHourWindowsResponse.data
+    const hermesActivity = hermesActivityResponse.data
 
-    const responseStatus = currentResponse.status !== 'ready' ? currentResponse.status : calendarResponse.status !== 'ready' ? calendarResponse.status : fiveHourWindowsResponse.status
+    const responseStatus = currentResponse.status !== 'ready'
+      ? currentResponse.status
+      : calendarResponse.status !== 'ready'
+        ? calendarResponse.status
+        : fiveHourWindowsResponse.status !== 'ready'
+          ? fiveHourWindowsResponse.status
+          : hermesActivityResponse.status
 
     if (responseStatus !== 'ready') {
       return {
         usage,
         calendar,
         fiveHourWindows,
+        hermesActivity,
         resourceStatus: responseStatus,
         isSnapshotMode: responseStatus === 'stale',
         notice: noticeFromResourceStatus(responseStatus),
@@ -83,6 +100,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
       usage,
       calendar,
       fiveHourWindows,
+      hermesActivity,
       resourceStatus: currentResponse.status,
       notice: null,
       isSnapshotMode: false,
@@ -94,6 +112,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
       usage: usageCurrentFixture,
       calendar: usageCalendarFixture,
       fiveHourWindows: usageFiveHourWindowsFixture,
+      hermesActivity: usageHermesActivityFixture,
       resourceStatus: 'fallback',
       isSnapshotMode: true,
       notice: {
@@ -395,7 +414,7 @@ function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalen
     <SurfaceCard title="Calendario por fecha natural" eyebrow={`Ciclo semanal Codex · ${calendar.timezone}`} accent="gold" elevated>
       <div style={{ display: 'grid', gap: '12px' }}>
         <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-          Primera lectura histórica saneada: agrupa por fecha natural Europe/Madrid, sin prompts, conversaciones, tokens ni actividad Hermes. El delta diario se calcula por segmentos continuos del ciclo semanal Codex para no contar resets como consumo.
+          Primera lectura histórica saneada: agrupa por fecha natural Europe/Madrid, sin contenido privado ni actividad Hermes. El delta diario se calcula por segmentos continuos del ciclo semanal Codex para no contar resets como consumo.
         </p>
         {isSnapshotMode ? (
           <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
@@ -451,8 +470,106 @@ function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalen
   )
 }
 
+function formatActivityCount(value: number) {
+  return new Intl.NumberFormat('es-ES').format(value)
+}
+
+function formatProfileName(profile: string | null) {
+  if (!profile) {
+    return 'Sin perfil dominante'
+  }
+
+  return profile.charAt(0).toUpperCase() + profile.slice(1)
+}
+
+function UsageHermesActivityPanel({ activity, isSnapshotMode }: { activity: UsageHermesActivity; isSnapshotMode: boolean }) {
+  const profiles = activity.profiles.slice(0, 8)
+  const dominantProfile = formatProfileName(activity.totals.dominant_profile)
+
+  return (
+    <SurfaceCard title="Actividad Hermes agregada" eyebrow="Últimos 7 días · correlación orientativa" accent="gold" elevated>
+      <div style={{ display: 'grid', gap: '14px' }}>
+        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
+          Lectura read-only de actividad local Hermes por perfiles Mugiwara allowlisted. Es una correlación orientativa con el ritmo Codex: no atribuye causalidad exacta ni muestra actividad por sesión.
+        </p>
+        {isSnapshotMode ? (
+          <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
+            Actividad mostrada desde fallback saneado: valida composición visual, no representa lectura real.
+          </p>
+        ) : null}
+        <dl className="usage-hermes-activity-summary" aria-label="Resumen agregado de actividad Hermes">
+          <div>
+            <dt>Perfiles activos</dt>
+            <dd>{formatActivityCount(activity.totals.profiles_count)}</dd>
+          </div>
+          <div>
+            <dt>Sesiones</dt>
+            <dd>{formatActivityCount(activity.totals.sessions_count)}</dd>
+          </div>
+          <div>
+            <dt>Mensajes</dt>
+            <dd>{formatActivityCount(activity.totals.messages_count)}</dd>
+          </div>
+          <div>
+            <dt>Tool calls</dt>
+            <dd>{formatActivityCount(activity.totals.tool_calls_count)}</dd>
+          </div>
+        </dl>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+          <StatusBadge status={activity.totals.dominant_profile ? 'revision' : 'sin-datos'} label={`Perfil dominante: ${dominantProfile}`} />
+          <span style={{ color: appTheme.colors.textSecondary }}>Rango: {formatTimestamp(activity.range.started_at)} → {formatTimestamp(activity.range.ended_at)}</span>
+        </div>
+        <div className="usage-hermes-activity-list" role="list" aria-label="Actividad Hermes agregada por perfil">
+          {profiles.length > 0 ? (
+            profiles.map((profile) => {
+              const level = activityLevelMap[profile.activity_level]
+              return (
+                <article className="usage-hermes-activity-row" key={profile.profile} role="listitem" aria-label={`${formatProfileName(profile.profile)}: actividad ${level.label.toLowerCase()}`}>
+                  <div className="usage-hermes-activity-row__main">
+                    <div>
+                      <p style={{ margin: 0, color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perfil Mugiwara</p>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '18px' }}>{formatProfileName(profile.profile)}</h3>
+                    </div>
+                    <StatusBadge status={level.appStatus} label={`Actividad ${level.label}`} />
+                  </div>
+                  <dl className="usage-hermes-activity-row__metrics">
+                    <div>
+                      <dt>Sesiones</dt>
+                      <dd>{formatActivityCount(profile.sessions_count)}</dd>
+                    </div>
+                    <div>
+                      <dt>Mensajes</dt>
+                      <dd>{formatActivityCount(profile.messages_count)}</dd>
+                    </div>
+                    <div>
+                      <dt>Tool calls</dt>
+                      <dd>{formatActivityCount(profile.tool_calls_count)}</dd>
+                    </div>
+                  </dl>
+                  <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>
+                    Primera/última señal agregada: {formatTimestamp(profile.first_activity_at)} → {formatTimestamp(profile.last_activity_at)}.
+                  </p>
+                </article>
+              )
+            })
+          ) : (
+            <StatePanel
+              status="sin-datos"
+              title="Actividad Hermes sin datos"
+              description={activity.empty_reason === 'not_configured' ? 'La fuente de actividad Hermes aún no está configurada en backend.' : 'No hay actividad agregada suficiente para este rango.'}
+              eyebrow="Actividad Hermes"
+              ariaRole="region"
+              ariaLabel="Actividad Hermes agregada sin datos"
+            />
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
 export default async function UsagePage() {
-  const { usage, calendar, fiveHourWindows, notice, isSnapshotMode } = await getInitialUsageData()
+  const { usage, calendar, fiveHourWindows, hermesActivity, notice, isSnapshotMode } = await getInitialUsageData()
   const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
@@ -460,7 +577,7 @@ export default async function UsagePage() {
       <PageHeader
         eyebrow="Uso"
         title="Uso Codex/Hermes"
-        subtitle="Cuota Codex, ciclos de reset y actividad local saneada. Primera vista read-only centrada en el snapshot actual."
+        subtitle="Cuota Codex, ciclos de reset, ventanas 5h y actividad local agregada saneada."
         mugiwaraSlug="franky"
         detailPills={[
           `Plan: ${usage.plan.type}`,
@@ -484,12 +601,9 @@ export default async function UsagePage() {
         </StatePanel>
       ) : null}
 
-      <StatePanel
-        status="revision"
-        title="El ciclo semanal Codex no es calendario lunes-domingo"
-        description={usage.methodology.cycle_copy}
-        eyebrow="Metodología"
-      />
+      <SurfaceCard title="Ciclo semanal Codex" eyebrow="Metodología" accent="sky">
+        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>{usage.methodology.cycle_copy}</p>
+      </SurfaceCard>
 
       <section className="layout-grid layout-grid--dashboard-metrics section-block" aria-label="Estado actual de Usage">
         <WindowCard title="Ventana 5h" window={usage.primary_window} />
@@ -527,18 +641,25 @@ export default async function UsagePage() {
         <UsageWindowsPanel windows={fiveHourWindows} isSnapshotMode={isSnapshotMode} />
       </section>
 
+      <section className="section-block" aria-label="Actividad Hermes Usage">
+        <UsageHermesActivityPanel activity={hermesActivity} isSnapshotMode={isSnapshotMode} />
+      </section>
+
       <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.4b" accent="gold">
+        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.4d" accent="gold">
           <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
             <li>Snapshot actual saneado de Codex usage.</li>
             <li>Ventana 5h y ciclo semanal Codex con rangos calculados por reset.</li>
             <li>Calendario por fecha natural Europe/Madrid con delta diario, ventanas 5h y pico diario saneados.</li>
             <li>Ventanas 5h históricas dedicadas con pico, delta intra-ventana y muestras.</li>
-            <li>Actividad Hermes agregada queda para 17.4c/17.4d.</li>
+            <li>Actividad Hermes agregada por perfil y rango, tratada como correlación orientativa.</li>
           </ul>
         </SurfaceCard>
         <SurfaceCard title="Seguridad de datos" eyebrow="Deny by default" accent="sky">
           <p style={{ marginTop: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>{usage.methodology.privacy}</p>
+          <p style={{ margin: '10px 0 0', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
+            La actividad Hermes se muestra solo como agregados saneados. No se enseñan contenidos, identificadores privados, rutas internas, secretos, cabeceras, cookies, logs ni payloads crudos.
+          </p>
           <p style={{ marginBottom: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
             Fórmulas: {usage.methodology.primary_window_formula}; {usage.methodology.secondary_cycle_formula}.
           </p>

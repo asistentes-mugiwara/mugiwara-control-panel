@@ -39,8 +39,11 @@ if (!http.includes('/api/v1/usage/calendar?range=')) {
 if (!http.includes('/api/v1/usage/five-hour-windows?limit=')) {
   failures.push('usage adapter must call the fixed five-hour windows endpoint with allowlisted limit')
 }
-if (!http.includes('UsageCalendarRange') || !http.includes('UsageCalendarResponse') || !http.includes('UsageFiveHourWindowsResponse')) {
-  failures.push('usage adapter must type calendar and five-hour windows responses via shared contracts')
+if (!http.includes('/api/v1/usage/hermes-activity?range=')) {
+  failures.push('usage adapter must call the fixed hermes activity endpoint with allowlisted range')
+}
+if (!http.includes('UsageCalendarRange') || !http.includes('UsageCalendarResponse') || !http.includes('UsageFiveHourWindowsResponse') || !http.includes('UsageHermesActivityResponse')) {
+  failures.push('usage adapter must type calendar, five-hour windows and Hermes activity responses via shared contracts')
 }
 if (!page.includes('Calendario por fecha natural') || !page.includes('Europe/Madrid')) {
   failures.push('usage page must render the natural-date calendar with timezone context')
@@ -50,6 +53,14 @@ if (!page.includes('usage-calendar-grid') || !page.includes('primary_windows_cou
 }
 if (!page.includes('Ventanas 5h históricas') || !page.includes('usage-windows-list') || !page.includes('delta_percent')) {
   failures.push('usage page must render dedicated five-hour windows without generic table overflow')
+}
+if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-activity-list') || !page.includes('correlación orientativa')) {
+  failures.push('usage page must render Hermes aggregated activity as orientative correlation without generic table overflow')
+}
+for (const forbidden of ['state.db', 'MUGIWARA_HERMES_PROFILES_ROOT', 'conversaciones', 'prompts crudos', 'tokens por sesión', 'tokens por conversación']) {
+  if (page.includes(forbidden)) {
+    failures.push(`usage page must not render Hermes sensitive internals: ${forbidden}`)
+  }
 }
 if (http.includes('path=') || http.includes('target=') || http.includes('method=')) {
   failures.push('usage adapter must not grow generic proxy parameters')

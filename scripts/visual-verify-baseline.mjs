@@ -107,7 +107,8 @@ const routes = [
       'fórmulas y privacidad hacen wrap sin filtrar detalles internos del host',
       'el calendario por fecha natural aparece como grid/cards responsive sin scroll horizontal obligatorio',
       'las ventanas 5h históricas aparecen como lista/cards responsive sin scroll horizontal obligatorio',
-      'actividad Hermes agregada sigue fuera de esta fase',
+      'la actividad Hermes agregada aparece como lista/cards responsive sin scroll horizontal obligatorio',
+      'la correlación Hermes/Codex se describe como orientativa, no causalidad exacta',
     ],
   },
 ]

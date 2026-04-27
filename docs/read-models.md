@@ -140,6 +140,7 @@ Campos esperados:
 
 Uso:
 - exponer actividad Hermes local solo como agregados por perfil/rango para orientar correlación con consumo Codex, sin afirmar causalidad exacta
+- `/usage` consume el rango inicial `7d` desde adapter server-only y renderiza la actividad como cards responsive, sin tabla ni scroll horizontal obligatorio
 - leer únicamente perfiles Mugiwara allowlisted y abrir cada SQLite de perfil en `mode=ro`
 - usar `MUGIWARA_HERMES_PROFILES_ROOT` como configuración server-only; no serializar ni documentar el valor runtime, ruta de `state.db` ni paths host
 - no seleccionar ni devolver `user_id`, `model_config`, `system_prompt`, `title`, tokens, costes, billing URLs, contenidos, conversaciones, prompts, payloads de herramientas, chat IDs, targets, secretos, cabeceras, cookies ni logs
