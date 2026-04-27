@@ -1,0 +1,22 @@
+[Unit]
+Description=Mugiwara Control Panel backup-health status manifest producer
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:backup-health-status
+TimeoutStartSec=120s
+
+# Keep the runner deterministic and observational: no command overrides, no
+# alternate output path and no alternate backups directory. The producer observes
+# the fixed backup artifact source and only serializes aggregate status to
+# /srv/crew-core/runtime/healthcheck/backup-health-status.json.
+
+# Basic hardening for a user service. /srv remains writable where needed so the
+# producer can refresh the fixed runtime manifest and read the fixed backup
+# artifact directory; the service never runs backup jobs or upload tooling.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only

@@ -23,6 +23,7 @@ const paths = {
   vaultSyncStatusRunner: join(repoRoot, 'scripts/check-vault-sync-status-runner.mjs'),
   backupHealthStatusProducer: join(repoRoot, 'scripts/write-backup-health-status.py'),
   backupHealthStatusProducerGuardrail: join(repoRoot, 'scripts/check-backup-health-status-producer.mjs'),
+  backupHealthStatusRunner: join(repoRoot, 'scripts/check-backup-health-status-runner.mjs'),
 }
 
 const failures = []
@@ -71,6 +72,7 @@ const vaultSyncStatusProducer = read(paths.vaultSyncStatusProducer, 'vault-sync 
 const vaultSyncStatusRunner = read(paths.vaultSyncStatusRunner, 'vault-sync status runner guardrail')
 const backupHealthStatusProducer = read(paths.backupHealthStatusProducer, 'backup-health status manifest producer')
 const backupHealthStatusProducerGuardrail = read(paths.backupHealthStatusProducerGuardrail, 'backup-health status producer guardrail')
+const backupHealthStatusRunner = read(paths.backupHealthStatusRunner, 'backup-health status runner guardrail')
 
 let packageJson
 try {
@@ -117,6 +119,10 @@ if (packageJson && packageJson.scripts?.['write:backup-health-status'] !== 'pyth
 
 if (packageJson && packageJson.scripts?.['verify:backup-health-status-producer'] !== 'node scripts/check-backup-health-status-producer.mjs') {
   failures.push('package.json must expose verify:backup-health-status-producer')
+}
+
+if (packageJson && packageJson.scripts?.['verify:backup-health-status-runner'] !== 'node scripts/check-backup-health-status-runner.mjs') {
+  failures.push('package.json must expose verify:backup-health-status-runner')
 }
 
 if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
@@ -278,6 +284,22 @@ for (const snippet of requiredBackupHealthStatusProducerSnippets) {
 mustInclude(backupHealthStatusProducerGuardrail, 'no unit/timer in Phase 18.3', 'backup-health status producer guardrail')
 mustInclude(backupHealthStatusProducerGuardrail, 'npm run write:backup-health-status', 'backup-health status producer guardrail')
 
+const requiredBackupHealthStatusRunnerSnippets = [
+  'mugiwara-backup-health-status.service',
+  'mugiwara-backup-health-status.timer',
+  'scripts/install-backup-health-status-user-timer.sh',
+  'ExecStart=/usr/bin/env npm run write:backup-health-status',
+  'TimeoutStartSec=120s',
+  'OnUnitActiveSec=8h',
+  '--output',
+  '--backups-dir',
+  'does not run backups',
+]
+
+for (const snippet of requiredBackupHealthStatusRunnerSnippets) {
+  mustInclude(backupHealthStatusRunner, snippet, 'backup-health status runner guardrail')
+}
+
 const requiredVaultSyncStatusRunnerSnippets = [
   'mugiwara-vault-sync-status.service',
   'mugiwara-vault-sync-status.timer',
@@ -345,6 +367,11 @@ const requiredDocSnippets = [
   'no unit/timer in Phase 18.3',
   'does not run backups',
   'does not serialize archive names, paths, sizes, hashes, Drive targets, stdout/stderr, logs or raw output',
+  'mugiwara-backup-health-status.timer',
+  'scripts/install-backup-health-status-user-timer.sh',
+  'runs `npm run write:backup-health-status`',
+  'does not pass `--output` or `--backups-dir`',
+  'TimeoutStartSec=120s',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 
