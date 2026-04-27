@@ -166,6 +166,31 @@ export type SystemSignal = {
   freshness: Freshness
 }
 
+export type SystemMetricSourceState = 'live' | 'unknown'
+export type SystemMetricsState = 'live' | 'degraded'
+
+export type SystemCapacityMetric = {
+  used_bytes: number | null
+  total_bytes: number | null
+  used_percent: number | null
+  source_state: SystemMetricSourceState
+}
+
+export type SystemUptimeMetric = {
+  days: number | null
+  hours: number | null
+  minutes: number | null
+  source_state: SystemMetricSourceState
+}
+
+export type SystemMetrics = {
+  ram: SystemCapacityMetric
+  disk: SystemCapacityMetric
+  uptime: SystemUptimeMetric
+  updated_at: string
+  source_state: SystemMetricsState
+}
+
 export type UsageFreshness = {
   state: 'fresh' | 'stale' | 'unknown'
   age_minutes: number | null
@@ -302,4 +327,5 @@ export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: t
 export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
 export type UsageFiveHourWindowsResponse = ResourceEnvelope<UsageFiveHourWindows, { read_only: true; sanitized: true; source: string; limit: number }>
 export type UsageHermesActivityResponse = ResourceEnvelope<UsageHermesActivity, { read_only: true; sanitized: true; source: string; range: UsageActivityRange }>
+export type SystemMetricsResponse = ResourceEnvelope<SystemMetrics, { read_only: true; sanitized: true; source: string; disk_target: 'fastapi-visible-root-filesystem' }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>

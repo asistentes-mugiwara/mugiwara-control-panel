@@ -9,6 +9,7 @@ from .modules.vault.router import router as vault_router
 from .modules.healthcheck.router import router as healthcheck_router
 from .modules.dashboard.router import router as dashboard_router
 from .modules.usage.router import router as usage_router
+from .modules.system.router import router as system_router
 
 SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -65,6 +66,7 @@ app.include_router(vault_router)
 app.include_router(healthcheck_router)
 app.include_router(dashboard_router)
 app.include_router(usage_router)
+app.include_router(system_router)
 
 
 @app.get('/health')

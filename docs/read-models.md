@@ -150,6 +150,22 @@ Uso:
 - no seleccionar ni devolver `user_id`, `model_config`, `system_prompt`, `title`, tokens, costes, billing URLs, contenidos, conversaciones, prompts, payloads de herramientas, chat IDs, targets, secretos, cabeceras, cookies ni logs
 - degradar raíz no configurada, perfiles ausentes o DB ilegible a `not_configured` sin ruta interna
 
+### `system.metrics`
+Campos esperados:
+- `ram.used_bytes`, `ram.total_bytes`, `ram.used_percent`, `ram.source_state`
+- `disk.used_bytes`, `disk.total_bytes`, `disk.used_percent`, `disk.source_state`
+- `uptime.days`, `uptime.hours`, `uptime.minutes`, `uptime.source_state`
+- `updated_at`
+- `source_state` global (`live` o `degraded`)
+
+Uso:
+- alimentar el header global siempre visible en una fase frontend posterior
+- mantener el backend como única frontera de lectura host-adjacent para RAM/disco/uptime
+- calcular RAM usada como `MemTotal - MemAvailable` cuando se usa `/proc/meminfo`
+- representar el disco como target backend-owned `fastapi-visible-root-filesystem`, sin serializar path crudo, mount table ni device names
+- degradar cada familia a `unknown` si la fuente falla o viene malformada, sin exponer excepción, raw `/proc`, paths, stdout/stderr, logs, hostname, usuarios ni procesos
+- no aceptar input cliente para elegir paths, mounts, devices, commands, URLs, methods, hosts o targets
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`
