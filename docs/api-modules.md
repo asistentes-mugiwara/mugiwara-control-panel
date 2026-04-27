@@ -9,6 +9,7 @@
 - `dashboard`
 - `usage`
 - `system`
+- `git_control`
 
 ## Responsabilidad por módulo
 ### `skills`
@@ -94,6 +95,16 @@
 - no aceptar input cliente para elegir `path`, `mount`, `device`, `command`, `url`, `method`, `host` o `target`
 - no usar shell, `subprocess`, comandos `free`/`df`/`uptime`, Docker, systemd, discovery de filesystem ni consola host genérica
 - bloquear la frontera backend con `npm run verify:system-metrics-backend-policy`
+
+### `git_control`
+- exponer `GET /api/v1/git/repos` como índice read-only de repositorios Git locales allowlisteados por una backend-owned registry
+- exponer `GET /api/v1/git/repos/{repo_id}/status` como estado resumido de un repo allowlisteado
+- aceptar únicamente `repo_id` lógico desde cliente; nunca paths, URLs, remotes, comandos, refs arbitrarias ni revspecs
+- usar Git solo como lectura host-adjacent acotada para status summary, con `subprocess.run` en lista de argumentos, `shell=False`, `cwd` fijo, timeout, entorno mínimo y comandos read-only allowlisteados
+- no ejecutar acciones destructivas ni remotas (`checkout`, `reset`, `commit`, `push`, `pull`, `fetch`, `stash`, `merge`, `rebase`)
+- no exponer rutas host, nombres de fichero, diffs, remotes privados, stdout/stderr, stack traces ni errores crudos
+- degradar repos ausentes/corruptos/ilegibles a `source_unavailable` con payload saneado
+- bloquear la frontera backend con `npm run verify:git-control-backend-policy`
 
 ## Capas por módulo
 Cada módulo debe poder crecer con estas capas:

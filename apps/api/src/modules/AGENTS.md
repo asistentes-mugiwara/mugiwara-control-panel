@@ -1,7 +1,7 @@
 # AGENTS.md — apps/api/src/modules
 
 ## Rol
-Módulos funcionales del backend (skills, mugiwaras, memoria, vault, healthcheck, system).
+Módulos funcionales del backend (skills, mugiwaras, memoria, vault, healthcheck, system, git_control).
 
 ## Reglas
 - Diseñar módulos cohesivos y con contratos explícitos.

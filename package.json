@@ -15,6 +15,7 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "verify:visual-baseline": "node scripts/visual-verify-baseline.mjs",
     "verify:perimeter-policy": "node scripts/check-perimeter-policy.mjs",
+    "verify:git-control-backend-policy": "node scripts/check-git-control-backend-policy.mjs",
     "verify:memory-server-only": "node scripts/check-memory-server-only.mjs",
     "verify:mugiwaras-server-only": "node scripts/check-mugiwaras-server-only.mjs",
     "verify:skills-server-only": "node scripts/check-skills-server-only.mjs",
