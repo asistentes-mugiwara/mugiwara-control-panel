@@ -3,7 +3,7 @@
 ## Preflight
 - [x] Repo limpio en `main...origin/main` antes de rama.
 - [x] Rama `zoro/control-panel-tailscale-service` creada.
-- [x] Tailscale detectado: `delaya-control.tail2ce3eb.ts.net.` / `100.65.118.27`.
+- [x] Tailscale detectado: `<magicdns-host>` / `<tailscale-ip>`.
 
 ## Implementación
 - [x] API service unit añadido.
@@ -29,11 +29,11 @@
 - [x] `systemctl --user is-active mugiwara-control-panel-api.service`
 - [x] `systemctl --user is-active mugiwara-control-panel-web.service`
 - [x] `ss -ltnp` confirma API en `127.0.0.1:8011`.
-- [x] `ss -ltnp` confirma web en `100.65.118.27:3017`.
+- [x] `ss -ltnp` confirma web en `<tailscale-ip>:3017`.
 
 ## Smoke
 - [x] `GET http://127.0.0.1:8011/api/v1/healthcheck` responde 200 y `meta.sanitized=true`.
-- [x] `GET http://100.65.118.27:3017/healthcheck` responde 200.
+- [x] `GET http://<tailscale-ip>:3017/healthcheck` responde 200.
 - [x] HTML por Tailscale renderiza Healthcheck real.
 - [x] No-leakage básico API/HTML.
 - [x] Browser smoke por Tailscale con consola limpia.
@@ -43,5 +43,5 @@
 - [ ] PR abierta.
 - [ ] Handoff PR dejado.
 - [x] Franky invocado y responde.
-- [ ] Chopper invocado y responde.
+- [x] Chopper invocado y responde.
 - [ ] Reviewers comentan PR o declaran bloqueo por permisos.

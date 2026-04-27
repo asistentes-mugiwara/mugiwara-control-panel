@@ -97,7 +97,8 @@ for (const [text, label] of [[runtimeConfig, 'runtime config docs'], [openspec, 
   mustInclude(text, 'mugiwara-control-panel-api.service', label)
   mustInclude(text, 'mugiwara-control-panel-web.service', label)
   mustInclude(text, '127.0.0.1:8011', label)
-  mustInclude(text, '100.65.118.27:3017', label)
+  mustInclude(text, '<tailscale-ip>:3017', label)
+  mustInclude(text, '<magicdns-host>:3017', label)
   mustInclude(text, 'internet-public', label)
 }
 

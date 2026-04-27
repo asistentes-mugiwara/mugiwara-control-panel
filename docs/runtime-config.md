@@ -28,7 +28,7 @@ npm run verify:perimeter-policy
 `mugiwara-control-panel` puede instalarse como dos servicios `systemd --user` para uso permanente privado:
 
 - `mugiwara-control-panel-api.service`: FastAPI, loopback-only en `127.0.0.1:8011`.
-- `mugiwara-control-panel-web.service`: Next.js production, accesible por Tailscale en `100.65.118.27:3017` en este host.
+- `mugiwara-control-panel-web.service`: Next.js production, accesible por Tailscale en `<tailscale-ip>:3017` en este host.
 
 Instalación:
 
@@ -39,8 +39,8 @@ scripts/install-control-panel-user-services.sh
 URL privada actual:
 
 ```text
-http://100.65.118.27:3017
-http://delaya-control.tail2ce3eb.ts.net:3017
+http://<tailscale-ip>:3017
+http://<magicdns-host>:3017
 ```
 
 Contrato de seguridad:

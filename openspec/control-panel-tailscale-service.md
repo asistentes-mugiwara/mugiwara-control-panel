@@ -7,14 +7,14 @@ Dejar `mugiwara-control-panel` siempre levantado como servicios `systemd --user`
 PR #95 declaró el control plane operativo privado v1 mediante smoke runtime. Pablo pidió poder usarlo de forma permanente y entrar por Tailscale incluso fuera de la LAN.
 
 Runtime Tailscale detectado:
-- DNS: `delaya-control.tail2ce3eb.ts.net.`
-- IPv4: `100.65.118.27`
+- DNS: `<magicdns-host>`
+- IPv4: `<tailscale-ip>`
 
 ## Alcance
 - Añadir servicio user-level para API FastAPI.
 - Añadir servicio user-level para Web Next.js production.
 - Mantener API en loopback (`127.0.0.1:8011`).
-- Exponer solo la web en la IP Tailscale (`100.65.118.27:3017`) o host configurado server-side.
+- Exponer solo la web en la IP Tailscale (`<tailscale-ip>:3017`) o host configurado server-side.
 - Añadir scripts runner explícitos, instalador y guardrail estático.
 - Instalar, arrancar y verificar smoke real por Tailscale.
 
@@ -41,7 +41,7 @@ Runtime Tailscale detectado:
 - Installer instala, habilita y arranca ambos servicios.
 - `systemctl --user is-active` devuelve `active` para API y web.
 - API responde localmente en `127.0.0.1:8011/api/v1/healthcheck`.
-- Web responde por Tailscale en `http://100.65.118.27:3017/healthcheck`.
+- Web responde por Tailscale en `http://<tailscale-ip>:3017/healthcheck`.
 - No-leakage básico en HTML production por Tailscale.
 - Browser smoke por Tailscale sin errores de consola.
 
@@ -51,7 +51,7 @@ Runtime Tailscale detectado:
 - `scripts/install-control-panel-user-services.sh`
 - `systemctl --user is-active mugiwara-control-panel-api.service mugiwara-control-panel-web.service`
 - `curl -fsS http://127.0.0.1:8011/api/v1/healthcheck`
-- `curl -fsS http://100.65.118.27:3017/healthcheck`
+- `curl -fsS http://<tailscale-ip>:3017/healthcheck`
 - no-leakage scan API/HTML
 - browser smoke Tailscale
 - `npm run verify:perimeter-policy`
@@ -71,8 +71,8 @@ Requiere Franky + Chopper:
 - Servicios instalados y habilitados como `systemd --user`.
 - `Linger=yes` confirmado para el usuario operativo.
 - API activa en `127.0.0.1:8011`.
-- Web activa en `100.65.118.27:3017`.
-- URL privada usable: `http://100.65.118.27:3017` y `http://delaya-control.tail2ce3eb.ts.net:3017`.
+- Web activa en `<tailscale-ip>:3017`.
+- URL privada usable: `http://<tailscale-ip>:3017` y `http://<magicdns-host>:3017`.
 - Smoke API `/api/v1/healthcheck`: HTTP 200, `status=ready`, `meta.sanitized=true`.
 - Smoke web Tailscale `/healthcheck`: HTTP 200, módulos reales renderizados y consola limpia.
 - No-leakage básico API/HTML: `PASS`.
