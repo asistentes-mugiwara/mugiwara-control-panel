@@ -85,8 +85,15 @@
 - la UI `/usage` consume la actividad Hermes agregada en 17.4d como correlación orientativa y no como causalidad exacta por perfil
 
 ### `system`
-- estado general del servidor y señales operativas de alto nivel
-- evitar convertirlo en consola de administración
+- exponer `GET /api/v1/system/metrics` como read model backend-only para métricas de sistema usadas por el header global futuro
+- serializar solo RAM usada/total/porcentaje, disco usado/total/porcentaje, uptime en días/horas/minutos, `updated_at` y estado de fuente saneado
+- calcular RAM usada como `MemTotal - MemAvailable` cuando se usa `/proc/meminfo`, para no inflar uso por cache/buffers
+- medir disco contra el target backend-owned `/`, documentado públicamente como `fastapi-visible-root-filesystem`; no serializar path crudo, mount table ni device names
+- leer uptime desde fuente OS allowlisted y devolver solo días/horas/minutos, sin raw `/proc` ni salida de comandos
+- degradar por familia (`ram`, `disk`, `uptime`) a `unknown` cuando una fuente falte o venga malformada; no filtrar excepciones, paths, logs, stdout/stderr ni detalles host
+- no aceptar input cliente para elegir `path`, `mount`, `device`, `command`, `url`, `method`, `host` o `target`
+- no usar shell, `subprocess`, comandos `free`/`df`/`uptime`, Docker, systemd, discovery de filesystem ni consola host genérica
+- bloquear la frontera backend con `npm run verify:system-metrics-backend-policy`
 
 ## Capas por módulo
 Cada módulo debe poder crecer con estas capas:

@@ -90,7 +90,8 @@ Forbidden in errors/logs:
 - skill contents;
 - diff previews;
 - `expected_sha256` or hashes;
-- raw host command output, stdout/stderr, Docker/systemd/log excerpts.
+- raw host command output, stdout/stderr, Docker/systemd/log excerpts;
+- system metrics internals such as raw `/proc` content, mount table, device names, hostname, process list, users or disk target paths.
 
 ## Relationship with #16
 Phase 13.5 closed the perimeter hardening block, so issue #16 started next as a separate Healthcheck/Dashboard hardening track.
