@@ -41,7 +41,8 @@
     "verify:backup-health-status-runner": "node scripts/check-backup-health-status-runner.mjs",
     "write:backup-health-status": "python3 scripts/write-backup-health-status.py",
     "verify:system-metrics-backend-policy": "node scripts/check-system-metrics-backend-policy.mjs",
-    "verify:system-metrics-server-only": "node scripts/check-system-metrics-server-only.mjs"
+    "verify:system-metrics-server-only": "node scripts/check-system-metrics-server-only.mjs",
+    "verify:git-server-only": "node scripts/check-git-server-only.mjs"
   },
   "overrides": {
     "postcss": "8.5.10"

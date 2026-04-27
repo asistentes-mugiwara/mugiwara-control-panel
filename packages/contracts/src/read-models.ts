@@ -314,6 +314,105 @@ export type UsageHermesActivity = {
   empty_reason: 'not_configured' | 'unknown' | null
 }
 
+
+export type GitSourceState = 'ready' | 'unknown'
+export type GitWorkingTreeState = 'clean' | 'dirty' | 'unknown'
+
+export type GitRepoStatus = {
+  source_state: GitSourceState
+  working_tree: GitWorkingTreeState
+  changed_files_count: number | null
+  untracked_files_count: number | null
+  current_branch: string | null
+}
+
+export type GitRepoSummary = {
+  repo_id: string
+  label: string
+  scope: string
+  status: GitRepoStatus
+}
+
+export type GitRepoIndex = {
+  repos: GitRepoSummary[]
+}
+
+export type GitCommitTrailers = {
+  mugiwara_agent: string | null
+  signed_off_by: string | null
+}
+
+export type GitCommitSummary = {
+  sha: string
+  short_sha: string
+  author_name: string
+  author_email: string
+  authored_at: string
+  committed_at: string
+  subject: string
+  trailers: GitCommitTrailers
+}
+
+export type GitCommitList = {
+  repo_id: string
+  commits: GitCommitSummary[]
+  limit: number
+  next_cursor: string | null
+  source_state: GitSourceState
+}
+
+export type GitBranchSummary = {
+  name: string
+  current: boolean
+  sha: string
+  short_sha: string
+}
+
+export type GitBranchList = {
+  repo_id: string
+  current_branch: string | null
+  branches: GitBranchSummary[]
+  source_state: GitSourceState
+}
+
+export type GitCommitFileSummary = {
+  path: string | null
+  change_type: string
+  additions: number | null
+  deletions: number | null
+  binary: boolean
+  omitted: boolean
+  omitted_reason: string | null
+}
+
+export type GitCommitDetail = {
+  repo_id: string
+  commit: GitCommitSummary | null
+  files: GitCommitFileSummary[]
+  source_state: GitSourceState
+}
+
+export type GitDiffLine = {
+  kind: 'hunk' | 'addition' | 'deletion' | 'context'
+  content: string
+}
+
+export type GitCommitDiffFile = GitCommitFileSummary & {
+  truncated: boolean
+  redacted: boolean
+  lines: GitDiffLine[]
+}
+
+export type GitCommitDiff = {
+  repo_id: string
+  sha: string
+  files: GitCommitDiffFile[]
+  truncated: boolean
+  redacted: boolean
+  omitted_files_count: number
+  source_state: GitSourceState
+}
+
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
 export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
 export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
@@ -327,5 +426,11 @@ export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: t
 export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
 export type UsageFiveHourWindowsResponse = ResourceEnvelope<UsageFiveHourWindows, { read_only: true; sanitized: true; source: string; limit: number }>
 export type UsageHermesActivityResponse = ResourceEnvelope<UsageHermesActivity, { read_only: true; sanitized: true; source: string; range: UsageActivityRange }>
+export type GitMeta = { read_only: true; sanitized: true; source: string }
+export type GitRepoIndexResponse = ResourceEnvelope<GitRepoIndex, GitMeta>
+export type GitCommitListResponse = ResourceEnvelope<GitCommitList, GitMeta>
+export type GitBranchListResponse = ResourceEnvelope<GitBranchList, GitMeta>
+export type GitCommitDetailResponse = ResourceEnvelope<GitCommitDetail, GitMeta>
+export type GitCommitDiffResponse = ResourceEnvelope<GitCommitDiff, GitMeta>
 export type SystemMetricsResponse = ResourceEnvelope<SystemMetrics, { read_only: true; sanitized: true; source: string; disk_target: 'fastapi-visible-root-filesystem' }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>
