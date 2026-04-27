@@ -14,11 +14,7 @@ Ya existen readers/adapters backend para:
 - `backup-health` leyendo manifiesto fijo esperado en `/srv/crew-core/runtime/healthcheck/backup-health-status.json`.
 - `project-health`, `gateway-status` y `cronjobs-status` con productores/runners ya cerrados en Phase 15.x.
 
-El runtime actual contiene manifests para `project-health`, `gateway-status` y `cronjobs-status`, pero siguen pendientes productores/runners para:
-- `vault-sync-status.json`.
-- `backup-health-status.json`.
-
-Phase 18.0 añade el plan detallado en `openspec/phase-18-0-healthcheck-producers-planning.md` y no implementa productores vivos.
+Phase 18.x cerró los follow-ups pendientes: `vault-sync-status.json` y `backup-health-status.json` tienen productor versionado, manifest real escrito con permisos no públicos y timer systemd user-level activo. Phase 18.5 es closeout/canon y no añade productores vivos nuevos.
 
 ## Principios operativos
 - Productores fuera del backend; el backend sigue sin ejecutar shell/Git/systemd ni navegar filesystem.
@@ -143,13 +139,13 @@ Verify mínimo:
 Review: Franky + Chopper.
 
 ### Phase 18.5 — Closeout/canon Healthcheck producers
-Objetivo: cerrar el bloque productores pendientes.
+Objetivo: cerrar el bloque productores pendientes. **Cerrado por Phase 18.5 como docs/canon-only después de PR #78–#82; no añade runtime nuevo.**
 
 Incluye:
 - Actualizar docs vivas (`healthcheck-source-policy`, `api-modules`, `read-models`).
 - Actualizar Project Summary del vault.
 - Closeout Engram.
-- Confirmar que `vault-sync` y `backup-health` ya no degradan por falta de manifiesto si los productores están activos.
+- Confirmar que `vault-sync` y `backup-health` ya no aparecen `not_configured` por ausencia de manifiesto si los runners están activos.
 
 Verify:
 - Guardrails Healthcheck relevantes.
