@@ -23,7 +23,7 @@ Diseñar el corte seguro para añadir una página de control Git local que permi
 ## Principios de diseño
 1. **Read-only estricto en el MVP Git.** Sin checkout, reset, commit, push, pull, fetch, stash, merge, rebase, tag creation ni escritura de refs.
 2. **Repositorio por ID allowlisteado.** El cliente nunca envía paths. Los endpoints reciben `repo_id` estable que se resuelve en backend contra una registry explícita.
-3. **Sin discovery arbitrario.** Puede haber discovery offline/revisado para construir allowlist, pero el backend de petición no debe recorrer `/srv` ni resolver glob dinámico desde input cliente.
+3. **Sin discovery arbitrario.** Puede haber discovery offline/revisado para construir allowlist, pero el backend de petición no debe recorrer raíces operativas del host ni resolver glob dinámico desde input cliente.
 4. **Git como fuente host-adjacent sensible.** Cualquier lectura de Git debe tener timeout, cwd fijo, argumentos allowlisteados, entorno mínimo y `shell=False` si se usa subprocess.
 5. **Deny-by-default para diffs.** Los diffs son potencialmente secretos aunque estén commiteados. Paths sensibles se omiten; contenido sospechoso se redacta; límites de tamaño/líneas siempre visibles.
 6. **No exponer topología innecesaria.** Mostrar nombre lógico y, si procede, enlace GitHub saneado; no serializar rutas absolutas, remotes internos, filesystem real, stdout/stderr ni errores crudos.
@@ -52,12 +52,12 @@ Crear `apps/api/src/modules/git_control/` con capas pequeñas:
 
 ### Registry inicial
 IDs lógicos recomendados:
-- `crew-core` -> repo local-only operativo `/srv/crew-core` si existe y se acepta como superficie de lectura.
-- `mugiwara-control-panel` -> `/srv/crew-core/projects/mugiwara-control-panel`.
-- `vault` -> `/srv/crew-core/vault` si se mantiene como repo separado.
-- Otros proyectos bajo `/srv/crew-core/projects/<slug>` solo si se añaden explícitamente.
+- `crew-core` -> repo operativo configurado en backend mediante ruta privada de runtime.
+- `mugiwara-control-panel` -> repo de este proyecto configurado en backend mediante ruta privada de runtime.
+- `vault` -> repo/carpeta canónica configurada en backend solo si se acepta explícitamente como superficie de lectura.
+- Otros proyectos solo si se añaden explícitamente a la registry backend-owned.
 
-El payload público debe usar `repo_id`, `label`, `scope` y estado, no ruta absoluta. Si hay remote GitHub público, exponer solo URL HTTP saneada o `null`; no serializar remotes privados ni SSH interno.
+La registry puede contener rutas absolutas internamente, pero esas rutas no deben aparecer en payloads, UI, logs públicos, errores crudos ni documentación pública. El payload público debe usar `repo_id`, `label`, `scope` y estado, no ruta absoluta. Si hay remote GitHub público, exponer solo URL HTTP saneada o `null`; no serializar remotes privados ni SSH interno.
 
 ### Endpoints por microfase
 - `GET /api/v1/git/repos`

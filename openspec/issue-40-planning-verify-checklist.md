@@ -35,6 +35,11 @@
 - 40.4 frontend `/git`: Usopp + Chopper; Franky solo si hay polling/cache/runtime.
 - 40.5 working tree: Franky + Chopper + Usopp si se toca UI.
 
+## Review PR #88
+- Franky: `approve` por comentario; followups no bloqueantes para 40.1 sobre guardrail real, test sin red para ahead/behind y mantener primer endpoint sin diffs.
+- Chopper: pidió retirar rutas absolutas/topología concreta de la documentación pública; aplicado en `openspec/issue-40-git-control-page-plan.md` y re-verificado con `git diff --check` + scan dirigido de paths concretos.
+- Usopp: `approve` por comentario; followups no bloqueantes para 40.4 sobre título consultivo, banner `Solo lectura` y evitar botones deshabilitados de acciones Git.
+
 ## Riesgos a arrastrar a implementación
 - Diffs históricos o working tree pueden contener secretos aunque el repo sea allowlisteado.
 - No ejecutar red ni `fetch` en request para ahead/behind.

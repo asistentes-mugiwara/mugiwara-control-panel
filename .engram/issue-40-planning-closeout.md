@@ -34,7 +34,10 @@ Ejecutado al cierre:
 No se ejecutan typecheck/build/tests porque esta fase solo añade documentación de planificación. Si eso cambia antes de commit, actualizar este closeout y la checklist.
 
 ## Review esperado
-- Planning docs-only: Zoro puede cerrar sin review externa si no hay runtime/security efectivo.
+- Planning docs-only: PR #88 tuvo handoff real a Franky, Chopper y Usopp por tratar una futura frontera Git sensible.
+- Franky: `approve`; dejó followups no bloqueantes para convertir guardrail backend en test real, cubrir `ahead/behind` sin red y mantener 40.1 sin diffs.
+- Chopper: pidió retirar rutas absolutas/topología concreta de OpenSpec público; se aplicó y se re-verificó.
+- Usopp: `approve`; dejó followups no bloqueantes para 40.4 sobre título consultivo, banner de solo lectura y evitar botones disabled de acciones Git.
 - Primera implementación 40.1: Franky + Chopper.
 - UI 40.4: Usopp + Chopper.
 
