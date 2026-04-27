@@ -74,13 +74,23 @@
 - [x] No se ha cerrado issue #36.
 
 ## PR/review
-- [ ] Commit creado con trailers Mugiwara.
-- [ ] Rama pusheada.
-- [ ] PR de planificación abierta.
-- [ ] Comentario de handoff dejado en PR.
-- [ ] Franky invocado para review operativa del plan host metrics.
-- [ ] Chopper invocado para review de seguridad del plan host metrics.
-- [ ] Respuestas/comentarios de reviewers registrados o bloqueo documentado.
+- [x] Commit creado con trailers Mugiwara.
+  - Commit: `6f7386d` (`docs: plan issue 36 header system metrics`).
+- [x] Rama pusheada.
+  - Rama remota: `origin/zoro/issue-36-header-system-metrics-plan`.
+- [x] PR de planificación abierta.
+  - PR: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/84.
+- [x] Comentario de handoff dejado en PR.
+  - Comentario: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/84#issuecomment-4326933020.
+- [x] Franky invocado para review operativa del plan host metrics.
+  - Decisión: `mergeable_with_minor_followups`.
+  - Comentario PR: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/84#issuecomment-4326948386.
+  - Follow-ups para 36.1+: RAM usada como `MemTotal - MemAvailable` si se usa `/proc/meminfo`; documentar `/` como raíz visible por FastAPI; degradación parcial por familia; review Franky + Chopper si aparece refresh automático.
+- [x] Chopper invocado para review de seguridad del plan host metrics.
+  - Decisión: `approve` por comentario; aprobación formal bloqueada por GitHub porque la cuenta compartida no puede aprobar su propia PR.
+  - Comentario PR: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/84#issuecomment-4326965894.
+  - Follow-ups para 36.1/36.2: test/guardrail no-leakage recursivo, ausencia de shell/subprocess/comandos host y smoke HTML/DOM/bundle contra backend URL, `NEXT_PUBLIC_*`, paths internos y errores crudos.
+- [x] Respuestas/comentarios de reviewers registrados o bloqueo documentado.
 
 ## Notas
 Esta fase es docs/OpenSpec/.engram-only, pero la decisión de arquitectura toca frontera host-adjacent. Por tanto, se pide review Franky + Chopper aunque no haya runtime change.

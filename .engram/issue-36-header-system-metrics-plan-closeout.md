@@ -42,8 +42,12 @@ Se inició issue #36 sin implementar la feature. La fase deja plan SDD/TDD ejecu
 ## Verify previsto/ejecutado
 - Preflight GitHub/repo ejecutado antes de rama.
 - Revisión dirigida de docs, shell/header, adapters, módulos backend, tests y guardrails.
-- `git diff --check` debe ejecutarse antes del commit.
+- `git diff --check` pasó sin salida.
 - No aplica build/typecheck porque la fase no toca código, package scripts ni JSON.
+
+## Review recibida
+- Franky: `mergeable_with_minor_followups`. Follow-ups para 36.1+: RAM usada como `MemTotal - MemAvailable` si se usa `/proc/meminfo`; documentar `/` como raíz visible por FastAPI; degradación parcial por familia; review Franky + Chopper si aparece refresh automático.
+- Chopper: `approve` por comentario de PR; GitHub bloqueó aprobación formal por cuenta compartida/autora. Follow-ups para 36.1/36.2: test/guardrail no-leakage recursivo, ausencia de shell/subprocess/comandos host y smoke HTML/DOM/bundle contra backend URL, `NEXT_PUBLIC_*`, paths internos y errores crudos.
 
 ## Riesgos abiertos para 36.1+
 - Evitar que métricas de sistema se conviertan en consola host o proxy genérico.

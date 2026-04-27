@@ -156,6 +156,12 @@ Review:
 ### 36.1 — Backend read model/API foundation
 Objetivo: crear el módulo backend read-only `system` y endpoint fijo `GET /api/v1/system/metrics`.
 
+Follow-ups incorporados tras review 36.0:
+- Si se usa `/proc/meminfo`, RAM usada debe calcularse como `MemTotal - MemAvailable`, no `MemTotal - MemFree`.
+- El target de disco inicial `/` debe documentarse como “filesystem raíz visible por el proceso FastAPI” y revalidarse si el despliegue pasa a contenedor/namespace distinto.
+- La degradación debe permitir distinguir fuente RAM/disco/uptime fallida sin exponer internals.
+- Añadir test/guardrail explícito de no-leakage recursivo y de ausencia de shell/subprocess/comandos host.
+
 Alcance:
 - Dominio/servicio/router `system` con capas simples y tests.
 - Contrato compartido si el patrón del repo lo pide (`packages/contracts/src/read-models.ts`).
@@ -193,6 +199,9 @@ Review:
 
 ### 36.2 — Frontend server-only adapter + header integration
 Objetivo: mostrar las métricas saneadas en el header global siempre visible.
+
+Follow-up incorporado tras review 36.0:
+- El verify de 36.2 debe incluir smoke HTML/DOM/bundle para confirmar que no aparecen backend URL, `NEXT_PUBLIC_*`, paths internos ni errores crudos.
 
 Alcance:
 - Adapter server-only `system`/`system-metrics` con endpoint fijo.
