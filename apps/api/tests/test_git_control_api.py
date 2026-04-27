@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -194,6 +195,37 @@ def test_git_unknown_repo_id_returns_sanitized_not_found_without_echoing_input(t
     assert 'unknown-private-token' not in response.text
     assert '/srv/private' not in response.text
     _assert_no_leakage(payload)
+
+
+def test_git_status_invocation_disables_executable_git_config(monkeypatch, tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.git_adapter import GitStatusAdapter
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition
+
+    captured: dict[str, Any] = {}
+
+    def fake_run(args, **kwargs):
+        captured['args'] = args
+        captured['kwargs'] = kwargs
+        return SimpleNamespace(stdout='## main\n')
+
+    monkeypatch.setattr('apps.api.src.modules.git_control.git_adapter.subprocess.run', fake_run)
+
+    status = GitStatusAdapter().read_status(
+        GitRepoDefinition(repo_id='fixture-policy', label='Fixture policy repository', scope='test', path=tmp_path)
+    )
+
+    args = captured['args']
+    env = captured['kwargs']['env']
+    assert status.source_state == 'live'
+    assert captured['kwargs']['shell'] is False
+    assert captured['kwargs']['cwd'] == tmp_path
+    assert captured['kwargs']['timeout'] == 2.0
+    assert '-c' in args
+    assert 'core.fsmonitor=false' in args
+    assert 'core.hooksPath=/dev/null' in args
+    assert env['GIT_CONFIG_NOSYSTEM'] == '1'
+    assert env['GIT_CONFIG_GLOBAL'] == '/dev/null'
+    assert env['GIT_CONFIG_SYSTEM'] == '/dev/null'
 
 
 def test_git_repo_status_degrades_safely_for_unreadable_or_non_git_repo(tmp_path: Path) -> None:
