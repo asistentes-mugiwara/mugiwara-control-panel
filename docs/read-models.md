@@ -194,7 +194,37 @@ Uso:
 - estado read-only resumido de un repo allowlisteado
 - `dirty` solo indica conteos; no serializa nombres de archivo ni contenido
 - repos ilegibles/no Git degradan a `source_unavailable` con `unknown` y campos nulos
-- no hay commits, branches, diffs ni working-tree diff en esta microfase
+- no hay diffs ni working-tree diff en esta microfase
+
+### `git.commit_list`
+Campos esperados:
+- `repo_id`
+- `commits[]` con `sha`, `short_sha`, `author_name`, `author_email`, `authored_at`, `committed_at`, `subject`, `body` y `trailers`
+- `trailers.mugiwara_agent`
+- `trailers.signed_off_by`
+- `limit`
+- `next_cursor` opaco `offset:<n>` o `null`
+- `source_state`
+
+Uso:
+- historial reciente paginado de un repo allowlisteado
+- el cliente solo aporta `repo_id`, `limit` y `cursor`; nunca paths, refs, SHA, revsets, remotes ni comandos
+- `limit` se valida como `1..50`; `cursor` se valida estrictamente como token backend-owned `offset:<n>`
+- no serializa diffs, nombres de ficheros tocados, remotes, rutas host, stdout/stderr ni errores crudos
+- repos ilegibles/no Git degradan a `source_unavailable` con lista vacía y `source_state=unknown`
+
+### `git.branch_list`
+Campos esperados:
+- `repo_id`
+- `current_branch` saneada o `null`
+- `branches[]` con `name`, `current`, `sha` y `short_sha`
+- `source_state`
+
+Uso:
+- listar solo ramas locales del repo allowlisteado
+- no acepta `ref`/`branch`/`revspec` cliente; cualquier query ajena no controla la invocación Git ni se ecoa
+- no serializa remotes (`origin/*`), URLs, rutas host, stdout/stderr ni errores crudos
+- nombres de rama no saneables se omiten
 
 ### `memory.agent_summary`
 Campos esperados:
