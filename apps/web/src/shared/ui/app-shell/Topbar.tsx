@@ -54,8 +54,8 @@ function formatUptimeValue(metric: UptimeMetric) {
   return `${metric.days}d ${metric.hours}h ${metric.minutes}m`
 }
 
-function metricTitle(label: string, state: CapacityMetric['source_state'] | UptimeMetric['source_state']) {
-  return state === 'live' ? label : `${label} no disponible`
+function metricLabel(label: string) {
+  return label
 }
 
 function SystemMetricChip({ label, value, detail, muted }: { label: string; value: string; detail?: string; muted?: boolean }) {
@@ -96,19 +96,19 @@ function HeaderSystemMetricsStrip({ metrics }: { metrics: HeaderSystemMetrics })
       }}
     >
       <SystemMetricChip
-        label={metricTitle('RAM', metrics.ram.source_state)}
+        label={metricLabel('RAM')}
         value={ramPercent}
         detail={formatCapacityValue(metrics.ram)}
         muted={isUnavailable || metrics.ram.source_state !== 'live'}
       />
       <SystemMetricChip
-        label={metricTitle('Disco', metrics.disk.source_state)}
+        label={metricLabel('Disco')}
         value={diskPercent}
         detail={formatCapacityValue(metrics.disk)}
         muted={isUnavailable || metrics.disk.source_state !== 'live'}
       />
       <SystemMetricChip
-        label={metricTitle('Uptime', metrics.uptime.source_state)}
+        label={metricLabel('Uptime')}
         value={formatUptimeValue(metrics.uptime)}
         muted={isUnavailable || metrics.uptime.source_state !== 'live'}
       />

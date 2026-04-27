@@ -460,27 +460,40 @@ button {
   }
 
   .topbar__status-group {
+    display: grid !important;
+    flex: 0 0 100%;
+    grid-template-columns: minmax(0, 1fr);
     justify-content: flex-start;
+    justify-items: start;
+    min-width: 100%;
     width: 100%;
   }
 
   .topbar__metrics-strip {
     display: grid !important;
+    flex: 0 0 100%;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-width: 100%;
+    order: 2;
+    overflow: visible;
     width: 100%;
+  }
+
+  .topbar__status-group > .status-badge {
+    order: 1;
   }
 
   .topbar__metric-chip {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
     justify-items: start;
+    min-width: 0;
   }
 
   .topbar__metric-label,
   .topbar__metric-value {
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
   }
 
   .page-header__title {
