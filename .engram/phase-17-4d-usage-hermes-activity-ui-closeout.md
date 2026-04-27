@@ -29,5 +29,7 @@ La UI no muestra root de perfiles, rutas de `state.db`, prompts, conversaciones 
 - `git diff --check` → passed.
 - Browser smoke `/usage` contra API local de la rama: panel visible, consola limpia, sin backend URL/root Hermes/rutas de DB en DOM y sin overflow horizontal en viewport inspeccionado.
 
-## Review requerido
-Usopp + Chopper obligatorios. Franky no se requiere salvo que aparezcan cambios backend/runtime/fuente/polling/cache.
+## Review
+- Chopper: `approve` seguridad/no-leakage en PR #77, comentario manual por limitación de cuenta compartida.
+- Usopp: `approve` UI/UX/copy/responsive en PR #77, comentario manual por limitación de cuenta compartida; follow-up menor no bloqueante: si `/usage` crece más, valorar bloque Hermes compactable/plegable en móvil.
+- Franky no requerido: no hubo cambio backend/runtime/fuente/polling/cache.

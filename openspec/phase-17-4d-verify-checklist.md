@@ -22,8 +22,8 @@
 - [x] Browser smoke `/usage`: panel visible, consola limpia, sin backend URL/root Hermes/rutas de DB renderizadas y sin overflow horizontal obligatorio en viewport inspeccionado.
 
 ## Review
-- [ ] PR creada.
-- [ ] Handoff comentado en PR.
-- [ ] Usopp invocado y review recibido.
-- [ ] Chopper invocado y review recibido.
+- [x] PR creada: #77.
+- [x] Handoff comentado en PR: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/77#issuecomment-4324730123
+- [x] Usopp invocado y review recibido: `approve`, comentario manual en PR por bloqueo de aprobación formal con cuenta compartida.
+- [x] Chopper invocado y review recibido: `approve`, comentario manual en PR por bloqueo de aprobación formal con cuenta compartida.
 - [ ] #51 comentado/cerrado solo tras merge y canon final.
