@@ -175,6 +175,48 @@ button {
   font-weight: 800;
 }
 
+.usage-windows-list {
+  display: grid;
+  gap: 12px;
+}
+
+.usage-window-row {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(90, 157, 219, 0.08);
+}
+
+.usage-window-row__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.usage-window-row__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.usage-window-row__metrics dt {
+  color: #9aa7bd;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-window-row__metrics dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+}
+
 .responsive-code {
   overflow-x: auto;
   white-space: pre-wrap;
@@ -334,8 +376,13 @@ button {
     padding: 16px !important;
   }
 
-  .usage-calendar-day__metrics {
+  .usage-calendar-day__metrics,
+  .usage-window-row__metrics {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .usage-window-row__main {
+    flex-direction: column;
   }
 }
 

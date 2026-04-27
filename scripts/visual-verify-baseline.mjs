@@ -106,7 +106,8 @@ const routes = [
       'stale, not_configured o fallback quedan visibles como fuente degradada/no tiempo real',
       'fórmulas y privacidad hacen wrap sin filtrar detalles internos del host',
       'el calendario por fecha natural aparece como grid/cards responsive sin scroll horizontal obligatorio',
-      'actividad Hermes agregada y endpoint dedicado de ventanas históricas siguen fuera de esta fase',
+      'las ventanas 5h históricas aparecen como lista/cards responsive sin scroll horizontal obligatorio',
+      'actividad Hermes agregada sigue fuera de esta fase',
     ],
   },
 ]

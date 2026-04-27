@@ -83,7 +83,7 @@ Diseñar un shell de navegación estable y escaneable que:
 ├── /vault
 │   └── /vault/[...path]           # navegación documental si se implementa por ruta
 ├── /healthcheck
-└── /usage                         # Usage Codex/Hermes current-state + calendario por fecha natural
+└── /usage                         # Usage Codex/Hermes current-state + calendario + ventanas 5h históricas
 ```
 
 ## 2.3 IA del shell

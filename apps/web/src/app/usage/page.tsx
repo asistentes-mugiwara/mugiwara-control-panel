@@ -1,9 +1,10 @@
 import type { ResourceStatus } from '@contracts/resource'
-import type { UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageWindowStatus } from '@contracts/read-models'
+import type { UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageFiveHourWindows, UsageWindowStatus } from '@contracts/read-models'
 
-import { fetchUsageCalendar, fetchUsageCurrent, UsageApiError } from '@/modules/usage/api/usage-http'
+import { fetchUsageCalendar, fetchUsageCurrent, fetchUsageFiveHourWindows, UsageApiError } from '@/modules/usage/api/usage-http'
 import { usageCalendarFixture } from '@/modules/usage/view-models/usage-calendar.fixture'
 import { usageCurrentFixture } from '@/modules/usage/view-models/usage-current.fixture'
+import { usageFiveHourWindowsFixture } from '@/modules/usage/view-models/usage-five-hour-windows.fixture'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
@@ -24,6 +25,7 @@ type UsageNotice = {
 type UsagePageData = {
   usage: UsageCurrent
   calendar: UsageCalendar
+  fiveHourWindows: UsageFiveHourWindows
   resourceStatus: ResourceStatus | 'fallback'
   notice: UsageNotice | null
   isSnapshotMode: boolean
@@ -55,16 +57,22 @@ const calendarStatusMap: Record<UsageCalendarDayStatus, { appStatus: AppStatus; 
 
 async function getInitialUsageData(): Promise<UsagePageData> {
   try {
-    const [currentResponse, calendarResponse] = await Promise.all([fetchUsageCurrent(), fetchUsageCalendar('current_cycle')])
+    const [currentResponse, calendarResponse, fiveHourWindowsResponse] = await Promise.all([
+      fetchUsageCurrent(),
+      fetchUsageCalendar('current_cycle'),
+      fetchUsageFiveHourWindows(8),
+    ])
     const usage = currentResponse.data
     const calendar = calendarResponse.data
+    const fiveHourWindows = fiveHourWindowsResponse.data
 
-    const responseStatus = currentResponse.status !== 'ready' ? currentResponse.status : calendarResponse.status
+    const responseStatus = currentResponse.status !== 'ready' ? currentResponse.status : calendarResponse.status !== 'ready' ? calendarResponse.status : fiveHourWindowsResponse.status
 
     if (responseStatus !== 'ready') {
       return {
         usage,
         calendar,
+        fiveHourWindows,
         resourceStatus: responseStatus,
         isSnapshotMode: responseStatus === 'stale',
         notice: noticeFromResourceStatus(responseStatus),
@@ -74,6 +82,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     return {
       usage,
       calendar,
+      fiveHourWindows,
       resourceStatus: currentResponse.status,
       notice: null,
       isSnapshotMode: false,
@@ -84,6 +93,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     return {
       usage: usageCurrentFixture,
       calendar: usageCalendarFixture,
+      fiveHourWindows: usageFiveHourWindowsFixture,
       resourceStatus: 'fallback',
       isSnapshotMode: true,
       notice: {
@@ -203,6 +213,14 @@ function calendarPartialCopy(reason: UsageCalendar['days'][number]['codex_segmen
   return 'Día completo dentro del ciclo semanal Codex'
 }
 
+function formatSamples(value: number) {
+  if (value === 1) {
+    return '1 muestra'
+  }
+
+  return `${value} muestras`
+}
+
 function formatPeakPrimary(value: number | null) {
   if (value === null) {
     return 'Sin pico 5h'
@@ -309,6 +327,67 @@ function WindowCard({
   )
 }
 
+function UsageWindowsPanel({ windows, isSnapshotMode }: { windows: UsageFiveHourWindows; isSnapshotMode: boolean }) {
+  const items = windows.windows.slice(0, 8)
+
+  return (
+    <SurfaceCard title="Ventanas 5h históricas" eyebrow="Últimas ventanas Codex · saneado" accent="sky" elevated>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
+          Lectura dedicada de ventanas 5h: pico, delta positivo intra-ventana y muestras agregadas desde la SQLite saneada. No incluye actividad Hermes ni atribución causal por perfil.
+        </p>
+        {isSnapshotMode ? (
+          <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
+            Ventanas mostradas desde snapshot/fallback saneado: sirven para validar composición visual, no para decidir consumo real.
+          </p>
+        ) : null}
+        <div className="usage-windows-list" role="list" aria-label="Últimas ventanas 5h de Usage">
+          {items.length > 0 ? (
+            items.map((window) => {
+              const status = windowStatusToBadge(window.status)
+              return (
+                <article className="usage-window-row" key={`${window.started_at}-${window.ended_at}`} role="listitem" aria-label={`Ventana 5h ${formatTimestamp(window.started_at)}: ${status.label}`}>
+                  <div className="usage-window-row__main">
+                    <div>
+                      <p style={{ margin: 0, color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ventana 5h</p>
+                      <h3 style={{ margin: '4px 0 0', fontSize: '18px' }}>{formatTimestamp(window.started_at)} → {formatTimestamp(window.ended_at)}</h3>
+                    </div>
+                    <StatusBadge status={status.appStatus} label={status.label} />
+                  </div>
+                  <dl className="usage-window-row__metrics">
+                    <div>
+                      <dt>Pico</dt>
+                      <dd>{formatPercent(window.peak_used_percent)}</dd>
+                    </div>
+                    <div>
+                      <dt>Delta intra-ventana</dt>
+                      <dd>{formatDeltaPercent(window.delta_percent)}</dd>
+                    </div>
+                    <div>
+                      <dt>Muestras</dt>
+                      <dd>{formatSamples(window.samples_count)}</dd>
+                    </div>
+                  </dl>
+                  <UsageProgressBar value={window.peak_used_percent} status={window.status} />
+                </article>
+              )
+            })
+          ) : (
+            <StatePanel
+              status="sin-datos"
+              title="Ventanas 5h sin datos"
+              description={windows.empty_reason === 'not_configured' ? 'La fuente de ventanas Usage aún no está configurada.' : 'No hay ventanas suficientes para componer el historial saneado.'}
+              eyebrow="Usage windows"
+              ariaRole="region"
+              ariaLabel="Ventanas 5h Usage sin datos"
+            />
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
 function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalendar; isSnapshotMode: boolean }) {
   const days = calendar.days.slice(-10)
 
@@ -373,7 +452,7 @@ function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalen
 }
 
 export default async function UsagePage() {
-  const { usage, calendar, notice, isSnapshotMode } = await getInitialUsageData()
+  const { usage, calendar, fiveHourWindows, notice, isSnapshotMode } = await getInitialUsageData()
   const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
@@ -444,13 +523,18 @@ export default async function UsagePage() {
         <UsageCalendarPanel calendar={calendar} isSnapshotMode={isSnapshotMode} />
       </section>
 
+      <section className="section-block" aria-label="Ventanas 5h Usage">
+        <UsageWindowsPanel windows={fiveHourWindows} isSnapshotMode={isSnapshotMode} />
+      </section>
+
       <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.3b" accent="gold">
+        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.4b" accent="gold">
           <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
             <li>Snapshot actual saneado de Codex usage.</li>
             <li>Ventana 5h y ciclo semanal Codex con rangos calculados por reset.</li>
             <li>Calendario por fecha natural Europe/Madrid con delta diario, ventanas 5h y pico diario saneados.</li>
-            <li>Actividad Hermes agregada y endpoint dedicado de ventanas históricas quedan para 17.4.</li>
+            <li>Ventanas 5h históricas dedicadas con pico, delta intra-ventana y muestras.</li>
+            <li>Actividad Hermes agregada queda para 17.4c/17.4d.</li>
           </ul>
         </SurfaceCard>
         <SurfaceCard title="Seguridad de datos" eyebrow="Deny by default" accent="sky">
