@@ -65,11 +65,20 @@
 - [x] `git status --short --branch` revisado.
 
 ## Review/PR
-- [ ] Commit con trailers Mugiwara.
-- [ ] Rama pusheada.
-- [ ] PR abierta.
-- [ ] Comentario de handoff en PR.
-- [ ] Franky invocado y respuesta registrada.
-- [ ] Chopper invocado y respuesta registrada.
-- [ ] No cerrar #36 todavía.
-- [ ] No tocar #40.
+- [x] Commit con trailers Mugiwara.
+  - Commit: `5d31598` (`feat: add system metrics backend read model`).
+- [x] Rama pusheada.
+- [x] PR abierta.
+  - PR: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/85.
+- [x] Comentario de handoff en PR.
+  - Comentario: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/85#issuecomment-4327111361.
+- [x] Franky invocado y respuesta registrada.
+  - Decisión: `approve` por comentario; aprobación formal bloqueada por cuenta compartida/autora.
+  - Comentario: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/85#issuecomment-4327129685.
+  - Follow-ups: en 36.2 definir polling/TTL si se añade refresh; si FastAPI acaba en contenedor, documentar que disco representa la raíz visible por runtime.
+- [x] Chopper invocado y respuesta registrada.
+  - Decisión: `approve` por comentario; aprobación formal bloqueada por cuenta compartida/autora.
+  - Comentario: https://github.com/asistentes-mugiwara/mugiwara-control-panel/pull/85#issuecomment-4327151013.
+  - Follow-up: endpoint aceptable solo dentro del perímetro privado; si se expone fuera de LAN/Tailscale/private proxy, requiere auth/sesión/rate-limit.
+- [x] No cerrar #36 todavía.
+- [x] No tocar #40.

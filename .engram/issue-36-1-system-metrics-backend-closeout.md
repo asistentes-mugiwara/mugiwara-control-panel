@@ -61,3 +61,7 @@ Ejecutado antes de commit/PR:
 
 ## Siguiente paso
 Pedir review Franky + Chopper. Si se aprueba y mergea, 36.2 debe implementar el adapter server-only/frontend header sin reabrir backend salvo ajuste menor revisado.
+
+## Review recibida
+- Franky: `approve` por comentario de PR; aprobación formal bloqueada por cuenta compartida/autora. Follow-ups no bloqueantes: en 36.2 definir polling/TTL si hay refresh; si FastAPI se ejecuta en contenedor, documentar que el disco representa la raíz visible por runtime.
+- Chopper: `approve` por comentario de PR; aprobación formal bloqueada por cuenta compartida/autora. Follow-up no bloqueante: el endpoint solo es aceptable dentro del perímetro privado; si se expone fuera de LAN/Tailscale/private proxy, requiere auth/sesión/rate-limit antes.
