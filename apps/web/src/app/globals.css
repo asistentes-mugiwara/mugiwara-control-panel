@@ -305,6 +305,47 @@ button {
   min-width: 0;
 }
 
+.topbar__status-group {
+  flex: 1;
+}
+
+.topbar__metrics-strip {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.topbar__metric-chip {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, auto);
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.topbar__metric-label {
+  color: #9aa7bd;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.topbar__metric-value {
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.topbar__metric-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: #aab4c8;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
@@ -326,6 +367,10 @@ button {
 @media (max-width: 1180px) {
   .layout-grid--dashboard-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topbar__metric-detail {
+    display: none;
   }
 }
 
@@ -377,6 +422,12 @@ button {
     display: none;
   }
 
+  .topbar__metrics-strip {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start !important;
+  }
+
   .app-shell__overlay {
     display: block;
     position: fixed;
@@ -409,8 +460,40 @@ button {
   }
 
   .topbar__status-group {
+    display: grid !important;
+    flex: 0 0 100%;
+    grid-template-columns: minmax(0, 1fr);
     justify-content: flex-start;
+    justify-items: start;
+    min-width: 100%;
     width: 100%;
+  }
+
+  .topbar__metrics-strip {
+    display: grid !important;
+    flex: 0 0 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-width: 100%;
+    order: 2;
+    overflow: visible;
+    width: 100%;
+  }
+
+  .topbar__status-group > .status-badge {
+    order: 1;
+  }
+
+  .topbar__metric-chip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .topbar__metric-label,
+  .topbar__metric-value {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .page-header__title {
