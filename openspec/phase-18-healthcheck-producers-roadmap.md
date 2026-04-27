@@ -12,10 +12,13 @@ Reubicar y definir el bloque operativo pendiente de Healthcheck para crear produ
 Ya existen readers/adapters backend para:
 - `vault-sync` leyendo manifiesto fijo esperado en `/srv/crew-core/runtime/healthcheck/vault-sync-status.json`.
 - `backup-health` leyendo manifiesto fijo esperado en `/srv/crew-core/runtime/healthcheck/backup-health-status.json`.
+- `project-health`, `gateway-status` y `cronjobs-status` con productores/runners ya cerrados en Phase 15.x.
 
-Siguen pendientes productores/runners para:
+El runtime actual contiene manifests para `project-health`, `gateway-status` y `cronjobs-status`, pero siguen pendientes productores/runners para:
 - `vault-sync-status.json`.
 - `backup-health-status.json`.
+
+Phase 18.0 añade el plan detallado en `openspec/phase-18-0-healthcheck-producers-planning.md` y no implementa productores vivos.
 
 ## Principios operativos
 - Productores fuera del backend; el backend sigue sin ejecutar shell/Git/systemd ni navegar filesystem.
@@ -30,13 +33,20 @@ Siguen pendientes productores/runners para:
 ### Phase 18.0 — Planning/reconciliation del bloque operativo Healthcheck
 Objetivo: cerrar contrato exacto de producers antes de implementar.
 
+Entregables:
+- `openspec/phase-18-0-healthcheck-producers-planning.md`.
+- `openspec/phase-18-0-planning-verify-checklist.md`.
+- `.engram/phase-18-0-healthcheck-producers-planning-closeout.md`.
+
 Incluye:
 - Confirmar estado actual de readers y rutas fijas esperadas.
+- Revisar scripts/runners existentes relevantes.
 - Definir schema mínimo por manifiesto.
 - Definir reviewers y verify por subfase.
-- Crear checklist y closeout de continuidad.
+- Documentar fuentes, ownership, permisos, frontera backend/productor y riesgos.
 
 Verify:
+- `npm run verify:healthcheck-source-policy`.
 - `git diff --check`.
 - Revisión documental de docs/read-models/api-modules/healthcheck-source-policy.
 
@@ -147,6 +157,6 @@ Verify:
 - `git diff --check`.
 
 ## Roadmap paralelo no mezclable
-- Phase 17.x Usage sigue abierta hasta UI `/usage`, calendario, ventanas 5h históricas y actividad Hermes agregada.
-- Phase 18.x Healthcheck producers puede ejecutarse antes o después de 17.2, pero no debe mezclarse en la misma PR.
-- #40 Git control y #36 header metrics quedan después, salvo decisión explícita de Pablo.
+- Phase 17.x Usage / #51 está cerrado por PR #77; no reabrir salvo bug/regresión clara.
+- Phase 18.x Healthcheck producers no debe mezclarse con Usage, Git control ni header metrics.
+- #40 Git control y #36 header metrics quedan separados, salvo decisión explícita de Pablo.

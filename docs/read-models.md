@@ -90,6 +90,8 @@ Issue #43 automates the project-health producer with the user-level `mugiwara-pr
 
 Phase 15.8 closes the Healthcheck real-source block through 15.7b. Canonical state: readers exist for `vault-sync`, `backup-health`, `project-health`, `gateway-status` and `cronjobs`; producers/runners exist for `project-health`, `gateway-status` and `cronjobs-status`; `vault-sync-status` and `backup-health-status` producers remain explicit follow-ups rather than blockers. Healthcheck still degrades missing/unreadable fixed manifests visibly and must not expose host internals.
 
+Phase 18.0 reconciles those explicit follow-ups into a dedicated Healthcheck producers block. The planned order is `vault-sync-status` producer, `vault-sync-status` runner/timer, `backup-health-status` producer, `backup-health-status` runner/timer, then closeout/canon. Backup-health remains separate because it can otherwise leak backup names, paths, hashes/checksums or external targets if treated too broadly.
+
 ### `usage.current`
 Campos esperados:
 - `current_snapshot` con `captured_at`, `source_label` y `freshness`
