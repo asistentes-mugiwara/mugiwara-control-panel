@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Static guardrail for Issue #40.1 Git control backend policy.
+ * Static guardrail for Issue #40 Git control backend policy.
  *
- * Keeps Git control as a backend-owned read-only registry/status surface, not a
- * filesystem browser or Git console.
+ * Keeps Git control as a backend-owned read-only registry/status/commits/branches
+ * surface, not a filesystem browser or Git console.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -79,8 +79,12 @@ mustInclude(mainPy, 'app.include_router(git_control_router)', 'FastAPI main')
 mustInclude(routerPy, "router = APIRouter(prefix='/api/v1/git', tags=['git_control'])", 'git_control router')
 mustInclude(routerPy, "@router.get('/repos')", 'git_control router')
 mustInclude(routerPy, "@router.get('/repos/{repo_id}/status')", 'git_control router')
+mustInclude(routerPy, "@router.get('/repos/{repo_id}/commits')", 'git_control router')
+mustInclude(routerPy, "@router.get('/repos/{repo_id}/branches')", 'git_control router')
 mustInclude(routerPy, "resource='git.repo_index'", 'git_control router')
 mustInclude(routerPy, "resource='git.repo_status'", 'git_control router')
+mustInclude(routerPy, "resource='git.commit_list'", 'git_control router')
+mustInclude(routerPy, "resource='git.branch_list'", 'git_control router')
 mustInclude(routerPy, "'read_only': True", 'git_control router')
 mustInclude(routerPy, "'sanitized': True", 'git_control router')
 mustInclude(routerPy, "'source': GIT_CONTROL_SOURCE_LABEL", 'git_control router')
@@ -96,7 +100,11 @@ const requiredDomainSnippets = [
   'GIT_SAFE_CONFIG_ARGS',
   'core.fsmonitor=false',
   'core.hooksPath=/dev/null',
-  "READ_ONLY_GIT_COMMANDS = frozenset({'status'})",
+  'GIT_COMMITS_DEFAULT_LIMIT',
+  'GIT_COMMITS_MAX_LIMIT',
+  'GIT_CURSOR_PATTERN',
+  'GIT_SHA_PATTERN',
+  "READ_ONLY_GIT_COMMANDS = frozenset({'status', 'log', 'branch'})",
   'FORBIDDEN_GIT_COMMANDS = frozenset',
   "'checkout'",
   "'reset'",
@@ -133,10 +141,16 @@ const requiredAdapterSnippets = [
   '*GIT_SAFE_CONFIG_ARGS',
   '_extract_git_command',
   "'status'",
+  "'log'",
+  "'branch'",
   "'--porcelain=v1'",
   "'--branch'",
   "'--untracked-files=all'",
   "'--no-renames'",
+  "'--max-count={limit}'",
+  "'--skip={offset}'",
+  "'--format=%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%cI%x1f%s%x1f%B%x1e'",
+  "'--format=%(refname:short)%00%(HEAD)%00%(objectname)'",
   'READ_ONLY_GIT_COMMANDS',
   'FORBIDDEN_GIT_COMMANDS',
 ]
@@ -189,6 +203,17 @@ const requiredTestSnippets = [
   'assert not marker.exists()',
   'test_git_unknown_repo_id_returns_sanitized_not_found_without_echoing_input',
   'test_git_repo_status_degrades_safely_for_unreadable_or_non_git_repo',
+  'test_git_commits_lists_recent_commits_with_mugiwara_trailers_and_safe_cursor',
+  'test_git_commits_do_not_expose_sensitive_commit_body_while_extracting_trailers',
+  'SYNTHETIC-SECRET-COMMIT-BODY-MARKER',
+  "assert 'body' not in commit",
+  'Mugiwara-Agent: zoro',
+  'Signed-off-by: zoro <asistentes.mugiwara@gmail.com>',
+  'test_git_branches_lists_local_branches_only_without_remotes_or_paths',
+  'test_git_commits_reject_invalid_limit_and_malicious_cursor_without_echo',
+  'HEAD..main:/srv/private-token',
+  'test_git_commits_unknown_repo_and_degraded_repo_are_sanitized',
+  'test_git_read_model_invocations_stay_allowlisted_and_hardened',
   '_assert_no_leakage',
   '.env',
   'super-secret-value',
@@ -200,6 +225,9 @@ mustInclude(apiModulesDoc, 'GET /api/v1/git/repos/{repo_id}/status', 'API module
 mustInclude(apiModulesDoc, 'backend-owned registry', 'API modules doc')
 mustInclude(readModelsDoc, 'git.repo_index', 'read models doc')
 mustInclude(readModelsDoc, 'git.repo_status', 'read models doc')
+mustInclude(readModelsDoc, 'git.commit_list', 'read models doc')
+mustInclude(readModelsDoc, 'git.branch_list', 'read models doc')
+mustInclude(readModelsDoc, 'El cuerpo libre del commit no forma parte del contrato público', 'read models doc')
 mustInclude(runtimeConfigDoc, 'Git control backend', 'runtime config doc')
 
 if (failures.length > 0) {

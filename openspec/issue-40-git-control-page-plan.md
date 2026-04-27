@@ -3,7 +3,8 @@
 ## Estado
 - Issue: [#40 Add Git control page for local repository history and diffs](https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/40)
 - Planificación: PR #88 cerrada.
-- Microfase 40.1: `zoro/issue-40-1-git-registry-status`, backend-only registry/status implementado.
+- Microfase 40.1: PR #89 mergeada; backend-only registry/status implementado.
+- Microfase 40.2: `zoro/issue-40-2-git-commits-branches`, backend-only commits/branches read model en implementación.
 - Tipo de fase: planificación SDD inicial + primera microfase backend runtime.
 - Fecha: 2026-04-27
 
@@ -64,7 +65,7 @@ La registry puede contener rutas absolutas internamente, pero esas rutas no debe
 - `GET /api/v1/git/repos`
   - Lista repos allowlisteados con rama actual, último commit resumido, estado clean/dirty, ahead/behind saneado si está disponible sin red, y `source_state`.
 - `GET /api/v1/git/repos/{repo_id}/commits?limit=&cursor=`
-  - Historial paginado con límite máximo bajo, hashes, autor/email opcionalmente saneado, fechas, asunto/body resumido y trailers.
+  - Historial paginado con límite máximo bajo, hashes, autor/email opcionalmente saneado, fechas, asunto y trailers; el cuerpo libre del commit se usa solo internamente para extraer trailers y no se publica.
 - `GET /api/v1/git/repos/{repo_id}/branches`
   - Ramas/refs locales allowlisted y rama actual; sin resolver refs arbitrarias desde cliente.
 - `GET /api/v1/git/repos/{repo_id}/commits/{sha}`
@@ -122,13 +123,15 @@ El API debe indicar `omitted_reason`, `truncated`, `redacted` y contadores; no d
 **Review:** Franky + Chopper.
 
 ### 40.2 — Backend commits + branches read model
+**Estado:** implementado en rama `zoro/issue-40-2-git-commits-branches`.
+
 **Objetivo:** listar commits recientes, trailers y ramas locales seguras.
 
-**Incluye:** `GET /commits`, `GET /branches`, parsing de trailers `Mugiwara-Agent`/`Signed-off-by`, límites de paginación, cursor seguro, validación de SHA/cursor.
+**Incluye:** `GET /api/v1/git/repos/{repo_id}/commits?limit=&cursor=`, `GET /api/v1/git/repos/{repo_id}/branches`, parsing de trailers `Mugiwara-Agent`/`Signed-off-by`, límites de paginación `1..50`, cursor opaco `offset:<n>`, validación estricta de cursor y ausencia de refs/SHA/revspecs cliente. Git mantiene hardening de 40.1 y añade solo subcomandos read-only `log` y `branch`.
 
-**No incluye:** diff content ni working tree diff.
+**No incluye:** diff content, commit detail por SHA, refs/remotes, working tree diff ni UI.
 
-**TDD/verify:** fixtures de repos temporales con trailers, mensajes multilinea, autores, ramas; rechazo de revspecs maliciosas; no leakage de paths/remotes; guardrail actualizado.
+**TDD/verify:** fixtures de repos temporales con trailers, mensajes multilinea, autores, ramas; rechazo de revspecs maliciosas vía cursor; no leakage de paths/remotes; guardrail actualizado.
 
 **Review:** Franky + Chopper.
 

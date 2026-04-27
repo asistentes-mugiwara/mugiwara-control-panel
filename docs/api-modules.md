@@ -99,10 +99,15 @@
 ### `git_control`
 - exponer `GET /api/v1/git/repos` como índice read-only de repositorios Git locales allowlisteados por una backend-owned registry
 - exponer `GET /api/v1/git/repos/{repo_id}/status` como estado resumido de un repo allowlisteado
+- exponer `GET /api/v1/git/repos/{repo_id}/commits?limit=&cursor=` como historial reciente paginado de commits saneados
+- exponer `GET /api/v1/git/repos/{repo_id}/branches` como listado de ramas locales saneadas
 - aceptar únicamente `repo_id` lógico desde cliente; nunca paths, URLs, remotes, comandos, refs arbitrarias ni revspecs
-- usar Git solo como lectura host-adjacent acotada para status summary, con `subprocess.run` en lista de argumentos, `shell=False`, `cwd` fijo, timeout, entorno mínimo y comandos read-only allowlisteados
+- validar `limit` como entero `1..50` y `cursor` como token opaco `offset:<n>`; no resolver revsets, SHA/ref cliente ni rangos arbitrarios
+- usar Git solo como lectura host-adjacent acotada para status, commits y ramas locales, con `subprocess.run` en lista de argumentos, `shell=False`, `cwd` fijo, timeout, entorno mínimo, config global/system nula y overrides `core.fsmonitor=false`/`core.hooksPath=/dev/null`
 - no ejecutar acciones destructivas ni remotas (`checkout`, `reset`, `commit`, `push`, `pull`, `fetch`, `stash`, `merge`, `rebase`)
-- no exponer rutas host, nombres de fichero, diffs, remotes privados, stdout/stderr, stack traces ni errores crudos
+- no exponer rutas host, nombres de fichero de status, diffs, remotes privados, stdout/stderr, stack traces ni errores crudos
+- commits serializan solo hashes, autor/email saneado, fechas, subject y trailers allowlisteados `Mugiwara-Agent`/`Signed-off-by`; el cuerpo libre del commit no se publica y solo se usa internamente para extraer esos trailers
+- branches serializa solo ramas locales con nombre saneado, `current`, sha y short_sha; no remotes ni refs arbitrarias
 - degradar repos ausentes/corruptos/ilegibles a `source_unavailable` con payload saneado
 - bloquear la frontera backend con `npm run verify:git-control-backend-policy`
 

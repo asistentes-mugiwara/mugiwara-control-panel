@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .domain import GitRepoStatus
-from .git_adapter import GitStatusAdapter
+from .domain import GIT_COMMITS_DEFAULT_LIMIT, GitRepoStatus
+from .git_adapter import GitInvalidCursor, GitInvalidLimit, GitReadAdapter
 from .registry import GitRepoDefinition, GitRepoRegistry, default_git_repo_registry
 
 
@@ -14,23 +14,48 @@ class GitControlService:
         self,
         *,
         registry: GitRepoRegistry | None = None,
-        status_adapter: GitStatusAdapter | None = None,
+        status_adapter: GitReadAdapter | None = None,
     ) -> None:
         self._registry = registry or default_git_repo_registry()
-        self._status_adapter = status_adapter or GitStatusAdapter()
+        self._read_adapter = status_adapter or GitReadAdapter()
 
     def list_repos(self) -> dict:
         repos = []
         for repo in self._registry.list_repos():
-            repos.append(_repo_index_entry(repo, self._status_adapter.read_status(repo)))
+            repos.append(_repo_index_entry(repo, self._read_adapter.read_status(repo)))
         return {'repos': repos}
 
     def get_repo_status(self, repo_id: str) -> dict:
         repo = self._registry.get(repo_id)
         if repo is None:
             raise GitRepoNotFound()
-        status = self._status_adapter.read_status(repo)
+        status = self._read_adapter.read_status(repo)
         return {'repo_id': repo.repo_id, 'status': status.to_public()}
+
+    def list_commits(self, repo_id: str, *, limit: int = GIT_COMMITS_DEFAULT_LIMIT, cursor: str | None = None) -> dict:
+        repo = self._registry.get(repo_id)
+        if repo is None:
+            raise GitRepoNotFound()
+        commits, next_cursor, source_state = self._read_adapter.list_commits(repo, limit=limit, cursor=cursor)
+        return {
+            'repo_id': repo.repo_id,
+            'commits': [commit.to_public() for commit in commits],
+            'limit': limit,
+            'next_cursor': next_cursor,
+            'source_state': source_state,
+        }
+
+    def list_branches(self, repo_id: str) -> dict:
+        repo = self._registry.get(repo_id)
+        if repo is None:
+            raise GitRepoNotFound()
+        branches, current_branch, source_state = self._read_adapter.list_branches(repo)
+        return {
+            'repo_id': repo.repo_id,
+            'current_branch': current_branch,
+            'branches': [branch.to_public() for branch in branches],
+            'source_state': source_state,
+        }
 
     @staticmethod
     def status_for_index(index: dict) -> str:
@@ -43,6 +68,18 @@ class GitControlService:
     def status_for_repo_status(status_payload: dict) -> str:
         status = status_payload.get('status') or {}
         if status.get('source_state') == 'live':
+            return 'ready'
+        return 'source_unavailable'
+
+    @staticmethod
+    def status_for_commit_list(commits_payload: dict) -> str:
+        if commits_payload.get('source_state') == 'live':
+            return 'ready'
+        return 'source_unavailable'
+
+    @staticmethod
+    def status_for_branch_list(branches_payload: dict) -> str:
+        if branches_payload.get('source_state') == 'live':
             return 'ready'
         return 'source_unavailable'
 
