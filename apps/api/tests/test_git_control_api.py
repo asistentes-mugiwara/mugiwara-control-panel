@@ -484,3 +484,226 @@ def test_git_read_model_invocations_stay_allowlisted_and_hardened(monkeypatch, t
         assert kwargs['env']['GIT_CONFIG_SYSTEM'] == '/dev/null'
         assert kwargs['env']['GIT_CONFIG_NOSYSTEM'] == '1'
         assert not any(command in args for command in ['checkout', 'reset', 'commit', 'push', 'pull', 'fetch', 'stash', 'merge', 'rebase'])
+
+
+
+def test_git_commit_detail_returns_metadata_and_safe_file_stats_without_body_or_sensitive_paths(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    repo = _make_repo(tmp_path / 'detail-private-repo')
+    sha = _commit_file(
+        repo,
+        'safe-detail.md',
+        'public line\nsecond line\n',
+        'feat: add safe detail',
+        'Body with SYNTHETIC-SECRET-COMMIT-BODY-MARKER\n\nMugiwara-Agent: zoro\nSigned-off-by: zoro <asistentes.mugiwara@gmail.com>',
+    )
+    _commit_file(repo, '.env', 'TOKEN=super-secret-value\n', 'chore: add sensitive fixture')
+    registry = GitRepoRegistry(
+        repos=(GitRepoDefinition(repo_id='fixture-detail', label='Fixture detail repository', scope='test', path=repo),)
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get(f'/api/v1/git/repos/fixture-detail/commits/{sha}?path=/srv/private&ref=HEAD')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'git.commit_detail'
+    assert payload['status'] == 'ready'
+    assert payload['meta']['read_only'] is True
+    assert payload['meta']['sanitized'] is True
+    assert payload['data']['repo_id'] == 'fixture-detail'
+    assert payload['data']['source_state'] == 'live'
+    commit = payload['data']['commit']
+    assert commit['sha'] == sha
+    assert commit['subject'] == 'feat: add safe detail'
+    assert commit['trailers'] == {
+        'mugiwara_agent': 'zoro',
+        'signed_off_by': 'zoro <asistentes.mugiwara@gmail.com>',
+    }
+    assert 'body' not in commit
+    assert payload['data']['files'] == [
+        {
+            'path': 'safe-detail.md',
+            'change_type': 'added',
+            'additions': 2,
+            'deletions': 0,
+            'binary': False,
+            'omitted': False,
+            'omitted_reason': None,
+        }
+    ]
+    assert 'SYNTHETIC-SECRET-COMMIT-BODY-MARKER' not in response.text
+    assert '/srv/private' not in response.text
+    assert '.env' not in response.text
+    assert 'super-secret-value' not in response.text
+    _assert_no_leakage(payload)
+
+
+def test_git_commit_detail_rejects_invalid_sha_without_echoing_revspec(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    repo = _make_repo(tmp_path / 'invalid-sha-private-repo')
+    registry = GitRepoRegistry(
+        repos=(GitRepoDefinition(repo_id='fixture-invalid-sha', label='Fixture invalid sha repository', scope='test', path=repo),)
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get('/api/v1/git/repos/fixture-invalid-sha/commits/HEAD..main:private-token')
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload['detail'] == {
+        'code': 'git_invalid_sha',
+        'message': 'Invalid commit identifier.',
+    }
+    assert 'HEAD' not in response.text
+    assert 'private-token' not in response.text
+    _assert_no_leakage(payload)
+
+
+def test_git_commit_diff_redacts_omits_and_truncates_deny_by_default(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    repo = _make_repo(tmp_path / 'diff-private-repo')
+    safe_content = '\n'.join(
+        [
+            'visible public line',
+            'Authorization: Bearer SYNTHETIC-TOKEN-MARKER',
+            'host path /srv/crew-core/private should be hidden',
+            *[f'long public line {index}' for index in range(160)],
+        ]
+    ) + '\n'
+    sha = _commit_file(repo, 'safe-diff.md', safe_content, 'feat: add safe diff')
+    _commit_file(repo, '.env', 'TOKEN=super-secret-value\n', 'chore: add env fixture')
+    registry = GitRepoRegistry(
+        repos=(GitRepoDefinition(repo_id='fixture-diff', label='Fixture diff repository', scope='test', path=repo),)
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get(f'/api/v1/git/repos/fixture-diff/commits/{sha}/diff?path=/srv/private&command=show')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'git.commit_diff'
+    assert payload['status'] == 'ready'
+    assert payload['data']['repo_id'] == 'fixture-diff'
+    assert payload['data']['sha'] == sha
+    assert payload['data']['source_state'] == 'live'
+    assert payload['data']['redacted'] is True
+    assert payload['data']['truncated'] is True
+    assert payload['data']['omitted_files_count'] == 0
+    assert len(payload['data']['files']) == 1
+    diff_file = payload['data']['files'][0]
+    assert diff_file['path'] == 'safe-diff.md'
+    assert diff_file['omitted'] is False
+    assert diff_file['redacted'] is True
+    assert diff_file['truncated'] is True
+    rendered_lines = '\n'.join(line['content'] for line in diff_file['lines'])
+    assert 'visible public line' in rendered_lines
+    assert '[redacted]' in rendered_lines
+    assert 'SYNTHETIC-TOKEN-MARKER' not in response.text
+    assert '/srv/crew-core/private' not in response.text
+    assert 'long public line 159' not in response.text
+    assert '/srv/private' not in response.text
+    _assert_no_leakage(payload)
+
+
+def test_git_commit_diff_omits_sensitive_paths_and_binary_content(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    repo = _make_repo(tmp_path / 'sensitive-diff-private-repo')
+    (repo / '.env').write_text('TOKEN=super-secret-value\n', encoding='utf-8')
+    (repo / 'data.sqlite').write_bytes(b'\x00\x01sqlite private bytes')
+    _git(repo, 'add', '.env', 'data.sqlite')
+    _git(repo, 'commit', '-m', 'chore: add sensitive files')
+    sha = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ).stdout.strip()
+    registry = GitRepoRegistry(
+        repos=(GitRepoDefinition(repo_id='fixture-sensitive-diff', label='Fixture sensitive diff repository', scope='test', path=repo),)
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get(f'/api/v1/git/repos/fixture-sensitive-diff/commits/{sha}/diff')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['data']['omitted_files_count'] == 2
+    assert payload['data']['files'] == [
+        {
+            'path': None,
+            'change_type': 'added',
+            'additions': 1,
+            'deletions': 0,
+            'binary': False,
+            'omitted': True,
+            'omitted_reason': 'sensitive_path',
+            'truncated': False,
+            'redacted': False,
+            'lines': [],
+        },
+        {
+            'path': None,
+            'change_type': 'modified',
+            'additions': None,
+            'deletions': None,
+            'binary': True,
+            'omitted': True,
+            'omitted_reason': 'sensitive_path',
+            'truncated': False,
+            'redacted': False,
+            'lines': [],
+        },
+    ]
+    assert '.env' not in response.text
+    assert 'data.sqlite' not in response.text
+    assert 'super-secret-value' not in response.text
+    assert 'sqlite private bytes' not in response.text
+    _assert_no_leakage(payload)
+
+
+def test_git_detail_and_diff_invocations_stay_allowlisted_and_hardened(monkeypatch, tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.git_adapter import GitReadAdapter
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition
+
+    sha = 'a' * 40
+    captured: list[dict[str, Any]] = []
+
+    def fake_run(args, **kwargs):
+        captured.append({'args': args, 'kwargs': kwargs})
+        if '--numstat' in args:
+            return SimpleNamespace(stdout='safe.md\x1f1\x1f0\x1fadded\x1e')
+        if '--patch' in args:
+            return SimpleNamespace(stdout='diff --git a/safe.md b/safe.md\nnew file mode 100644\n--- /dev/null\n+++ b/safe.md\n@@ -0,0 +1 @@\n+visible\n')
+        return SimpleNamespace(stdout=f'{sha}\x1faaaaaaaaaaaa\x1ffixture\x1ffixture@example.invalid\x1f2026-04-27T10:00:00+00:00\x1f2026-04-27T10:00:00+00:00\x1ffeat: safe\x1fMugiwara-Agent: zoro\n\x1e')
+
+    monkeypatch.setattr('apps.api.src.modules.git_control.git_adapter.subprocess.run', fake_run)
+    adapter = GitReadAdapter()
+    repo = GitRepoDefinition(repo_id='fixture-policy', label='Fixture policy repository', scope='test', path=tmp_path)
+
+    adapter.get_commit_detail(repo, sha=sha)
+    adapter.get_commit_diff(repo, sha=sha)
+
+    assert len(captured) == 4
+    for call in captured:
+        args = call['args']
+        kwargs = call['kwargs']
+        assert args[0] == 'git'
+        assert '--no-optional-locks' in args
+        assert 'core.fsmonitor=false' in args
+        assert 'core.hooksPath=/dev/null' in args
+        assert '--no-ext-diff' in args
+        assert sha in args
+        assert kwargs['shell'] is False
+        assert kwargs['cwd'] == tmp_path
+        assert kwargs['timeout'] == 2.0
+        assert kwargs['env']['GIT_CONFIG_GLOBAL'] == '/dev/null'
+        assert kwargs['env']['GIT_CONFIG_SYSTEM'] == '/dev/null'
+        assert kwargs['env']['GIT_CONFIG_NOSYSTEM'] == '1'
+        assert not any(command in args for command in ['checkout', 'reset', 'commit', 'push', 'pull', 'fetch', 'stash', 'merge', 'rebase'])

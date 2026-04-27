@@ -4,8 +4,8 @@
 - Issue: [#40 Add Git control page for local repository history and diffs](https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/40)
 - Planificación: PR #88 cerrada.
 - Microfase 40.1: PR #89 mergeada; backend-only registry/status implementado.
-- Microfase 40.2: `zoro/issue-40-2-git-commits-branches`, backend-only commits/branches read model en implementación.
-- Tipo de fase: planificación SDD inicial + primera microfase backend runtime.
+- Microfase 40.2: PR #90 mergeada; backend-only commits/branches read model implementado.
+- Tipo de fase: planificación SDD inicial + microfases backend runtime.
 - Fecha: 2026-04-27
 
 ## Objetivo
@@ -69,9 +69,9 @@ La registry puede contener rutas absolutas internamente, pero esas rutas no debe
 - `GET /api/v1/git/repos/{repo_id}/branches`
   - Ramas/refs locales allowlisted y rama actual; sin resolver refs arbitrarias desde cliente.
 - `GET /api/v1/git/repos/{repo_id}/commits/{sha}`
-  - Detalle de commit con metadata, trailers y lista de archivos tocados con stats.
+  - Detalle de commit con metadata, trailers y lista de archivos tocados con stats; SHA completo hex validado, sin refs/rangos/revspecs.
 - `GET /api/v1/git/repos/{repo_id}/commits/{sha}/diff`
-  - Diff unificado seguro, truncado por archivo y total, con archivos sensibles omitidos/redactados.
+  - Diff unificado seguro, truncado por archivo y total, con paths sensibles y binarios omitidos, y líneas permitidas redactadas si contienen tokens/rutas host.
 - `GET /api/v1/git/repos/{repo_id}/status`
   - Working tree read-only. Primero summary/status; diff del working tree solo tras cerrar política de redacción equivalente a commit diff.
 
@@ -136,13 +136,15 @@ El API debe indicar `omitted_reason`, `truncated`, `redacted` y contadores; no d
 **Review:** Franky + Chopper.
 
 ### 40.3 — Backend commit detail + safe diff
+**Estado:** implementado en rama `zoro/issue-40-3-commit-detail-safe-diff`.
+
 **Objetivo:** exponer detalle de commit y diff seguro/truncado.
 
-**Incluye:** stats por archivo, binary detection, límites por archivo/total, omisión por path sensible, redacción por contenido, `truncated/redacted/omitted_reason` explícitos.
+**Incluye:** `GET /api/v1/git/repos/{repo_id}/commits/{sha}` y `GET /api/v1/git/repos/{repo_id}/commits/{sha}/diff`, stats por archivo, binary detection, límites por archivo/total, omisión por path sensible, redacción por contenido y `truncated/redacted/omitted_reason` explícitos. El SHA aceptado es completo hex SHA-1/SHA-256 devuelto por backend, no refs ni revspecs.
 
-**No incluye:** working tree diff ni UI completa.
+**No incluye:** working tree diff, UI completa, refs/rangos arbitrarios ni cuerpo libre de commits.
 
-**TDD/verify:** tests con `.env`, DB/log/binario, diff grande, contenido con token sintético, SHA inválido, path traversal/revspec malicioso; scan recursivo del payload público.
+**TDD/verify:** tests con `.env`, DB/binario, diff grande, contenido con token sintético, SHA inválido/revspec malicioso y scan recursivo del payload público; `py_compile`; `PYTHONPATH=. pytest apps/api/tests/test_git_control_api.py -q`; `npm run verify:git-control-backend-policy`; `npm run verify:perimeter-policy`; `git diff --check`.
 
 **Review:** Franky + Chopper obligatorio.
 

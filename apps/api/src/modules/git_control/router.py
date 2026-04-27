@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from ...shared.contracts import resource_response
 from .domain import GIT_COMMITS_DEFAULT_LIMIT, GIT_CONTROL_SOURCE_LABEL
-from .git_adapter import GitInvalidCursor, GitInvalidLimit
+from .git_adapter import GitInvalidCursor, GitInvalidLimit, GitInvalidSha
 from .service import GitControlService, GitRepoNotFound
 
 router = APIRouter(prefix='/api/v1/git', tags=['git_control'])
@@ -67,6 +67,38 @@ def list_git_repo_commits(
         meta=_git_meta(),
     )
 
+
+
+@router.get('/repos/{repo_id}/commits/{sha}/diff')
+def get_git_commit_diff(repo_id: str, sha: str, service: GitControlService = Depends(get_git_control_service)):
+    try:
+        diff_payload = service.get_commit_diff(repo_id, sha=sha)
+    except GitRepoNotFound:
+        return _git_repo_not_found_response()
+    except GitInvalidSha:
+        return _git_validation_error_response('git_invalid_sha', 'Invalid commit identifier.')
+    return resource_response(
+        resource='git.commit_diff',
+        status=service.status_for_commit_diff(diff_payload),
+        data=diff_payload,
+        meta=_git_meta(),
+    )
+
+
+@router.get('/repos/{repo_id}/commits/{sha}')
+def get_git_commit_detail(repo_id: str, sha: str, service: GitControlService = Depends(get_git_control_service)):
+    try:
+        detail_payload = service.get_commit_detail(repo_id, sha=sha)
+    except GitRepoNotFound:
+        return _git_repo_not_found_response()
+    except GitInvalidSha:
+        return _git_validation_error_response('git_invalid_sha', 'Invalid commit identifier.')
+    return resource_response(
+        resource='git.commit_detail',
+        status=service.status_for_commit_detail(detail_payload),
+        data=detail_payload,
+        meta=_git_meta(),
+    )
 
 @router.get('/repos/{repo_id}/branches')
 def list_git_repo_branches(repo_id: str, service: GitControlService = Depends(get_git_control_service)):

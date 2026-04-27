@@ -8,6 +8,10 @@ GIT_CONTROL_SOURCE_LABEL = 'backend-owned-git-registry'
 GIT_COMMAND_TIMEOUT_SECONDS = 2.0
 GIT_COMMITS_DEFAULT_LIMIT = 25
 GIT_COMMITS_MAX_LIMIT = 50
+GIT_DIFF_MAX_FILES = 25
+GIT_DIFF_MAX_LINES_PER_FILE = 120
+GIT_DIFF_MAX_TOTAL_LINES = 400
+GIT_DIFF_MAX_LINE_LENGTH = 240
 GIT_CURSOR_PATTERN = re.compile(r'^offset:(0|[1-9][0-9]{0,5})$')
 GIT_SHA_PATTERN = re.compile(r'^[0-9a-f]{40}$|^[0-9a-f]{64}$')
 GIT_MINIMAL_ENV = {
@@ -24,7 +28,7 @@ GIT_SAFE_CONFIG_ARGS = (
     '-c',
     'core.hooksPath=/dev/null',
 )
-READ_ONLY_GIT_COMMANDS = frozenset({'status', 'log', 'branch'})
+READ_ONLY_GIT_COMMANDS = frozenset({'status', 'log', 'branch', 'show'})
 FORBIDDEN_GIT_COMMANDS = frozenset(
     {
         'checkout',
@@ -111,3 +115,44 @@ class GitBranchSummary:
             'sha': self.sha,
             'short_sha': self.short_sha,
         }
+
+
+@dataclass(frozen=True)
+class GitCommitFileSummary:
+    path: str | None
+    change_type: str
+    additions: int | None
+    deletions: int | None
+    binary: bool
+    omitted: bool
+    omitted_reason: str | None
+
+    def to_public(self) -> dict:
+        return {
+            'path': self.path,
+            'change_type': self.change_type,
+            'additions': self.additions,
+            'deletions': self.deletions,
+            'binary': self.binary,
+            'omitted': self.omitted,
+            'omitted_reason': self.omitted_reason,
+        }
+
+
+@dataclass(frozen=True)
+class GitCommitDiffFile:
+    summary: GitCommitFileSummary
+    truncated: bool
+    redacted: bool
+    lines: tuple[dict[str, str], ...]
+
+    def to_public(self) -> dict:
+        payload = self.summary.to_public()
+        payload.update(
+            {
+                'truncated': self.truncated,
+                'redacted': self.redacted,
+                'lines': list(self.lines),
+            }
+        )
+        return payload
