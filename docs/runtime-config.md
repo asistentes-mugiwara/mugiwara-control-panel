@@ -23,6 +23,59 @@ Guardarraíl de este contrato:
 npm run verify:perimeter-policy
 ```
 
+
+## Servicio privado persistente por Tailscale
+`mugiwara-control-panel` puede instalarse como dos servicios `systemd --user` para uso permanente privado:
+
+- `mugiwara-control-panel-api.service`: FastAPI, loopback-only en `127.0.0.1:8011`.
+- `mugiwara-control-panel-web.service`: Next.js production, accesible por Tailscale en `<tailscale-ip>:3017` en este host.
+
+Instalación:
+
+```bash
+scripts/install-control-panel-user-services.sh
+```
+
+URL privada actual:
+
+```text
+http://<tailscale-ip>:3017
+http://<magicdns-host>:3017
+```
+
+Contrato de seguridad:
+
+1. La API no se expone por Tailscale ni por LAN; escucha solo en loopback.
+2. La web consume `MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011` solo server-side.
+3. El runner web detecta la IPv4 de Tailscale y rechaza bind wildcard (`0.0.0.0`/`::`).
+4. Esto sigue siendo `internet-public: unsupported`: no usa Tailscale Funnel, no abre puertos públicos ni añade auth pública/rate-limit.
+5. Si Tailscale no está disponible, el servicio web falla y systemd reintenta, en vez de caer silenciosamente a exposición pública.
+
+Guardarraíl:
+
+```bash
+npm run verify:control-panel-service-runner
+```
+
+Prerrequisito de arranque tras reboot:
+
+```bash
+loginctl show-user "$(id -un)" -p Linger
+```
+
+Debe devolver `Linger=yes` para que los servicios user-level puedan levantarse tras boot sin login interactivo.
+
+Rollback operativo:
+
+```bash
+systemctl --user disable --now mugiwara-control-panel-api.service mugiwara-control-panel-web.service
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/mugiwara-control-panel-api.service"
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/mugiwara-control-panel-web.service"
+systemctl --user daemon-reload
+```
+
+Si cambia la IP Tailscale del host, actualizar este documento, `openspec/control-panel-tailscale-service.md` y el guardarraíl `verify:control-panel-service-runner` antes de declarar válido el nuevo endpoint privado.
+
 ## Variables actuales
 
 | Variable | Consumidor | Exposición | Uso |

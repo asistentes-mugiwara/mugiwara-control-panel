@@ -1,0 +1,25 @@
+[Unit]
+Description=Mugiwara Control Panel private Tailscale web service
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+Wants=mugiwara-control-panel-api.service
+After=mugiwara-control-panel-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env bash scripts/run-control-panel-web.sh
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+
+# Private v1 contract: web binds to Tailscale IPv4 by default and talks to API on loopback.
+Environment=MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011
+Environment=MUGIWARA_CONTROL_PANEL_WEB_PORT=3017
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=default.target
