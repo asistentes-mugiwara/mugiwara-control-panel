@@ -10,6 +10,7 @@ from .modules.healthcheck.router import router as healthcheck_router
 from .modules.dashboard.router import router as dashboard_router
 from .modules.usage.router import router as usage_router
 from .modules.system.router import router as system_router
+from .modules.git_control.router import router as git_control_router
 
 SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -67,6 +68,7 @@ app.include_router(healthcheck_router)
 app.include_router(dashboard_router)
 app.include_router(usage_router)
 app.include_router(system_router)
+app.include_router(git_control_router)
 
 
 @app.get('/health')

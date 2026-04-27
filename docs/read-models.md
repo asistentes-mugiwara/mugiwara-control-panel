@@ -168,6 +168,34 @@ Uso:
 - sin `NEXT_PUBLIC_*`, sin fetch browser directo al backend interno y sin proxy genérico; `AppShell`/`Topbar` reciben solo props serializables saneadas
 - fijar la frontera completa con `npm run verify:system-metrics-backend-policy` y `npm run verify:system-metrics-server-only`
 
+### `git.repo_index`
+Campos esperados:
+- `repos[]` con `repo_id`, `label`, `scope` y `status`
+- `status.source_state` (`live` o `unknown`)
+- `status.working_tree` (`clean`, `dirty` o `unknown`)
+- conteos resumidos `changed_files_count` y `untracked_files_count`
+- `current_branch` saneada o `null`
+
+Uso:
+- listar únicamente repositorios Git configurados en registry backend-owned
+- el cliente nunca envía ni recibe paths; opera solo con `repo_id`
+- sin discovery arbitrario, remotes, diffs, filenames, stdout/stderr ni errores crudos
+
+### `git.repo_status`
+Campos esperados:
+- `repo_id`
+- `status.source_state`
+- `status.working_tree`
+- `status.changed_files_count`
+- `status.untracked_files_count`
+- `status.current_branch`
+
+Uso:
+- estado read-only resumido de un repo allowlisteado
+- `dirty` solo indica conteos; no serializa nombres de archivo ni contenido
+- repos ilegibles/no Git degradan a `source_unavailable` con `unknown` y campos nulos
+- no hay commits, branches, diffs ni working-tree diff en esta microfase
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

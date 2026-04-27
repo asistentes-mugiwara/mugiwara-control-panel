@@ -2,8 +2,9 @@
 
 ## Estado
 - Issue: [#40 Add Git control page for local repository history and diffs](https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/40)
-- Rama de planificación: `zoro/issue-40-git-control-page-planning`
-- Tipo de fase: planificación SDD inicial, sin implementación runtime
+- Planificación: PR #88 cerrada.
+- Microfase 40.1: `zoro/issue-40-1-git-registry-status`, backend-only registry/status implementado.
+- Tipo de fase: planificación SDD inicial + primera microfase backend runtime.
 - Fecha: 2026-04-27
 
 ## Objetivo
@@ -108,9 +109,11 @@ El API debe indicar `omitted_reason`, `truncated`, `redacted` y contadores; no d
 ## Microfases recomendadas
 
 ### 40.1 — Backend registry + repo/status foundation
+**Estado:** implementado en rama `zoro/issue-40-1-git-registry-status`.
+
 **Objetivo:** crear módulo Git read-only con registry backend-owned y endpoint `GET /api/v1/git/repos` + `status` resumido, sin diffs.
 
-**Incluye:** allowlist de repos, validación de repo IDs, adaptación Git read-only con timeout/errores saneados, branch actual, último commit, estado dirty resumido, ahead/behind solo contra upstream local si no requiere red.
+**Incluye:** allowlist de repos, validación de repo IDs, adaptación Git read-only con timeout/errores saneados, branch actual saneada y estado dirty resumido con conteos. No calcula ahead/behind todavía para evitar semántica remota/local antes de cerrar la siguiente microfase.
 
 **No incluye:** commit detail, diff content, frontend visible salvo docs/contracts.
 

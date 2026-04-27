@@ -166,6 +166,19 @@ Este check confirma que el header mantiene:
 - ausencia de fetch/env/backend URL en `AppShell`/`Topbar`;
 - fallback saneado sin errores crudos ni rutas host.
 
+## Git control backend
+Issue #40.1 añade solo backend `GET /api/v1/git/repos` y `GET /api/v1/git/repos/{repo_id}/status`.
+
+1. No requiere variable runtime nueva: la registry Git es backend-owned y deny-by-default.
+2. El cliente opera solo con `repo_id`; no existen parámetros `path`, `url`, `remote`, `command`, `ref` ni `revspec`.
+3. Las rutas reales de la registry pueden existir internamente en backend, pero no se serializan en API, UI, logs públicos, errores ni docs públicas.
+4. La lectura Git es status-only: no hay commits, branches, diffs ni acciones remotas/destructivas en esta microfase.
+5. Antes de cerrar cambios que toquen esta frontera, ejecutar:
+
+```bash
+npm run verify:git-control-backend-policy
+```
+
 ## Decisiones relacionadas
 La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`, la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`, Vault vive en `openspec/phase-12-4-vault-readonly-api.md` y Health/Dashboard en `openspec/phase-12-5-health-dashboard-aggregation.md`.
 
