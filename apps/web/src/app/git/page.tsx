@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { redirect } from 'next/navigation'
+
 import type { GitBranchList, GitCommitDetail, GitCommitDiff, GitCommitList, GitCommitSummary, GitRepoIndex, GitRepoSummary } from '@contracts/read-models'
 
 import {
@@ -41,9 +43,24 @@ type GitPageData = {
   commitDetail: GitCommitDetail
   commitDiff: GitCommitDiff
   notice: GitPageNotice | null
+  selection: {
+    repoId: string | null
+    sha: string | null
+    requestedRepoAccepted: boolean
+    requestedShaAccepted: boolean
+  }
+}
+
+type GitPageSearchParams = Promise<Record<string, string | string[] | undefined>>
+
+type GitPageProps = {
+  searchParams?: GitPageSearchParams
 }
 
 function getFallbackData(notice: GitPageNotice): GitPageData {
+  const fallbackRepo = gitRepoIndexFixture.repos[0] ?? null
+  const fallbackCommit = gitCommitListFixture.commits[0] ?? null
+
   return {
     repoIndex: gitRepoIndexFixture,
     commits: gitCommitListFixture,
@@ -51,16 +68,55 @@ function getFallbackData(notice: GitPageNotice): GitPageData {
     commitDetail: gitCommitDetailFixture,
     commitDiff: gitCommitDiffFixture,
     notice,
+    selection: {
+      repoId: fallbackRepo?.repo_id ?? null,
+      sha: fallbackCommit?.sha ?? null,
+      requestedRepoAccepted: false,
+      requestedShaAccepted: false,
+    },
   }
 }
 
-async function getGitPageData(): Promise<GitPageData> {
+function getSingleSearchParam(searchParams: Record<string, string | string[] | undefined>, key: 'repo_id' | 'sha') {
+  const value = searchParams[key]
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value[0]
+  return undefined
+}
+
+function hasUnsupportedGitSearchParams(searchParams: Record<string, string | string[] | undefined>) {
+  return Object.keys(searchParams).some((key) => key !== 'repo_id' && key !== 'sha')
+}
+
+function isNextRedirectError(error: unknown) {
+  return Boolean(
+    error &&
+    typeof error === 'object' &&
+    'digest' in error &&
+    String((error as { digest?: unknown }).digest).startsWith('NEXT_REDIRECT'),
+  )
+}
+
+async function getGitPageData(searchParams: Record<string, string | string[] | undefined>): Promise<GitPageData> {
+  const requestedRepoId = getSingleSearchParam(searchParams, 'repo_id')
+  const requestedSha = getSingleSearchParam(searchParams, 'sha')
+  const unsupportedSearchParams = hasUnsupportedGitSearchParams(searchParams)
+
+  if (unsupportedSearchParams) {
+    redirect('/git')
+  }
+
   try {
     const reposResponse = await fetchGitRepos()
     const repoIndex = reposResponse.data
-    const selectedRepo = repoIndex.repos[0]
+    const selectedRepo = repoIndex.repos.find((repo) => repo.repo_id === requestedRepoId) ?? repoIndex.repos[0]
+    const requestedRepoAccepted = Boolean(requestedRepoId && selectedRepo?.repo_id === requestedRepoId)
 
     if (reposResponse.status !== 'ready' || !selectedRepo) {
+      if (requestedRepoId || requestedSha) {
+        redirect('/git')
+      }
+
       return getFallbackData({
         status: 'revision',
         title: 'Repos Git en modo fallback local',
@@ -69,11 +125,20 @@ async function getGitPageData(): Promise<GitPageData> {
       })
     }
 
+    if (requestedRepoId && !requestedRepoAccepted) {
+      redirect(gitRepoHref(selectedRepo.repo_id))
+    }
+
     const commitsResponse = await fetchGitCommits(selectedRepo.repo_id)
     const branchesResponse = await fetchGitBranches(selectedRepo.repo_id)
-    const selectedCommit = commitsResponse.data.commits[0]
+    const selectedCommit = commitsResponse.data.commits.find((commit) => commit.sha === requestedSha) ?? commitsResponse.data.commits[0]
+    const requestedShaAccepted = Boolean(requestedSha && selectedCommit?.sha === requestedSha)
 
     if (!selectedCommit || commitsResponse.status !== 'ready') {
+      if (requestedSha) {
+        redirect(gitRepoHref(selectedRepo.repo_id))
+      }
+
       return {
         repoIndex,
         commits: commitsResponse.data,
@@ -86,7 +151,21 @@ async function getGitPageData(): Promise<GitPageData> {
           description: 'La página mantiene índice y ramas saneadas, pero no muestra detalle ni diff porque el backend no devolvió commits listos.',
           detail: `Estado técnico: ${commitsResponse.status}`,
         },
+        selection: {
+          repoId: selectedRepo.repo_id,
+          sha: null,
+          requestedRepoAccepted,
+          requestedShaAccepted: false,
+        },
       }
+    }
+
+    if (unsupportedSearchParams) {
+      redirect(gitCommitHref(selectedRepo.repo_id, selectedCommit.sha))
+    }
+
+    if (requestedSha && !requestedShaAccepted) {
+      redirect(gitRepoHref(selectedRepo.repo_id))
     }
 
     const detailResponse = await fetchGitCommitDetail(selectedRepo.repo_id, selectedCommit.sha)
@@ -99,8 +178,20 @@ async function getGitPageData(): Promise<GitPageData> {
       commitDetail: detailResponse.data,
       commitDiff: diffResponse.data,
       notice: null,
+      selection: {
+        repoId: selectedRepo.repo_id,
+        sha: selectedCommit.sha,
+        requestedRepoAccepted,
+        requestedShaAccepted,
+      },
     }
   } catch (error) {
+    if (isNextRedirectError(error)) throw error
+
+    if (requestedRepoId || requestedSha) {
+      redirect('/git')
+    }
+
     const apiError = error instanceof GitApiError ? error : null
     return getFallbackData({
       status: apiError?.code === 'not_configured' ? 'revision' : 'incidencia',
@@ -117,6 +208,16 @@ async function getGitPageData(): Promise<GitPageData> {
       detail: apiError?.code ? `Estado técnico: ${apiError.code}` : undefined,
     })
   }
+}
+
+function gitRepoHref(repoId: string) {
+  const params = new URLSearchParams({ repo_id: repoId })
+  return `/git?${params.toString()}`
+}
+
+function gitCommitHref(repoId: string, sha: string) {
+  const params = new URLSearchParams({ repo_id: repoId, sha })
+  return `/git?${params.toString()}`
 }
 
 function formatTimestamp(value: string | null | undefined) {
@@ -170,57 +271,64 @@ function Pill({ children }: { children: ReactNode }) {
 
 function RepoCard({ repo, selected }: { repo: GitRepoSummary; selected: boolean }) {
   return (
-    <SurfaceCard title={repo.label} eyebrow={selected ? 'Repo seleccionado por backend' : 'Repo allowlisteado'} accent={selected ? 'sky' : undefined}>
-      <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <StatusBadge status={statusForRepo(repo)} label={workingTreeCopy(repo)} />
-          <Pill>{repo.scope}</Pill>
-          <Pill>repo_id: {repo.repo_id}</Pill>
+    <a className="git-selector-link" href={gitRepoHref(repo.repo_id)} aria-current={selected ? 'true' : undefined}>
+      <SurfaceCard title={repo.label} eyebrow={selected ? 'Repo seleccionado' : 'Repo allowlisteado'} accent={selected ? 'sky' : undefined}>
+        <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {selected ? <StatusBadge status="operativo" label="Seleccionado" /> : null}
+            <StatusBadge status={statusForRepo(repo)} label={workingTreeCopy(repo)} />
+            <Pill>{repo.scope}</Pill>
+            <Pill>repo_id: {repo.repo_id}</Pill>
+          </div>
+          <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
+            Solo lectura. La UI no conoce rutas del host ni remotes; usa únicamente el identificador lógico devuelto por backend.
+          </p>
+          <dl className="git-metric-list">
+            <div>
+              <dt>Rama actual</dt>
+              <dd>{repo.status.current_branch ?? 'No disponible'}</dd>
+            </div>
+            <div>
+              <dt>Cambios</dt>
+              <dd>{repo.status.changed_files_count ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>No trackeados</dt>
+              <dd>{repo.status.untracked_files_count ?? '—'}</dd>
+            </div>
+          </dl>
         </div>
-        <p className="text-break" style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-          Solo lectura. La UI no conoce rutas del host ni remotes; usa únicamente el identificador lógico devuelto por backend.
-        </p>
-        <dl className="git-metric-list">
-          <div>
-            <dt>Rama actual</dt>
-            <dd>{repo.status.current_branch ?? 'No disponible'}</dd>
-          </div>
-          <div>
-            <dt>Cambios</dt>
-            <dd>{repo.status.changed_files_count ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>No trackeados</dt>
-            <dd>{repo.status.untracked_files_count ?? '—'}</dd>
-          </div>
-        </dl>
-      </div>
-    </SurfaceCard>
+      </SurfaceCard>
+    </a>
   )
 }
 
-function CommitItem({ commit, selected }: { commit: GitCommitSummary; selected: boolean }) {
+function CommitItem({ commit, selected, repoId }: { commit: GitCommitSummary; selected: boolean; repoId: string }) {
   return (
     <li className={`git-commit-row${selected ? ' git-commit-row--selected' : ''}`}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', minWidth: 0 }}>
-        <strong className="text-break" style={{ color: appTheme.colors.textPrimary }}>{commit.subject}</strong>
-        <code className="git-inline-code">{commit.short_sha}</code>
-      </div>
-      <p className="text-break" style={{ margin: '8px 0 0', color: appTheme.colors.textSecondary }}>
-        {commit.author_name} · {formatTimestamp(commit.committed_at)}
-      </p>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
-        <Pill>Mugiwara-Agent: {commit.trailers.mugiwara_agent ?? 'sin trailer'}</Pill>
-        <Pill>Signed-off-by: {commit.trailers.signed_off_by ? 'presente' : 'sin trailer'}</Pill>
-      </div>
+      <a className="git-selector-link git-commit-link" href={gitCommitHref(repoId, commit.sha)} aria-current={selected ? 'true' : undefined}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', minWidth: 0 }}>
+          <strong className="text-break" style={{ color: appTheme.colors.textPrimary }}>{commit.subject}</strong>
+          <code className="git-inline-code">{commit.short_sha}</code>
+        </div>
+        <p className="text-break" style={{ margin: '8px 0 0', color: appTheme.colors.textSecondary }}>
+          {commit.author_name} · {formatTimestamp(commit.committed_at)}
+        </p>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+          {selected ? <StatusBadge status="operativo" label="Commit seleccionado" /> : null}
+          <Pill>Mugiwara-Agent: {commit.trailers.mugiwara_agent ?? 'sin trailer'}</Pill>
+          <Pill>Signed-off-by: {commit.trailers.signed_off_by ? 'presente' : 'sin trailer'}</Pill>
+        </div>
+      </a>
     </li>
   )
 }
 
-export default async function GitPage() {
-  const { repoIndex, commits, branches, commitDetail, commitDiff, notice } = await getGitPageData()
-  const selectedRepo = repoIndex.repos[0]
-  const selectedCommit = commitDetail.commit ?? commits.commits[0] ?? null
+export default async function GitPage({ searchParams }: GitPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const { repoIndex, commits, branches, commitDetail, commitDiff, notice, selection } = await getGitPageData(resolvedSearchParams)
+  const selectedRepo = repoIndex.repos.find((repo) => repo.repo_id === selection.repoId) ?? repoIndex.repos[0]
+  const selectedCommit = commitDetail.commit ?? commits.commits.find((commit) => commit.sha === selection.sha) ?? commits.commits[0] ?? null
   const isSnapshotMode = Boolean(notice)
   const hasDenseBranches = branches.branches.length > 8
 
@@ -229,9 +337,9 @@ export default async function GitPage() {
       <PageHeader
         eyebrow="Repos Git"
         title="Repos Git"
-        subtitle="Lectura server-only de repositorios allowlisteados: historial, ramas locales, detalle de commit y diff histórico saneado. Sin operaciones mutables ni rutas cliente."
+        subtitle="Lectura server-only de repositorios allowlisteados con selección controlada por enlaces: historial, ramas locales, detalle de commit y diff histórico saneado. Sin operaciones mutables ni rutas cliente."
         mugiwaraSlug="zoro"
-        detailPills={['Solo lectura', 'repo_id/SHA backend-owned', 'Diff redactado/truncado/omitido']}
+        detailPills={['Solo lectura', 'repo_id/SHA backend-owned', 'Selección controlada', 'Diff redactado/truncado/omitido']}
       />
 
       {notice ? (
@@ -257,7 +365,24 @@ export default async function GitPage() {
             { label: 'Sin operaciones mutables', tone: 'connected' },
             { label: 'Sin rutas host', tone: 'connected' },
             { label: 'Sin texto libre de commits', tone: 'connected' },
+            { label: 'Solo repos allowlisteados', tone: 'connected' },
+            { label: 'Solo SHAs listados por backend', tone: 'connected' },
             { label: 'Diff histórico saneado', tone: 'fallback' },
+          ]}
+        />
+      </StatePanel>
+
+      <StatePanel
+        status="operativo"
+        title="Selección controlada"
+        description="Repo y commit se eligen con enlaces server-side. La página solo acepta repo_id existentes en el índice backend-owned y SHA presentes en el historial cargado del repo seleccionado; cualquier parámetro inválido se ignora sin eco en la UI."
+        detail={`Repo seleccionado: ${selectedRepo?.label ?? 'sin repo'} · Commit seleccionado: ${selectedCommit?.short_sha ?? 'sin commit'}`}
+        eyebrow="Selector server-only"
+      >
+        <SourceStatePills
+          items={[
+            { label: selection.requestedRepoAccepted ? 'repo_id aceptado' : 'repo_id por defecto saneado', tone: 'connected' },
+            { label: selection.requestedShaAccepted ? 'SHA aceptado' : 'SHA por defecto saneado', tone: 'connected' },
           ]}
         />
       </StatePanel>
@@ -271,8 +396,8 @@ export default async function GitPage() {
       <section className="section-block layout-grid layout-grid--content-aside" aria-label="Historial y ramas Git">
         <SurfaceCard title="Historial reciente" eyebrow={isSnapshotMode ? 'Commits del snapshot' : 'Commits backend-owned'} accent="gold">
           <ol className="git-commit-list">
-            {commits.commits.map((commit, index) => (
-              <CommitItem key={commit.sha} commit={commit} selected={index === 0} />
+            {commits.commits.map((commit) => (
+              <CommitItem key={commit.sha} commit={commit} repoId={selectedRepo?.repo_id ?? commits.repo_id} selected={commit.sha === selectedCommit?.sha} />
             ))}
           </ol>
           <p style={{ margin: '14px 0 0', color: appTheme.colors.textMuted, fontSize: '13px', lineHeight: 1.6 }}>
