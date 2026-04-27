@@ -258,3 +258,5 @@ Siempre de forma segura y acotada.
 Estos modelos de lectura fijan una base estable para implementación posterior. El objetivo no es expresar todo el origen, sino exponer exactamente la información mínima y segura que un agente u operador necesita para navegar e interpretar el sistema.
 
 Phase 18.1 adds `scripts/write-vault-sync-status.py` and `npm run write:vault-sync-status` as the producer for `/srv/crew-core/runtime/healthcheck/vault-sync-status.json`. It uses the existing reviewed vault sync script as source, serializes only status/result/timestamp semantics, and has no unit/timer in Phase 18.1; periodic automation remains Phase 18.2.
+
+Phase 18.4 adds the user-level `mugiwara-backup-health-status.timer` installed by `scripts/install-backup-health-status-user-timer.sh`. The timer runs `npm run write:backup-health-status` from the fixed repo root every 8 hours, uses `TimeoutStartSec=120s`, and does not pass `--output` or `--backups-dir`; it does not run backups and only refreshes the existing safe aggregate manifest for the `backup-health` read model.

@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh Mugiwara Control Panel backup-health status manifest periodically
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=8h
+RandomizedDelaySec=10min
+Persistent=true
+Unit=mugiwara-backup-health-status.service
+
+[Install]
+WantedBy=timers.target
