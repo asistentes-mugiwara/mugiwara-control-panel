@@ -8,6 +8,7 @@ const paths = {
   packageJson: join(repoRoot, 'package.json'),
   adapter: join(repoRoot, 'apps/web/src/modules/git/api/git-http.ts'),
   page: join(repoRoot, 'apps/web/src/app/git/page.tsx'),
+  middleware: join(repoRoot, 'apps/web/src/middleware.ts'),
   fixture: join(repoRoot, 'apps/web/src/modules/git/view-models/git-surface.fixture.ts'),
   moduleAgents: join(repoRoot, 'apps/web/src/modules/git/AGENTS.md'),
   modulesAgents: join(repoRoot, 'apps/web/src/modules/AGENTS.md'),
@@ -35,6 +36,7 @@ function mustNotInclude(text, snippet, label) { if (text.includes(snippet)) fail
 const packageJsonText = read(paths.packageJson, 'package.json')
 const adapter = read(paths.adapter, 'git server-only adapter')
 const page = read(paths.page, 'git page')
+const middleware = read(paths.middleware, 'Git route middleware')
 const fixture = read(paths.fixture, 'git fallback fixture')
 const moduleAgents = read(paths.moduleAgents, 'git module AGENTS')
 const modulesAgents = read(paths.modulesAgents, 'modules AGENTS')
@@ -143,6 +145,27 @@ for (const forbidden of [
   'name="branch"',
   'name="revspec"',
 ]) mustNotInclude(page, forbidden, 'git page')
+
+for (const snippet of [
+  'NextResponse.redirect(canonicalUrl)',
+  "matcher: ['/git']",
+  "GIT_CANONICAL_PATH = '/git'",
+  "GIT_ALLOWED_SEARCH_PARAMS = new Set(['repo_id', 'sha'])",
+  "GIT_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'",
+  'GIT_REPO_ID_PATTERN',
+  'GIT_FULL_SHA_PATTERN',
+  'hasDuplicateParam(request, key)',
+  'hasUnsafeGitSearchParams(request)',
+  'process.env[GIT_API_BASE_URL_ENV]',
+  "fetch(`${baseUrl}${path}`",
+  '/api/v1/git/repos',
+  '/commits?limit=12',
+  "canonicalUrl.search = ''",
+]) mustInclude(middleware, snippet, 'Git route middleware')
+
+for (const forbidden of ['path=', 'ref=', 'branch=', 'revspec=', 'command=', 'url=', 'NEXT_PUBLIC']) {
+  mustNotInclude(middleware, forbidden, 'Git route middleware')
+}
 
 for (const forbidden of ['Traceback', 'Stack trace', 'stdout', 'stderr', '/srv/', '/home/', 'token', 'secret', 'password']) {
   mustNotInclude(fixture.toLowerCase(), forbidden.toLowerCase(), 'git fallback fixture')
