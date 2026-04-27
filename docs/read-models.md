@@ -227,6 +227,35 @@ Uso:
 - no serializa remotes (`origin/*`), URLs, rutas host, stdout/stderr ni errores crudos
 - nombres de rama no saneables se omiten
 
+
+
+### `git.commit_detail`
+Campos esperados:
+- `repo_id`
+- `commit` con el mismo contrato público de `git.commit_list` para `sha`, `short_sha`, autor/email saneado, fechas, `subject` y trailers allowlisteados
+- `files[]` con `path` repo-relativo solo si es seguro, `change_type`, `additions`, `deletions`, `binary`, `omitted` y `omitted_reason`
+- `source_state`
+
+Uso:
+- abrir un commit concreto desde un `sha` completo devuelto por el backend
+- el cliente solo aporta `repo_id` y SHA completo hex; nunca paths, refs, rangos, `HEAD`, revsets, remotes ni comandos
+- no serializa cuerpo libre del commit; `%B` sigue siendo interno para trailers
+- paths sensibles (`.env`, credenciales, logs, dumps, DBs) y binarios se omiten con razón genérica sin revelar el path
+
+### `git.commit_diff`
+Campos esperados:
+- `repo_id`
+- `sha`
+- `files[]` con el contrato de stats anterior más `truncated`, `redacted` y `lines[]` saneadas
+- `lines[].kind` (`hunk`, `addition`, `deletion`, `context`) y `lines[].content`
+- `truncated`, `redacted`, `omitted_files_count` y `source_state`
+
+Uso:
+- mostrar diff histórico de commit solo después de pasar por política deny-by-default del backend
+- omitir paths sensibles y binarios; redactar tokens, credenciales y rutas host si aparecen en líneas permitidas
+- truncar por fichero y total; el payload debe indicar truncado/redacción/omisión sin devolver contenido peligroso ni patrones exactos
+- no hay working-tree diff en 40.3; cambios no commiteados quedan fuera de alcance por mayor riesgo de secretos
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

@@ -188,3 +188,10 @@ Resumen de la decisión:
 - `/skills` migró en Phase 12.3h con route handlers BFF same-origin porque es client component y contiene preview/update controlados.
 - Ese BFF usa `MUGIWARA_CONTROL_PANEL_API_URL` solo en servidor, no es proxy abierto, valida entradas críticas, usa `cache: no-store` y devuelve errores saneados.
 - FastAPI sigue siendo la fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
+
+
+## Git control backend — 40.3 commit detail + safe diff
+- La superficie Git sigue siendo backend-only/read-only y deny-by-default.
+- El cliente opera únicamente con `repo_id` allowlisteado y SHA completo devuelto por el backend; no se aceptan paths, refs, rangos, revspecs ni comandos.
+- Los diffs históricos se tratan como sensibles: paths `.env`/credenciales/logs/dumps/DBs y binarios se omiten, contenido con tokens o rutas host se redacta y todas las salidas se truncan por fichero/total.
+- El cuerpo libre de commit no forma parte del contrato público; solo se lee internamente para trailers allowlisteados.

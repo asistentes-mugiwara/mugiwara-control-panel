@@ -2,7 +2,7 @@
 /**
  * Static guardrail for Issue #40 Git control backend policy.
  *
- * Keeps Git control as a backend-owned read-only registry/status/commits/branches
+ * Keeps Git control as a backend-owned read-only registry/status/commits/branches/commit-detail/diff
  * surface, not a filesystem browser or Git console.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
@@ -81,10 +81,14 @@ mustInclude(routerPy, "@router.get('/repos')", 'git_control router')
 mustInclude(routerPy, "@router.get('/repos/{repo_id}/status')", 'git_control router')
 mustInclude(routerPy, "@router.get('/repos/{repo_id}/commits')", 'git_control router')
 mustInclude(routerPy, "@router.get('/repos/{repo_id}/branches')", 'git_control router')
+mustInclude(routerPy, "@router.get('/repos/{repo_id}/commits/{sha}')", 'git_control router')
+mustInclude(routerPy, "@router.get('/repos/{repo_id}/commits/{sha}/diff')", 'git_control router')
 mustInclude(routerPy, "resource='git.repo_index'", 'git_control router')
 mustInclude(routerPy, "resource='git.repo_status'", 'git_control router')
 mustInclude(routerPy, "resource='git.commit_list'", 'git_control router')
 mustInclude(routerPy, "resource='git.branch_list'", 'git_control router')
+mustInclude(routerPy, "resource='git.commit_detail'", 'git_control router')
+mustInclude(routerPy, "resource='git.commit_diff'", 'git_control router')
 mustInclude(routerPy, "'read_only': True", 'git_control router')
 mustInclude(routerPy, "'sanitized': True", 'git_control router')
 mustInclude(routerPy, "'source': GIT_CONTROL_SOURCE_LABEL", 'git_control router')
@@ -104,7 +108,7 @@ const requiredDomainSnippets = [
   'GIT_COMMITS_MAX_LIMIT',
   'GIT_CURSOR_PATTERN',
   'GIT_SHA_PATTERN',
-  "READ_ONLY_GIT_COMMANDS = frozenset({'status', 'log', 'branch'})",
+  "READ_ONLY_GIT_COMMANDS = frozenset({'status', 'log', 'branch', 'show'})",
   'FORBIDDEN_GIT_COMMANDS = frozenset',
   "'checkout'",
   "'reset'",
@@ -143,6 +147,13 @@ const requiredAdapterSnippets = [
   "'status'",
   "'log'",
   "'branch'",
+  "'show'",
+  "'--no-ext-diff'",
+  "'--patch'",
+  "'--numstat'",
+  'GIT_DIFF_MAX_LINES_PER_FILE',
+  'GIT_DIFF_MAX_TOTAL_LINES',
+  'GIT_DIFF_MAX_LINE_LENGTH',
   "'--porcelain=v1'",
   "'--branch'",
   "'--untracked-files=all'",
@@ -214,6 +225,14 @@ const requiredTestSnippets = [
   'HEAD..main:/srv/private-token',
   'test_git_commits_unknown_repo_and_degraded_repo_are_sanitized',
   'test_git_read_model_invocations_stay_allowlisted_and_hardened',
+  'test_git_commit_detail_returns_metadata_and_safe_file_stats_without_body_or_sensitive_paths',
+  'test_git_commit_detail_rejects_invalid_sha_without_echoing_revspec',
+  'test_git_commit_diff_redacts_omits_and_truncates_deny_by_default',
+  'test_git_commit_diff_omits_sensitive_paths_and_binary_content',
+  'test_git_detail_and_diff_invocations_stay_allowlisted_and_hardened',
+  'SYNTHETIC-TOKEN-MARKER',
+  "[redacted]",
+  'sensitive_path',
   '_assert_no_leakage',
   '.env',
   'super-secret-value',
@@ -227,6 +246,8 @@ mustInclude(readModelsDoc, 'git.repo_index', 'read models doc')
 mustInclude(readModelsDoc, 'git.repo_status', 'read models doc')
 mustInclude(readModelsDoc, 'git.commit_list', 'read models doc')
 mustInclude(readModelsDoc, 'git.branch_list', 'read models doc')
+mustInclude(readModelsDoc, 'git.commit_detail', 'read models doc')
+mustInclude(readModelsDoc, 'git.commit_diff', 'read models doc')
 mustInclude(readModelsDoc, 'El cuerpo libre del commit no forma parte del contrato público', 'read models doc')
 mustInclude(runtimeConfigDoc, 'Git control backend', 'runtime config doc')
 

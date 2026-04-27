@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import subprocess
 
 from .domain import (
@@ -9,10 +10,16 @@ from .domain import (
     GIT_COMMITS_DEFAULT_LIMIT,
     GIT_COMMITS_MAX_LIMIT,
     GIT_CURSOR_PATTERN,
+    GIT_DIFF_MAX_FILES,
+    GIT_DIFF_MAX_LINE_LENGTH,
+    GIT_DIFF_MAX_LINES_PER_FILE,
+    GIT_DIFF_MAX_TOTAL_LINES,
     GIT_MINIMAL_ENV,
     GIT_SAFE_CONFIG_ARGS,
     GIT_SHA_PATTERN,
     GitBranchSummary,
+    GitCommitDiffFile,
+    GitCommitFileSummary,
     GitCommitSummary,
     GitRepoStatus,
     READ_ONLY_GIT_COMMANDS,
@@ -25,6 +32,10 @@ class GitInvalidCursor(ValueError):
 
 
 class GitInvalidLimit(ValueError):
+    pass
+
+
+class GitInvalidSha(ValueError):
     pass
 
 
@@ -62,6 +73,29 @@ class GitReadAdapter:
             return [], None, 'unknown'
         current = next((branch.name for branch in branches if branch.current), None)
         return branches, current, 'live'
+
+    def get_commit_detail(self, repo: GitRepoDefinition, *, sha: str) -> tuple[GitCommitSummary | None, list[GitCommitFileSummary], str]:
+        _validate_sha(sha)
+        try:
+            commit_output = _run_git_commit_detail(repo.path, sha=sha)
+            stats_output = _run_git_commit_numstat(repo.path, sha=sha)
+            commits = _parse_git_log(commit_output)
+            if not commits:
+                return None, [], 'unknown'
+            return commits[0], _parse_numstat(stats_output), 'live'
+        except Exception:
+            return None, [], 'unknown'
+
+    def get_commit_diff(self, repo: GitRepoDefinition, *, sha: str) -> tuple[list[GitCommitDiffFile], bool, bool, int, str]:
+        _validate_sha(sha)
+        try:
+            stats_output = _run_git_commit_numstat(repo.path, sha=sha)
+            patch_output = _run_git_commit_patch(repo.path, sha=sha)
+            summaries = _parse_numstat(stats_output)
+            files, truncated, redacted, omitted_count = _build_safe_diff(summaries, patch_output)
+            return files, truncated, redacted, omitted_count, 'live'
+        except Exception:
+            return [], False, False, 0, 'unknown'
 
 
 class GitStatusAdapter(GitReadAdapter):
@@ -108,6 +142,63 @@ def _run_git_branches(repo_path: Path) -> str:
             *GIT_SAFE_CONFIG_ARGS,
             'branch',
             '--format=%(refname:short)%00%(HEAD)%00%(objectname)',
+        ],
+    )
+
+
+def _run_git_commit_detail(repo_path: Path, *, sha: str) -> str:
+    return _run_allowlisted_git(
+        repo_path,
+        [
+            'git',
+            '--no-optional-locks',
+            *GIT_SAFE_CONFIG_ARGS,
+            'show',
+            '--no-ext-diff',
+            '--no-renames',
+            '-s',
+            '--format=%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%cI%x1f%s%x1f%B%x1e',
+            sha,
+            '--',
+        ],
+    )
+
+
+def _run_git_commit_numstat(repo_path: Path, *, sha: str) -> str:
+    return _run_allowlisted_git(
+        repo_path,
+        [
+            'git',
+            '--no-optional-locks',
+            *GIT_SAFE_CONFIG_ARGS,
+            'show',
+            '--no-ext-diff',
+            '--no-renames',
+            '--format=',
+            '--numstat',
+            '--diff-filter=ACDMRT',
+            sha,
+            '--',
+        ],
+    )
+
+
+def _run_git_commit_patch(repo_path: Path, *, sha: str) -> str:
+    return _run_allowlisted_git(
+        repo_path,
+        [
+            'git',
+            '--no-optional-locks',
+            *GIT_SAFE_CONFIG_ARGS,
+            'show',
+            '--no-ext-diff',
+            '--no-renames',
+            '--format=',
+            '--patch',
+            '--unified=3',
+            '--diff-filter=ACDMRT',
+            sha,
+            '--',
         ],
     )
 
@@ -203,6 +294,11 @@ def _parse_cursor(cursor: str | None) -> int:
     return int(match.group(1))
 
 
+def _validate_sha(sha: str) -> None:
+    if not GIT_SHA_PATTERN.fullmatch(sha):
+        raise GitInvalidSha('invalid commit identifier')
+
+
 def _parse_git_log(output: str) -> list[GitCommitSummary]:
     commits: list[GitCommitSummary] = []
     for record in output.split('\x1e'):
@@ -251,6 +347,194 @@ def _parse_git_branches(output: str) -> list[GitBranchSummary]:
             )
         )
     return branches
+
+
+def _parse_numstat(output: str) -> list[GitCommitFileSummary]:
+    files: list[GitCommitFileSummary] = []
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        if '\x1f' in line:
+            parts = line.split('\x1f')
+            if len(parts) != 4:
+                continue
+            raw_path, additions_raw, deletions_raw, change_type_raw = parts
+        else:
+            parts = line.split('\t')
+            if len(parts) < 3:
+                continue
+            additions_raw, deletions_raw, raw_path = parts[0], parts[1], parts[2]
+            change_type_raw = 'modified'
+        binary = additions_raw == '-' or deletions_raw == '-'
+        additions = None if binary else _parse_int(additions_raw)
+        deletions = None if binary else _parse_int(deletions_raw)
+        safe_path = _sanitize_repo_path(raw_path)
+        sensitive = _is_sensitive_path(raw_path)
+        omitted = sensitive or binary
+        omitted_reason = 'sensitive_path' if sensitive else ('binary' if binary else None)
+        files.append(
+            GitCommitFileSummary(
+                path=None if omitted else safe_path,
+                change_type=_sanitize_change_type(change_type_raw, additions, deletions),
+                additions=additions,
+                deletions=deletions,
+                binary=binary,
+                omitted=omitted,
+                omitted_reason=omitted_reason,
+            )
+        )
+        if len(files) >= GIT_DIFF_MAX_FILES:
+            break
+    return files
+
+
+def _parse_int(value: str) -> int | None:
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def _sanitize_change_type(raw: str, additions: int | None, deletions: int | None) -> str:
+    value = raw.lower()
+    allowed = {'added', 'modified', 'deleted', 'renamed', 'copied', 'typechange'}
+    if value in allowed and value != 'modified':
+        return value
+    if deletions == 0 and additions and additions > 0:
+        return 'added'
+    if additions == 0 and deletions and deletions > 0:
+        return 'deleted'
+    return 'modified'
+
+
+def _build_safe_diff(summaries: list[GitCommitFileSummary], patch_output: str) -> tuple[list[GitCommitDiffFile], bool, bool, int]:
+    patch_by_path = _split_patch_by_path(patch_output)
+    files: list[GitCommitDiffFile] = []
+    total_lines = 0
+    any_truncated = False
+    any_redacted = False
+    omitted_count = 0
+    for summary in summaries:
+        if summary.omitted or summary.path is None:
+            omitted_count += 1
+            files.append(GitCommitDiffFile(summary=summary, truncated=False, redacted=False, lines=()))
+            continue
+        raw_lines = patch_by_path.get(summary.path, [])
+        safe_lines: list[dict[str, str]] = []
+        file_truncated = False
+        file_redacted = False
+        for raw_line in raw_lines:
+            if total_lines >= GIT_DIFF_MAX_TOTAL_LINES or len(safe_lines) >= GIT_DIFF_MAX_LINES_PER_FILE:
+                file_truncated = True
+                break
+            safe_line, redacted = _sanitize_diff_line(raw_line)
+            if redacted:
+                file_redacted = True
+            safe_lines.append({'kind': _classify_diff_line(raw_line), 'content': safe_line})
+            total_lines += 1
+        if len(raw_lines) > len(safe_lines):
+            file_truncated = True
+        any_truncated = any_truncated or file_truncated
+        any_redacted = any_redacted or file_redacted
+        files.append(
+            GitCommitDiffFile(
+                summary=summary,
+                truncated=file_truncated,
+                redacted=file_redacted,
+                lines=tuple(safe_lines),
+            )
+        )
+    return files, any_truncated, any_redacted, omitted_count
+
+
+def _split_patch_by_path(output: str) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    current_path: str | None = None
+    current_lines: list[str] = []
+    for line in output.splitlines():
+        if line.startswith('diff --git '):
+            if current_path is not None:
+                result[current_path] = current_lines
+            current_path = _path_from_diff_header(line)
+            current_lines = []
+            continue
+        if current_path is None:
+            continue
+        if line.startswith(('index ', 'new file mode ', 'deleted file mode ', 'similarity index ', 'rename from ', 'rename to ')):
+            continue
+        if line.startswith('--- ') or line.startswith('+++ '):
+            continue
+        current_lines.append(line)
+    if current_path is not None:
+        result[current_path] = current_lines
+    return result
+
+
+def _path_from_diff_header(line: str) -> str | None:
+    parts = line.split(' ')
+    if len(parts) < 4:
+        return None
+    raw = parts[3]
+    if raw.startswith('b/'):
+        raw = raw[2:]
+    return _sanitize_repo_path(raw)
+
+
+def _sanitize_repo_path(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    value = raw.strip().strip('"')
+    if value.startswith(('a/', 'b/')):
+        value = value[2:]
+    if not value or value.startswith('/') or '..' in value.split('/'):
+        return None
+    if len(value) > 180:
+        return None
+    allowed = []
+    for char in value:
+        if char.isalnum() or char in {'-', '_', '.', '/', '@'}:
+            allowed.append(char)
+        else:
+            return None
+    return ''.join(allowed)
+
+
+SENSITIVE_PATH_RE = re.compile(
+    r'(^|/)(\.env($|\.)|.*(secret|token|password|credential|cookie|private).*|.*\.(key|pem|p12|pfx|sqlite|sqlite3|db|log|dump|bak|backup)$)',
+    re.IGNORECASE,
+)
+SECRET_CONTENT_RE = re.compile(
+    r'(authorization:|bearer\s+|token\s*=|secret\s*=|password\s*=|cookie\s*=|-----begin .*private key-----|ghp_[a-z0-9_]+|sk-[a-z0-9_-]+|xox[a-z]-)',
+    re.IGNORECASE,
+)
+HOST_PATH_RE = re.compile(r'/(srv|home|tmp|var|etc)/[^\s]+', re.IGNORECASE)
+
+
+def _is_sensitive_path(raw_path: str | None) -> bool:
+    sanitized = _sanitize_repo_path(raw_path)
+    if sanitized is None:
+        return True
+    return SENSITIVE_PATH_RE.search(sanitized) is not None
+
+
+def _sanitize_diff_line(value: str) -> tuple[str, bool]:
+    safe = _sanitize_text(value, max_length=GIT_DIFF_MAX_LINE_LENGTH)
+    redacted = False
+    if SECRET_CONTENT_RE.search(safe) or HOST_PATH_RE.search(safe):
+        prefix = safe[:1] if safe[:1] in {'+', '-', ' '} else ''
+        safe = f'{prefix}[redacted]'
+        redacted = True
+    return safe, redacted
+
+
+def _classify_diff_line(value: str) -> str:
+    if value.startswith('@@'):
+        return 'hunk'
+    if value.startswith('+'):
+        return 'addition'
+    if value.startswith('-'):
+        return 'deletion'
+    return 'context'
 
 
 def _extract_trailers(body: str) -> dict[str, str | None]:
