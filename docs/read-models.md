@@ -130,6 +130,21 @@ Uso:
 - no incluir actividad Hermes, prompts, conversaciones, tokens, raw payload, rutas runtime ni causalidad por perfil
 - limitar la respuesta con `limit` validado (`1..24`) y degradar fuente ausente/ilegible a `not_configured` sin path runtime
 
+### `usage.hermes_activity`
+Campos esperados:
+- `range` con rango allowlisted (`7d`, `30d`, `current_cycle`, `previous_cycle`) y timestamps de corte
+- `totals` con perfiles activos, sesiones, mensajes, tool calls y perfil dominante
+- `profiles[]` con `profile`, `sessions_count`, `messages_count`, `tool_calls_count`, primera/última actividad y `activity_level` (`low`, `medium`, `high`)
+- `privacy` con modo agregado/read-only y correlación orientativa
+- `empty_reason` (`not_configured`, `unknown` o `null`)
+
+Uso:
+- exponer actividad Hermes local solo como agregados por perfil/rango para orientar correlación con consumo Codex, sin afirmar causalidad exacta
+- leer únicamente perfiles Mugiwara allowlisted y abrir cada SQLite de perfil en `mode=ro`
+- usar `MUGIWARA_HERMES_PROFILES_ROOT` como configuración server-only; no serializar ni documentar el valor runtime, ruta de `state.db` ni paths host
+- no seleccionar ni devolver `user_id`, `model_config`, `system_prompt`, `title`, tokens, costes, billing URLs, contenidos, conversaciones, prompts, payloads de herramientas, chat IDs, targets, secretos, cabeceras, cookies ni logs
+- degradar raíz no configurada, perfiles ausentes o DB ilegible a `not_configured` sin ruta interna
+
 ### `memory.agent_summary`
 Campos esperados:
 - `mugiwara_slug`

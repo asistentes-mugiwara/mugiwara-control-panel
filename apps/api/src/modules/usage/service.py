@@ -5,6 +5,7 @@ from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Literal
 from zoneinfo import ZoneInfo
+import os
 import sqlite3
 
 CODEX_USAGE_DB_PATH = Path('/srv/crew-core/runtime/usage/codex-usage.sqlite')
@@ -12,8 +13,12 @@ USAGE_REFRESH_INTERVAL_MINUTES = 15
 USAGE_STALE_AFTER_MINUTES = 45
 USAGE_CALENDAR_TIMEZONE = ZoneInfo('Europe/Madrid')
 UsageCalendarRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
+UsageActivityRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
 MAX_USAGE_WINDOWS_LIMIT = 24
 DEFAULT_USAGE_WINDOWS_LIMIT = 8
+HERMES_PROFILES_ROOT_ENV = 'MUGIWARA_HERMES_PROFILES_ROOT'
+HERMES_ACTIVITY_SOURCE_LABEL = 'hermes-profile-state-aggregate'
+HERMES_ACTIVITY_PROFILES = ('luffy', 'zoro', 'nami', 'usopp', 'sanji', 'chopper', 'robin', 'franky', 'brook', 'jinbe')
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -124,8 +129,10 @@ class UsageSnapshot:
 
 
 class UsageService:
-    def __init__(self, *, db_path: Path = CODEX_USAGE_DB_PATH, now: Callable[[], str] = _iso_now):
+    def __init__(self, *, db_path: Path = CODEX_USAGE_DB_PATH, hermes_profiles_root: Path | None = None, now: Callable[[], str] = _iso_now):
         self.db_path = db_path
+        configured_profiles_root = os.environ.get(HERMES_PROFILES_ROOT_ENV)
+        self.hermes_profiles_root = hermes_profiles_root if hermes_profiles_root is not None else (Path(configured_profiles_root) if configured_profiles_root else None)
         self._now = now
 
     def current_status(self) -> str:
@@ -270,6 +277,60 @@ class UsageService:
         if payload.get('empty_reason') == 'not_configured':
             return 'not_configured'
         if not payload.get('windows'):
+            return 'not_configured'
+        return 'ready'
+
+    def get_hermes_activity(self, range_name: UsageActivityRange) -> dict[str, Any]:
+        start_at, end_at, range_empty_reason = self._activity_window(range_name)
+        if self.hermes_profiles_root is None or not self.hermes_profiles_root.exists() or not self.hermes_profiles_root.is_dir():
+            return self._empty_hermes_activity(range_name, start_at=start_at, end_at=end_at, empty_reason='not_configured')
+        if range_empty_reason is not None:
+            return self._empty_hermes_activity(range_name, start_at=start_at, end_at=end_at, empty_reason=range_empty_reason)
+
+        profiles = []
+        for profile in HERMES_ACTIVITY_PROFILES:
+            state_db = self.hermes_profiles_root / profile / 'state.db'
+            profile_summary = self._load_hermes_profile_activity(profile=profile, state_db=state_db, start_at=start_at, end_at=end_at)
+            if profile_summary is not None and profile_summary['sessions_count'] > 0:
+                profiles.append(profile_summary)
+
+        profiles.sort(key=lambda item: (-item['messages_count'], -item['tool_calls_count'], item['profile']))
+        totals = self._activity_totals(profiles)
+        return {
+            'range': {
+                'name': range_name,
+                'started_at': _isoformat_utc(start_at),
+                'ended_at': _isoformat_utc(end_at),
+            },
+            'totals': totals,
+            'profiles': profiles,
+            'privacy': {
+                'mode': 'read_only_aggregated',
+                'correlation': 'orientativa',
+                'exclusions': [
+                    'prompts_crudos',
+                    'conversaciones',
+                    'payloads_herramientas',
+                    'tokens_por_sesion',
+                    'identificadores_usuario',
+                    'identificadores_chat',
+                    'destinos_entrega',
+                    'secretos',
+                    'cabeceras',
+                    'galletas_http',
+                    'logs_crudos',
+                ],
+            },
+            'empty_reason': None if totals['sessions_count'] > 0 else 'not_configured',
+        }
+
+    @staticmethod
+    def hermes_activity_status_for(payload: dict[str, Any]) -> str:
+        if payload.get('empty_reason') == 'not_configured':
+            return 'not_configured'
+        if payload.get('empty_reason') == 'unknown':
+            return 'unknown'
+        if payload.get('totals', {}).get('sessions_count', 0) <= 0:
             return 'not_configured'
         return 'ready'
 
@@ -422,6 +483,124 @@ class UsageService:
                 }
             )
         return days
+
+    def _activity_window(self, range_name: UsageActivityRange) -> tuple[datetime, datetime, str | None]:
+        now = _parse_datetime(self._now()) or datetime.now(timezone.utc)
+        latest = self._load_latest_snapshot()
+        cycle_start = _parse_datetime(latest.secondary_cycle_start_at) if latest is not None else None
+        cycle_reset = _parse_datetime(latest.secondary_reset_at) if latest is not None else None
+        if range_name == 'current_cycle':
+            if cycle_start is None or cycle_reset is None:
+                return now, now, 'not_configured'
+            return cycle_start, min(now, cycle_reset), None
+        if range_name == 'previous_cycle':
+            if cycle_start is None or cycle_reset is None:
+                return now, now, 'not_configured'
+            cycle_length = cycle_reset - cycle_start
+            return cycle_start - cycle_length, cycle_start, None
+        days = 30 if range_name == '30d' else 7
+        return now - timedelta(days=days), now, None
+
+    def _empty_hermes_activity(self, range_name: UsageActivityRange, *, start_at: datetime, end_at: datetime, empty_reason: str) -> dict[str, Any]:
+        return {
+            'range': {
+                'name': range_name,
+                'started_at': _isoformat_utc(start_at),
+                'ended_at': _isoformat_utc(end_at),
+            },
+            'totals': {
+                'profiles_count': 0,
+                'sessions_count': 0,
+                'messages_count': 0,
+                'tool_calls_count': 0,
+                'dominant_profile': None,
+            },
+            'profiles': [],
+            'privacy': {
+                'mode': 'read_only_aggregated',
+                'correlation': 'orientativa',
+                'exclusions': [
+                    'prompts_crudos',
+                    'conversaciones',
+                    'payloads_herramientas',
+                    'tokens_por_sesion',
+                    'identificadores_usuario',
+                    'identificadores_chat',
+                    'destinos_entrega',
+                    'secretos',
+                    'cabeceras',
+                    'galletas_http',
+                    'logs_crudos',
+                ],
+            },
+            'empty_reason': empty_reason,
+        }
+
+    @staticmethod
+    def _activity_level(messages_count: int, tool_calls_count: int) -> str:
+        score = messages_count + (tool_calls_count * 2)
+        if score >= 40:
+            return 'high'
+        if score >= 10:
+            return 'medium'
+        return 'low'
+
+    @staticmethod
+    def _activity_totals(profiles: list[dict[str, Any]]) -> dict[str, Any]:
+        sessions_count = sum(int(profile['sessions_count']) for profile in profiles)
+        messages_count = sum(int(profile['messages_count']) for profile in profiles)
+        tool_calls_count = sum(int(profile['tool_calls_count']) for profile in profiles)
+        dominant_profile = profiles[0]['profile'] if profiles else None
+        return {
+            'profiles_count': len(profiles),
+            'sessions_count': sessions_count,
+            'messages_count': messages_count,
+            'tool_calls_count': tool_calls_count,
+            'dominant_profile': dominant_profile,
+        }
+
+    def _load_hermes_profile_activity(self, *, profile: str, state_db: Path, start_at: datetime, end_at: datetime) -> dict[str, Any] | None:
+        if not state_db.exists() or not state_db.is_file():
+            return None
+        try:
+            con = sqlite3.connect(f'file:{state_db}?mode=ro', uri=True)
+            con.row_factory = sqlite3.Row
+            row = con.execute(
+                """
+                SELECT
+                    COUNT(*) AS sessions_count,
+                    COALESCE(SUM(message_count), 0) AS messages_count,
+                    COALESCE(SUM(tool_call_count), 0) AS tool_calls_count,
+                    MIN(started_at) AS first_activity_epoch,
+                    MAX(started_at) AS last_activity_epoch
+                FROM sessions
+                WHERE started_at >= ? AND started_at <= ?
+                """,
+                (start_at.timestamp(), end_at.timestamp()),
+            ).fetchone()
+        except sqlite3.Error:
+            return None
+        finally:
+            try:
+                con.close()
+            except UnboundLocalError:
+                pass
+        if row is None or int(row['sessions_count'] or 0) <= 0:
+            return None
+        sessions_count = int(row['sessions_count'] or 0)
+        messages_count = int(row['messages_count'] or 0)
+        tool_calls_count = int(row['tool_calls_count'] or 0)
+        first_epoch = float(row['first_activity_epoch'])
+        last_epoch = float(row['last_activity_epoch'])
+        return {
+            'profile': profile,
+            'sessions_count': sessions_count,
+            'messages_count': messages_count,
+            'tool_calls_count': tool_calls_count,
+            'first_activity_at': datetime.fromtimestamp(first_epoch, timezone.utc).isoformat(),
+            'last_activity_at': datetime.fromtimestamp(last_epoch, timezone.utc).isoformat(),
+            'activity_level': self._activity_level(messages_count, tool_calls_count),
+        }
 
     def _load_latest_snapshot(self) -> UsageSnapshot | None:
         if not self.db_path.exists() or not self.db_path.is_file():

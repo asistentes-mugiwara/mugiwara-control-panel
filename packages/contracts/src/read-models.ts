@@ -256,6 +256,39 @@ export type UsageFiveHourWindows = {
   empty_reason: 'not_configured' | null
 }
 
+export type UsageActivityRange = UsageCalendarRange
+export type UsageActivityLevel = 'low' | 'medium' | 'high'
+
+export type UsageHermesActivity = {
+  range: {
+    name: UsageActivityRange
+    started_at: string
+    ended_at: string
+  }
+  totals: {
+    profiles_count: number
+    sessions_count: number
+    messages_count: number
+    tool_calls_count: number
+    dominant_profile: string | null
+  }
+  profiles: Array<{
+    profile: string
+    sessions_count: number
+    messages_count: number
+    tool_calls_count: number
+    first_activity_at: string
+    last_activity_at: string
+    activity_level: UsageActivityLevel
+  }>
+  privacy: {
+    mode: 'read_only_aggregated'
+    correlation: 'orientativa'
+    exclusions: string[]
+  }
+  empty_reason: 'not_configured' | 'unknown' | null
+}
+
 export type DashboardSummaryResponse = ResourceEnvelope<DashboardSummary, { links_count: number }>
 export type MugiwarasCatalogResponse = ResourceEnvelope<{ items: MugiwaraCard[]; crew_rules_document: CrewRulesDocument }, { count: number; crew_rules_document: string; read_only: true }>
 export type MugiwaraProfileResponse = ResourceEnvelope<MugiwaraProfile, { slug: string; read_only: true }>
@@ -268,4 +301,5 @@ export type HealthcheckSummaryResponse = ResourceEnvelope<{ items: HealthcheckSu
 export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: true; sanitized: true; source: string; refresh_interval_minutes: number }>
 export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
 export type UsageFiveHourWindowsResponse = ResourceEnvelope<UsageFiveHourWindows, { read_only: true; sanitized: true; source: string; limit: number }>
+export type UsageHermesActivityResponse = ResourceEnvelope<UsageHermesActivity, { read_only: true; sanitized: true; source: string; range: UsageActivityRange }>
 export type SystemSignalsResponse = ResourceEnvelope<{ items: SystemSignal[] }, { count: number }>
