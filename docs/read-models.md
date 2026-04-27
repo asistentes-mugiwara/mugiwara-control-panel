@@ -159,12 +159,14 @@ Campos esperados:
 - `source_state` global (`live` o `degraded`)
 
 Uso:
-- alimentar el header global siempre visible en una fase frontend posterior
+- alimentar el header global siempre visible desde `RootLayout` dinámico mediante adapter frontend `server-only`
 - mantener el backend como única frontera de lectura host-adjacent para RAM/disco/uptime
 - calcular RAM usada como `MemTotal - MemAvailable` cuando se usa `/proc/meminfo`
 - representar el disco como target backend-owned `fastapi-visible-root-filesystem`, sin serializar path crudo, mount table ni device names
-- degradar cada familia a `unknown` si la fuente falla o viene malformada, sin exponer excepción, raw `/proc`, paths, stdout/stderr, logs, hostname, usuarios ni procesos
+- degradar cada familia a `unknown` si la fuente falla o viene malformada, y en frontend a valores `—`, sin exponer excepción, raw `/proc`, paths, stdout/stderr, logs, hostname, usuarios, procesos, backend URL ni errores crudos
 - no aceptar input cliente para elegir paths, mounts, devices, commands, URLs, methods, hosts o targets
+- sin `NEXT_PUBLIC_*`, sin fetch browser directo al backend interno y sin proxy genérico; `AppShell`/`Topbar` reciben solo props serializables saneadas
+- fijar la frontera completa con `npm run verify:system-metrics-backend-policy` y `npm run verify:system-metrics-server-only`
 
 ### `memory.agent_summary`
 Campos esperados:

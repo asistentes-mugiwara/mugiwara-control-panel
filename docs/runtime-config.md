@@ -150,6 +150,22 @@ El header global consume `GET /api/v1/system/metrics` desde Phase 36.2 mediante 
 4. Si la API falta, falla o devuelve payload inválido, el header muestra métricas `—` y estado degradado/sin datos sin URL backend, errores crudos, stack traces, paths host ni detalles de configuración.
 5. Este primer corte no añade polling, cache/TTL ni refresh cliente. Si se introduce refresco posterior, requiere diseño y review Franky + Chopper.
 
+Antes de cerrar cambios que toquen el header de métricas de sistema, ejecutar:
+
+```bash
+npm run verify:system-metrics-server-only
+```
+
+Este check confirma que el header mantiene:
+
+- adapter `server-only`;
+- env privada `MUGIWARA_CONTROL_PANEL_API_URL`;
+- endpoint fijo `/api/v1/system/metrics`;
+- root layout dinámico;
+- ausencia de `NEXT_PUBLIC_*`;
+- ausencia de fetch/env/backend URL en `AppShell`/`Topbar`;
+- fallback saneado sin errores crudos ni rutas host.
+
 ## Decisiones relacionadas
 La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`, la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`, Vault vive en `openspec/phase-12-4-vault-readonly-api.md` y Health/Dashboard en `openspec/phase-12-5-health-dashboard-aggregation.md`.
 
