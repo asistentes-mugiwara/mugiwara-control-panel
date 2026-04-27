@@ -40,8 +40,8 @@
 
 ## Cierre
 - [x] `git diff --check`
-- [ ] PR abierta.
-- [ ] Handoff PR dejado.
+- [x] PR abierta.
+- [x] Handoff PR dejado.
 - [x] Franky invocado y responde.
 - [x] Chopper invocado y responde.
-- [ ] Reviewers comentan PR o declaran bloqueo por permisos.
+- [x] Reviewers comentan PR o declaran bloqueo por permisos.
