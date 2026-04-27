@@ -1,4 +1,4 @@
-# Issue #40.5 planning closeout — Git controlled selector
+# Issue #40.5 planning closeout — Git controlled selector (`Repos Git`)
 
 ## Contexto
 Tras mergear PR #92, `/git` existe como página server-only/read-only pero selecciona automáticamente el primer repo y primer commit devueltos por backend.
@@ -6,7 +6,7 @@ Tras mergear PR #92, `/git` existe como página server-only/read-only pero selec
 Pablo pidió planificar 40.5 y decidir primero cómo dividirlo. La decisión técnica es no dividir 40.5 en varias PRs salvo que aparezca necesidad de backend nuevo o superficie Git adicional.
 
 ## Decisión
-40.5 será una microfase única de frontend server-only para selector controlado de repo/commit.
+40.5 será una microfase única de frontend server-only para `Selección controlada` de repo/commit.
 
 Corte interno:
 1. contrato server-side de `searchParams` saneados;
@@ -28,6 +28,13 @@ Corte interno:
 - `git diff --check`
 - smoke HTML/DOM con query válida e inválida
 - browser smoke `/git`
+
+## Implementación 40.5
+- `/git` lee `searchParams` en Server Component y valida `repo_id` contra `repoIndex.repos`.
+- La página carga commits/branches solo del repo seleccionado saneado.
+- `sha` se acepta solo si existe en `commits.commits` del repo seleccionado; detail/diff solo se invocan con ese SHA validado.
+- Repo cards y commits son enlaces server-side; no se añadieron inputs, forms, búsqueda libre, refs/rangos/revspecs, acciones Git, working-tree diff ni client-side fetch.
+- Para evitar eco de query maliciosa en HTML/RSC, parámetros no soportados o `repo_id`/`sha` inválidos se redirigen a URL canónica saneada antes de renderizar la página final.
 
 ## Review
 Usopp + Chopper. Franky solo si se introduce backend/runtime/cache/polling o endpoint nuevo.

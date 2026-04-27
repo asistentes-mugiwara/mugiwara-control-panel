@@ -937,8 +937,9 @@ Ese equilibrio debe mantenerse en todas las decisiones de frontend del MVP.
 ## Ruta `/git` — Repos Git
 - Navegación principal: añadir `Repos Git` como superficie read-only de Zoro.
 - Propósito: consultar repositorios Git allowlisteados desde backend, historial reciente, ramas locales, detalle de commit y diff histórico ya saneado.
-- Copy obligatorio: dejar visible `Solo lectura`, `repo_id/SHA backend-owned` y `Diff redactado/truncado/omitido`.
-- Restricciones UI: sin paths cliente, sin discovery arbitrario, sin refs/rangos/revspecs, sin acciones Git y sin working-tree diff en Issue #40.4.
+- Copy obligatorio: dejar visible `Solo lectura`, `repo_id/SHA backend-owned`, `Selección controlada`, `Solo repos allowlisteados`, `Solo SHAs listados por backend` y `Diff redactado/truncado/omitido`.
+- Restricciones UI: sin paths cliente, sin discovery arbitrario, sin refs/rangos/revspecs, sin acciones Git y sin working-tree diff en Issue #40.4/40.5.
+- Selector 40.5: repo cards y commits son enlaces server-side; `repo_id` solo se acepta si existe en `repoIndex.repos` y `sha` solo si existe en `commits.commits` del repo seleccionado. Parámetros inválidos se ignoran sin eco ni error crudo.
 - Layout: cards/listas responsive, no tablas anchas; el panel de diff usa scroll interno/controlado y `pre` con wrap para evitar overflow horizontal.
 - Estados: API real, fallback local saneado, fuente no configurada/degradada; nunca mostrar backend URL, rutas host, detalles internos de ejecución y errores crudos ni errores crudos.
 - Guardrail: `npm run verify:git-server-only`.

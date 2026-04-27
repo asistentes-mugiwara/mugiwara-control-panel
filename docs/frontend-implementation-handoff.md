@@ -701,6 +701,7 @@ Regla del bloque:
 - Fixture/fallback: `apps/web/src/modules/git/view-models/git-surface.fixture.ts`, sin rutas host, secretos, detalles internos de ejecución ni errores crudos.
 - CSS/responsive: clases `git-*` en `globals.css` para listas/cards/diff con `min-width: 0`, wrap y scroll interno del diff.
 - Seguridad de presentación: la página no lee `process.env`, no hace fetch browser, no conoce backend URL, no acepta input de paths/refs/revspecs y solo encadena `repo_id`/SHA que vienen de respuestas backend.
+- Selector 40.5: `Selección controlada` repo/commit mediante enlaces server-side; `searchParams.repo_id` se acepta solo si existe en `repoIndex.repos` y `searchParams.sha` solo si existe en `commits.commits` del repo seleccionado. No hay inputs, forms, búsqueda libre ni selector de refs/rangos.
 - Verificación obligatoria: `npm run verify:git-server-only`, typecheck, build, `npm run verify:visual-baseline`, `git diff --check` y smoke HTML/DOM anti-leakage.
 
 Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

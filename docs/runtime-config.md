@@ -197,14 +197,15 @@ Resumen de la decisión:
 - El cuerpo libre de commit no forma parte del contrato público; solo se lee internamente para trailers allowlisteados.
 
 ## Git control frontend / Repos Git
-Issue #40.4 añade la ruta frontend `/git` con etiqueta visible `Repos Git`. La página es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`.
+Issue #40.4 añade la ruta frontend `/git` con etiqueta visible `Repos Git`. La página es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`. Issue #40.5 añade `Selección controlada` repo/commit mediante enlaces server-side y validación estricta de `searchParams`.
 
 Reglas de runtime:
 1. El navegador no recibe ni usa `MUGIWARA_CONTROL_PANEL_API_URL`, `NEXT_PUBLIC_*` ni backend URL absoluta.
 2. La UI no acepta paths, URLs, remotes, refs, rangos, revspecs ni comandos Git desde cliente; usa solo `repo_id` y SHA completo devueltos por backend.
-3. La página muestra índice de repos, commits, ramas locales, detalle de commit y diff histórico saneado. No muestra working-tree diff en 40.4.
-4. El fallback local está saneado y no renderiza rutas host, detalles internos de ejecución y errores crudos, errores crudos, tokens ni secretos.
-5. Antes de cerrar cambios sobre esta frontera ejecutar:
+3. `repo_id` solo se acepta si existe en `repoIndex.repos`, y `sha` solo si existe en `commits.commits` del repo seleccionado; query params inválidos se ignoran sin eco ni error crudo.
+4. La página muestra índice de repos, commits, ramas locales, detalle de commit y diff histórico saneado. No muestra working-tree diff en 40.4/40.5.
+5. El fallback local está saneado y no renderiza rutas host, detalles internos de ejecución y errores crudos, errores crudos, tokens ni secretos.
+6. Antes de cerrar cambios sobre esta frontera ejecutar:
 
 ```bash
 npm run verify:git-server-only

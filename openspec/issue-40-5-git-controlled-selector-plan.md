@@ -1,4 +1,4 @@
-# Issue #40.5 — Selector controlado repo/commit para `/git`
+# Issue #40.5 — Selector controlado repo/commit para `/git` (`Repos Git`)
 
 ## Decisión de división
 
@@ -14,7 +14,7 @@ Si durante implementación aparece necesidad de nuevos endpoints, paginación, b
 
 ## Objetivo
 
-Permitir elegir repo y commit en `/git` sin abrir superficie Git arbitraria.
+Permitir `Selección controlada` de repo y commit en `/git` sin abrir superficie Git arbitraria.
 
 La UI debe dejar de depender solo de “primer repo + primer commit” y permitir navegación controlada entre:
 - repos ya devueltos por `GET /api/v1/git/repos`;

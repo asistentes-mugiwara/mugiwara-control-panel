@@ -17,7 +17,9 @@ const paths = {
   frontendSpec: join(repoRoot, 'docs/frontend-ui-spec.md'),
   handoff: join(repoRoot, 'docs/frontend-implementation-handoff.md'),
   openspec: join(repoRoot, 'openspec/issue-40-4-git-frontend-readonly.md'),
+  openspecSelector: join(repoRoot, 'openspec/issue-40-5-git-controlled-selector-plan.md'),
   engram: join(repoRoot, '.engram/issue-40-4-git-frontend-readonly.md'),
+  engramSelector: join(repoRoot, '.engram/issue-40-5-git-controlled-selector-planning-closeout.md'),
 }
 const failures = []
 function read(pathName, label) {
@@ -42,7 +44,9 @@ const runtimeConfig = read(paths.runtimeConfig, 'runtime config docs')
 const frontendSpec = read(paths.frontendSpec, 'frontend UI spec')
 const handoff = read(paths.handoff, 'frontend implementation handoff')
 const openspec = read(paths.openspec, 'Issue 40.4 OpenSpec')
+const openspecSelector = read(paths.openspecSelector, 'Issue 40.5 OpenSpec')
 const engram = read(paths.engram, 'Issue 40.4 Engram note')
+const engramSelector = read(paths.engramSelector, 'Issue 40.5 Engram note')
 
 let packageJson
 try { packageJson = JSON.parse(packageJsonText) } catch { failures.push('package.json must be valid JSON') }
@@ -82,11 +86,24 @@ for (const forbidden of [
 
 for (const snippet of [
   "export const dynamic = 'force-dynamic'",
+  "type GitPageSearchParams = Promise<Record<string, string | string[] | undefined>>",
+  "getSingleSearchParam(searchParams, 'repo_id')",
+  "getSingleSearchParam(searchParams, 'sha')",
+  'repoIndex.repos.find((repo) => repo.repo_id === requestedRepoId)',
+  'commitsResponse.data.commits.find((commit) => commit.sha === requestedSha)',
+  'hasUnsupportedGitSearchParams(searchParams)',
+  'redirect(gitRepoHref(selectedRepo.repo_id))',
+  'redirect(gitCommitHref(selectedRepo.repo_id, selectedCommit.sha))',
   'fetchGitRepos()',
   'fetchGitCommits(selectedRepo.repo_id)',
   'fetchGitBranches(selectedRepo.repo_id)',
   'fetchGitCommitDetail(selectedRepo.repo_id, selectedCommit.sha)',
   'fetchGitCommitDiff(selectedRepo.repo_id, selectedCommit.sha)',
+  'href={gitRepoHref(repo.repo_id)}',
+  'href={gitCommitHref(repoId, commit.sha)}',
+  'Selección controlada',
+  'Solo repos allowlisteados',
+  'Solo SHAs listados por backend',
   'Repos Git',
   'Solo lectura',
   'repo_id/SHA backend-owned',
@@ -118,6 +135,13 @@ for (const forbidden of [
   'stash',
   'merge',
   'rebase',
+  '<input',
+  '<textarea',
+  '<form',
+  'name="path"',
+  'name="ref"',
+  'name="branch"',
+  'name="revspec"',
 ]) mustNotInclude(page, forbidden, 'git page')
 
 for (const forbidden of ['Traceback', 'Stack trace', 'stdout', 'stderr', '/srv/', '/home/', 'token', 'secret', 'password']) {
@@ -132,10 +156,16 @@ mustInclude(moduleAgents, 'server-only', 'git module AGENTS')
 mustInclude(moduleAgents, 'sin paths', 'git module AGENTS')
 mustInclude(modulesAgents, 'git', 'modules AGENTS')
 
-for (const doc of [runtimeConfig, frontendSpec, handoff, openspec, engram]) {
+for (const doc of [runtimeConfig, frontendSpec, handoff, openspec, openspecSelector, engram, engramSelector]) {
   mustInclude(doc, 'verify:git-server-only', 'Git docs/OpenSpec/Engram')
   mustInclude(doc, 'Repos Git', 'Git docs/OpenSpec/Engram')
   mustInclude(doc, 'server-only', 'Git docs/OpenSpec/Engram')
+}
+
+for (const doc of [runtimeConfig, frontendSpec, handoff, openspecSelector, engramSelector]) {
+  mustInclude(doc, 'Selección controlada', 'Git selector docs/OpenSpec/Engram')
+  mustInclude(doc, 'repo_id', 'Git selector docs/OpenSpec/Engram')
+  mustInclude(doc, 'SHA', 'Git selector docs/OpenSpec/Engram')
 }
 
 if (failures.length > 0) {
