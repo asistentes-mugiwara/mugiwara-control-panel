@@ -254,3 +254,5 @@ Siempre de forma segura y acotada.
 
 ## Conclusión
 Estos modelos de lectura fijan una base estable para implementación posterior. El objetivo no es expresar todo el origen, sino exponer exactamente la información mínima y segura que un agente u operador necesita para navegar e interpretar el sistema.
+
+Phase 18.1 adds `scripts/write-vault-sync-status.py` and `npm run write:vault-sync-status` as the producer for `/srv/crew-core/runtime/healthcheck/vault-sync-status.json`. It uses the existing reviewed vault sync script as source, serializes only status/result/timestamp semantics, and has no unit/timer in Phase 18.1; periodic automation remains Phase 18.2.
