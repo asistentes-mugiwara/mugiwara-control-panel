@@ -174,11 +174,11 @@ Review: Franky + Chopper.
 Rama sugerida: `zoro/phase-18-3-backup-health-status-producer`.
 
 Alcance:
-- Crear `scripts/write-backup-health-status.py`.
-- Añadir tests dirigidos del productor.
-- Añadir script npm `write:backup-health-status`.
-- Añadir guardrail `verify:backup-health-status-runner` o equivalente acotado a productor si runner queda para 18.4.
-- Actualizar docs si cambia el contrato.
+- Crear `scripts/write-backup-health-status.py`. ✅ Phase 18.3
+- Añadir tests dirigidos del productor. ✅ Phase 18.3
+- Añadir script npm `write:backup-health-status`. ✅ Phase 18.3
+- Añadir guardrail `verify:backup-health-status-producer` acotado al productor; no unit/timer in Phase 18.3.
+- Actualizar docs si cambia el contrato. ✅ Phase 18.3
 
 Fuera de alcance:
 - Unit/timer systemd.

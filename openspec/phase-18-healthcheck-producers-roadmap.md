@@ -97,7 +97,7 @@ Verify mínimo:
 Review: Franky + Chopper.
 
 ### Phase 18.3 — Producer `backup-health-status`
-Objetivo: crear productor seguro de backup health.
+Objetivo: crear productor seguro de backup health. **Cerrado por Phase 18.3 con `scripts/write-backup-health-status.py`, `npm run write:backup-health-status` y `npm run verify:backup-health-status-producer`; no unit/timer in Phase 18.3.**
 
 JSON mínimo recomendado:
 - `status`

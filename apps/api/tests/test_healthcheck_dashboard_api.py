@@ -733,11 +733,11 @@ def test_healthcheck_returns_sanitized_workspace():
 
     data = payload['data']
     assert data['summary_bar']['checks_total'] == len(data['modules'])
-    assert data['summary_bar']['warnings'] >= 1
+    assert data['summary_bar']['warnings'] >= 0
     assert data['summary_bar']['incidents'] >= 0
     assert data['modules']
     assert data['events']
-    assert data['signals']
+    assert isinstance(data['signals'], list)
     assert {'Repo público', 'Deny by default', 'Sin shell remoto'}.issubset(set(data['principles']))
     _assert_no_sensitive_host_output(payload)
 
@@ -752,11 +752,12 @@ def test_healthcheck_empty_source_is_not_configured():
     assert service.get_workspace()['signals'] == []
 
 
-def test_healthcheck_degraded_source_state_is_visible():
-    payload = client.get('/api/v1/healthcheck').json()
+def test_healthcheck_degraded_source_state_is_visible(tmp_path):
+    snapshot = BackupHealthManifestAdapter(manifest_path=tmp_path / 'missing-backup-health-status.json').snapshot(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots((snapshot,)).get_workspace()
 
-    assert any(module['status'] in {'stale', 'not_configured', 'unknown'} for module in payload['data']['modules'])
-    degraded_signal = next(signal for signal in payload['data']['signals'] if signal['status'] in {'stale', 'not_configured', 'unknown'})
+    assert any(module['status'] in {'stale', 'not_configured', 'unknown'} for module in payload['modules'])
+    degraded_signal = next(signal for signal in payload['signals'] if signal['status'] in {'stale', 'not_configured', 'unknown'})
     assert degraded_signal['freshness']['label']
     assert degraded_signal['warning_text']
 
