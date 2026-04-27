@@ -613,6 +613,18 @@ button {
   gap: 10px;
 }
 
+.git-branch-list--dense {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.git-branch-list--dense .git-branch-row {
+  gap: 8px;
+  padding: 9px 10px;
+}
+
 .git-inline-code,
 .git-block-code,
 .git-diff-line {
@@ -627,6 +639,19 @@ button {
 .git-block-code {
   display: block;
   max-width: 100%;
+}
+
+.git-sha-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  line-height: 1.7;
+  word-break: normal;
+}
+
+.git-sha-group {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .git-diff-panel {

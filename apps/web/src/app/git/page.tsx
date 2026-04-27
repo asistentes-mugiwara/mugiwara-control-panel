@@ -138,6 +138,16 @@ function workingTreeCopy(repo: GitRepoSummary) {
   return 'Estado no disponible'
 }
 
+function renderShaGroups(sha: string) {
+  const groups = sha.match(/.{1,8}/g) ?? [sha]
+
+  return groups.map((group, index) => (
+    <span key={`${group}-${index}`} className="git-sha-group">
+      {group}
+    </span>
+  ))
+}
+
 function Pill({ children }: { children: ReactNode }) {
   return (
     <span
@@ -212,6 +222,7 @@ export default async function GitPage() {
   const selectedRepo = repoIndex.repos[0]
   const selectedCommit = commitDetail.commit ?? commits.commits[0] ?? null
   const isSnapshotMode = Boolean(notice)
+  const hasDenseBranches = branches.branches.length > 8
 
   return (
     <>
@@ -274,7 +285,10 @@ export default async function GitPage() {
             <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>
               Rama actual: <strong>{branches.current_branch ?? 'No disponible'}</strong>
             </p>
-            <ul className="git-branch-list">
+            <p style={{ margin: 0, color: appTheme.colors.textMuted, fontSize: '13px', lineHeight: 1.5 }}>
+              {branches.branches.length} rama(s) locales. {hasDenseBranches ? 'Vista compacta con scroll interno para mantener la página escaneable.' : 'Lista completa en lectura compacta.'}
+            </p>
+            <ul className={`git-branch-list${hasDenseBranches ? ' git-branch-list--dense' : ''}`}>
               {branches.branches.length > 0 ? branches.branches.map((branch) => (
                 <li key={branch.sha + branch.name} className="git-branch-row">
                   <span className="text-break">{branch.name}</span>
@@ -291,7 +305,7 @@ export default async function GitPage() {
         <SurfaceCard title="Detalle de commit" eyebrow="SHA backend-owned" accent="success">
           {selectedCommit ? (
             <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
-              <code className="git-block-code">{selectedCommit.sha}</code>
+              <code className="git-block-code git-sha-code" aria-label={`SHA completo ${selectedCommit.sha}`}>{renderShaGroups(selectedCommit.sha)}</code>
               <p className="text-break" style={{ margin: 0, color: appTheme.colors.textPrimary, fontWeight: 800 }}>{selectedCommit.subject}</p>
               <dl className="git-metric-list">
                 <div><dt>Autor</dt><dd>{selectedCommit.author_name}</dd></div>
