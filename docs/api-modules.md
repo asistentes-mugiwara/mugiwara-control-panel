@@ -110,3 +110,5 @@ Los módulos backend deben ser fáciles de consumir por agentes:
 - estados observables
 - sin side effects implícitos
 - capacidad/permiso visible en cada caso de uso
+
+Phase 18.1 adds `scripts/write-vault-sync-status.py` and `npm run write:vault-sync-status` outside the backend to produce `/srv/crew-core/runtime/healthcheck/vault-sync-status.json`. The Healthcheck backend contract does not change: it still consumes only the fixed sane manifest and never runs vault sync, shell, Git, systemd or filesystem discovery. There is no unit/timer in Phase 18.1; runner automation remains Phase 18.2.

@@ -55,3 +55,8 @@ npm run verify:healthcheck-source-policy
 ```
 
 For implementation phases that also touch the API read model, run the backend test suite and existing perimeter guardrails as well.
+
+## Phase 18.1 vault-sync status producer
+Phase 18.1 adds `scripts/write-vault-sync-status.py` and `npm run write:vault-sync-status` as the reviewed producer for `/srv/crew-core/runtime/healthcheck/vault-sync-status.json`. The producer runs the fixed Franky-owned `/srv/crew-core/scripts/vault-sync.sh` operational source outside the backend and consumes only the exit code. It writes only `status`, `result`, `updated_at` and, on explicit success, `last_success_at`; it does not serialize stdout, stderr, raw output, logs, paths, branch names, remotes, SHAs, diffs, tokens, credentials or `.env` values.
+
+The producer writes atomically with a temp file in the same directory, file fsync, `os.replace`, file mode `0640`, directory mode `0750` and parent-directory fsync. `npm run verify:vault-sync-status-producer` guards this contract. There is no unit/timer in Phase 18.1; `mugiwara-vault-sync-status.timer` and any persistent automation remain Phase 18.2 review scope.

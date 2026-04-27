@@ -19,6 +19,7 @@ const paths = {
   projectHealthProducer: join(repoRoot, 'scripts/write-project-health-status.py'),
   gatewayStatusProducer: join(repoRoot, 'scripts/write-gateway-status.py'),
   cronjobsStatusProducer: join(repoRoot, 'scripts/write-cronjobs-status.py'),
+  vaultSyncStatusProducer: join(repoRoot, 'scripts/write-vault-sync-status.py'),
 }
 
 const failures = []
@@ -63,6 +64,7 @@ const readModelsDoc = read(paths.readModelsDoc, 'read models document')
 const projectHealthProducer = read(paths.projectHealthProducer, 'project-health manifest producer')
 const gatewayStatusProducer = read(paths.gatewayStatusProducer, 'gateway status manifest producer')
 const cronjobsStatusProducer = read(paths.cronjobsStatusProducer, 'cronjobs status manifest producer')
+const vaultSyncStatusProducer = read(paths.vaultSyncStatusProducer, 'vault-sync status manifest producer')
 
 let packageJson
 try {
@@ -89,6 +91,14 @@ if (packageJson && packageJson.scripts?.['verify:gateway-status-runner'] !== 'no
 
 if (packageJson && packageJson.scripts?.['write:cronjobs-status'] !== 'python3 scripts/write-cronjobs-status.py') {
   failures.push('package.json must expose write:cronjobs-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['write:vault-sync-status'] !== 'python3 scripts/write-vault-sync-status.py') {
+  failures.push('package.json must expose write:vault-sync-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:vault-sync-status-producer'] !== 'node scripts/check-vault-sync-status-producer.mjs') {
+  failures.push('package.json must expose verify:vault-sync-status-producer')
 }
 
 if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
@@ -211,6 +221,23 @@ for (const snippet of requiredCronjobsStatusProducerSnippets) {
   mustInclude(cronjobsStatusProducer, snippet, 'cronjobs status manifest producer')
 }
 
+const requiredVaultSyncStatusProducerSnippets = [
+  "DEFAULT_SYNC_SCRIPT = Path('/srv/crew-core/scripts/vault-sync.sh')",
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/vault-sync-status.json')",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at')",
+  "DEGRADED_MANIFEST_KEYS = ('status', 'result', 'updated_at')",
+  'stdout=subprocess.DEVNULL',
+  'stderr=subprocess.DEVNULL',
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+  '_fsync_directory(output.parent)',
+]
+
+for (const snippet of requiredVaultSyncStatusProducerSnippets) {
+  mustInclude(vaultSyncStatusProducer, snippet, 'vault-sync status manifest producer')
+}
+
 const requiredDocSnippets = [
   'No generic host console',
   'Text field sanitization',
@@ -248,6 +275,9 @@ const requiredDocSnippets = [
   'scripts/install-cronjobs-status-user-timer.sh',
   'does not serialize job names, owner profiles, prompt bodies, commands, delivery targets, chat IDs, logs, stdout/stderr, raw outputs, host paths, tokens or credentials',
   'GitHub issue/PR counts or last-verify aggregation',
+  'Phase 18.1 adds `scripts/write-vault-sync-status.py`',
+  'runs the fixed Franky-owned `/srv/crew-core/scripts/vault-sync.sh` operational source outside the backend and consumes only the exit code',
+  'There is no unit/timer in Phase 18.1',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 
