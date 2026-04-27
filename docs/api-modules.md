@@ -79,7 +79,7 @@
 - leer perfiles Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en servidor; abrir cada SQLite de perfil en `mode=ro` y no exponer la ruta del fichero ni el root configurado
 - serializar actividad Hermes solo como agregados por perfil/rango: sesiones, mensajes, tool calls, primera/última actividad, perfil dominante e índice bajo/medio/alto; sin prompts, conversaciones, tool payloads, tokens por sesión/conversación, IDs, targets, secretos, headers, cookies ni logs
 - degradar DB ausente/ilegible/sin snapshots a `not_configured`/`unknown` visible, nunca a dato sano silencioso
-- mantener la UI de actividad Hermes para subfase separada 17.4d
+- la UI `/usage` consume la actividad Hermes agregada en 17.4d como correlación orientativa y no como causalidad exacta por perfil
 
 ### `system`
 - estado general del servidor y señales operativas de alto nivel

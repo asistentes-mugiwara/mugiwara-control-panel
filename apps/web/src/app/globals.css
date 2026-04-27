@@ -217,6 +217,55 @@ button {
   font-weight: 800;
 }
 
+.usage-calendar-day .status-badge {
+  white-space: normal;
+}
+
+.usage-hermes-activity-summary,
+.usage-hermes-activity-row__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.usage-hermes-activity-summary dt,
+.usage-hermes-activity-row__metrics dt {
+  color: #9aa7bd;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-hermes-activity-summary dd,
+.usage-hermes-activity-row__metrics dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+}
+
+.usage-hermes-activity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.usage-hermes-activity-row {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(232, 181, 106, 0.08);
+}
+
+.usage-hermes-activity-row__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
 .responsive-code {
   overflow-x: auto;
   white-space: pre-wrap;
@@ -377,11 +426,14 @@ button {
   }
 
   .usage-calendar-day__metrics,
-  .usage-window-row__metrics {
+  .usage-window-row__metrics,
+  .usage-hermes-activity-summary,
+  .usage-hermes-activity-row__metrics {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .usage-window-row__main {
+  .usage-window-row__main,
+  .usage-hermes-activity-row__main {
     flex-direction: column;
   }
 }

@@ -38,7 +38,7 @@ npm run verify:perimeter-policy
 2. `GET /api/v1/usage/current`, `calendar` y `five-hour-windows` leen únicamente la SQLite saneada de Codex usage.
 3. `GET /api/v1/usage/hermes-activity` lee actividad Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en el backend; abre perfiles allowlisted en modo lectura y serializa únicamente agregados por perfil/rango.
 4. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; si la fuente falta o falla, degrada a `not_configured`.
-5. La UI de actividad queda para 17.4d; 17.4c solo fija el contrato backend saneado.
+5. La UI consume `hermes-activity?range=7d` mediante el mismo adapter server-only y muestra solo agregados por perfil/rango como correlación orientativa, sin valores internos de configuración ni rutas.
 
 Antes de cerrar cambios que toquen Usage config, ejecutar:
 
