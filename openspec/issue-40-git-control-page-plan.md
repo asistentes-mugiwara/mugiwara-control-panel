@@ -5,7 +5,11 @@
 - Planificación: PR #88 cerrada.
 - Microfase 40.1: PR #89 mergeada; backend-only registry/status implementado.
 - Microfase 40.2: PR #90 mergeada; backend-only commits/branches read model implementado.
-- Tipo de fase: planificación SDD inicial + microfases backend runtime.
+- Microfase 40.3: PR #91 mergeada; backend commit detail + safe diff implementado.
+- Microfase 40.4: PR #92 mergeada; frontend `/git` server-only/read-only implementado.
+- Microfase 40.5: PR #93 mergeada; selector controlado repo/commit y canonicalización temprana anti-echo RSC implementados.
+- Microfase 40.6: closeout/canon preparado en `openspec/issue-40-6-closeout-canon.md`.
+- Tipo de fase: planificación SDD inicial + microfases backend/frontend runtime + closeout/canon.
 - Fecha: 2026-04-27
 
 ## Objetivo
@@ -149,31 +153,37 @@ El API debe indicar `omitted_reason`, `truncated`, `redacted` y contadores; no d
 **Review:** Franky + Chopper obligatorio.
 
 ### 40.4 — Frontend `/git` read-only page
+**Estado:** implementado en PR #92.
+
 **Objetivo:** añadir página UI que consuma los endpoints backend cerrados para índice, historial y detalle/diff de commits.
 
-**Incluye:** navegación, server-only adapter, página dinámica, estados de fuente/fallback, cards/listas responsive, copy de solo lectura y avisos de redacción/truncado.
+**Incluye:** navegación `Repos Git`, server-only adapter, página dinámica, estados de fuente/fallback, cards/listas responsive, copy de solo lectura y avisos de redacción/truncado/omisión. Tras review de Chopper, el frontend no renderiza líneas de diff en HTML/DOM; muestra metadata, contadores y estados.
 
-**No incluye:** acciones Git, working tree diff si 40.5 no está cerrado, búsqueda avanzada.
+**No incluye:** acciones Git, working-tree diff, búsqueda avanzada, refs/rangos/revspecs ni líneas de diff en DOM.
 
-**TDD/verify:** `verify:git-server-only` nuevo, typecheck/build, visual baseline, smoke HTML/DOM anti leakage (`MUGIWARA_CONTROL_PANEL_API_URL`, backend URL, rutas host, `.env`, tokens sintéticos, stdout/stderr, stack traces), browser smoke responsive.
+**TDD/verify:** `verify:git-server-only`, typecheck/build, visual baseline, smoke HTML/DOM anti leakage (`MUGIWARA_CONTROL_PANEL_API_URL`, backend URL, rutas host, `.env`, tokens sintéticos, stdout/stderr, stack traces), browser smoke responsive.
 
-**Review:** Usopp + Chopper; Franky solo si se añade polling/cache/runtime.
+**Review:** Usopp + Chopper.
 
-### 40.5 — Working tree read-only status/diff
-**Objetivo:** mostrar cambios sin commitear sin permitir acciones.
+### 40.5 — Frontend selector controlado repo/commit
+**Estado:** implementado en PR #93.
 
-**Incluye:** status summary por repo, archivos modificados/nuevos/borrados con nombres saneados; diff de working tree solo con la misma política de 40.3 y preferiblemente detrás de toggle/estado claro.
+**Objetivo:** permitir selección controlada de repo y commit en `/git` sin abrir input Git arbitrario.
 
-**Riesgo:** puede exponer secretos no commiteados; si hay duda, primera entrega debe limitarse a resumen sin contenido de diff para un PR propio.
+**Incluye:** repo cards y commits como enlaces server-side; `repo_id` aceptado solo si existe en `repoIndex.repos`; `sha` aceptado solo si existe en `commits.commits` del repo seleccionado; canonicalización temprana en `apps/web/src/middleware.ts` para redirigir queries no soportadas, duplicadas, inseguras o no validables antes de render RSC.
 
-**TDD/verify:** fixtures con `.env` no commiteado, archivos grandes/binarios/logs, renames/deletes; payload no debe contener contenido sensible ni rutas host.
+**No incluye:** paginación avanzada, búsqueda/filtros, refs/rangos/revspecs, remotes, acciones Git, working-tree diff, inputs libres ni líneas de diff en DOM.
 
-**Review:** Franky + Chopper + Usopp si toca UI.
+**TDD/verify:** `verify:git-server-only`, typecheck/build, visual baseline, `git diff --check`, smokes HTML/DOM anti-leakage live/degradados con redirects follow y no-follow.
+
+**Review:** Usopp + Chopper. Chopper aprobó tras fix de middleware anti-echo RSC; Usopp dejó `mergeable_with_minor_followups`.
 
 ### 40.6 — Closeout/canon
-**Objetivo:** actualizar docs vivas, OpenSpec, `.engram`, Project Summary del vault, issues/PRs y guardrails tras cerrar las microfases runtime.
+**Estado:** preparado en `openspec/issue-40-6-closeout-canon.md`.
 
-**Verify:** guardrails Git backend/frontend, perímetro, typecheck/build, tests backend Git, visual baseline si UI cambió, `git diff --check`, scans dirigidos anti-secretos.
+**Objetivo:** actualizar OpenSpec, `.engram` y canon vivo tras cerrar 40.1–40.5, dejando congelado el bloque read-only y documentando que cualquier nueva capacidad Git requiere fase explícita.
+
+**Verify:** docs-only `git diff --check`. Si una futura fase toca runtime/UI, volver a ejecutar `verify:git-server-only`, typecheck, build, visual baseline y smokes anti-leakage; si toca backend Git, ejecutar tests backend Git, `verify:git-control-backend-policy` y `verify:perimeter-policy`.
 
 ## Guardrails nuevos propuestos
 - `npm run verify:git-control-backend-policy`
@@ -192,12 +202,20 @@ El API debe indicar `omitted_reason`, `truncated`, `redacted` y contadores; no d
 - `AGENTS.md` de `apps/api/src/modules`, `apps/web/src/modules` si nace nueva carpeta.
 
 ## Riesgos abiertos
-- **Diffs históricos con secretos:** un secreto puede estar commiteado; la política por path no basta. Se requiere redacción por contenido y omisión fail-closed.
-- **Working tree no commiteado:** riesgo mayor que commit history; debe ir después y quizá empezar solo con summary.
-- **Subprocess Git:** aceptable solo con arg list, cwd fijo, timeout, env mínimo, `shell=False` y allowlist de comandos read-only; si se usa librería Git, revisar igualmente que no haga discovery o reads no acotados.
+- **Nueva capacidad Git por inercia:** refs/rangos/revspecs, remotes, acciones Git, working-tree diff y líneas de diff en DOM quedan fuera del bloque cerrado y requieren planificación/review propios.
+- **Diffs históricos con secretos:** mitigado por safe diff backend y por no renderizar líneas de diff en frontend; cualquier cambio que vuelva a exponer contenido debe pasar por Chopper.
+- **Working tree no commiteado:** riesgo mayor que commit history por secretos no commiteados; no está implementado y no debe añadirse sin fase nueva.
+- **Subprocess Git:** aceptable solo en el backend ya revisado, con arg list, cwd fijo, timeout, entorno mínimo, `shell=False` y comandos read-only allowlisteados.
 - **Remote/ahead-behind:** no ejecutar red en request. Comparar solo refs locales; cualquier `fetch` pertenece a productor/operación separada, no al endpoint.
-- **Rutas absolutas:** útiles para backend, no para UI/API pública del control plane; usar labels lógicos.
-- **Tamaño/performance:** paginación y límites desde el primer endpoint; diffs truncados siempre.
+- **Rutas absolutas:** útiles internamente para backend, no para UI/API pública del control plane; usar labels lógicos.
+- **Coste de middleware `/git`:** el fetch temprano para canonicalización anti-echo puede merecer medición operativa si hay carga real; tratar como follow-up Franky, no como feature Git.
 
 ## Siguiente paso recomendado
-Implementar 40.1 como microfase backend-only: registry allowlisted + `GET /api/v1/git/repos` + `GET /api/v1/git/repos/{repo_id}/status` resumido, con TDD rojo primero y guardrail backend. No tocar UI ni diffs hasta cerrar review Franky + Chopper sobre la frontera Git.
+Cerrar el bloque con 40.6 y no implementar nueva capacidad Git ahora.
+
+Opciones futuras seguras solo si hay necesidad explícita:
+1. follow-up operativo/performance del middleware `/git` con Franky;
+2. polish UI menor de `/git` con Usopp;
+3. plan nuevo para capacidad Git concreta con revisión Franky/Chopper/Usopp según perímetro.
+
+No abrir refs/rangos/revspecs, remotes, acciones Git, working-tree diff ni líneas de diff en DOM sin diseño y review nuevos.
