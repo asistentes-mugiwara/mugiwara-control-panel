@@ -23,6 +23,40 @@ Guardarraíl de este contrato:
 npm run verify:perimeter-policy
 ```
 
+
+## Servicio privado persistente por Tailscale
+`mugiwara-control-panel` puede instalarse como dos servicios `systemd --user` para uso permanente privado:
+
+- `mugiwara-control-panel-api.service`: FastAPI, loopback-only en `127.0.0.1:8011`.
+- `mugiwara-control-panel-web.service`: Next.js production, accesible por Tailscale en `100.65.118.27:3017` en este host.
+
+Instalación:
+
+```bash
+scripts/install-control-panel-user-services.sh
+```
+
+URL privada actual:
+
+```text
+http://100.65.118.27:3017
+http://delaya-control.tail2ce3eb.ts.net:3017
+```
+
+Contrato de seguridad:
+
+1. La API no se expone por Tailscale ni por LAN; escucha solo en loopback.
+2. La web consume `MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011` solo server-side.
+3. El runner web detecta la IPv4 de Tailscale y rechaza bind wildcard (`0.0.0.0`/`::`).
+4. Esto sigue siendo `internet-public: unsupported`: no usa Tailscale Funnel, no abre puertos públicos ni añade auth pública/rate-limit.
+5. Si Tailscale no está disponible, el servicio web falla y systemd reintenta, en vez de caer silenciosamente a exposición pública.
+
+Guardarraíl:
+
+```bash
+npm run verify:control-panel-service-runner
+```
+
 ## Variables actuales
 
 | Variable | Consumidor | Exposición | Uso |

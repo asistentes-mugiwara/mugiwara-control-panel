@@ -1,0 +1,23 @@
+[Unit]
+Description=Mugiwara Control Panel private API service
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env bash scripts/run-control-panel-api.sh
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+
+# Private v1 contract: API remains loopback-only. The web service is the Tailscale-facing surface.
+Environment=MUGIWARA_CONTROL_PANEL_API_HOST=127.0.0.1
+Environment=MUGIWARA_CONTROL_PANEL_API_PORT=8011
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=default.target
