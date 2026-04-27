@@ -35,6 +35,7 @@ Corte interno:
 - `sha` se acepta solo si existe en `commits.commits` del repo seleccionado; detail/diff solo se invocan con ese SHA validado.
 - Repo cards y commits son enlaces server-side; no se añadieron inputs, forms, búsqueda libre, refs/rangos/revspecs, acciones Git, working-tree diff ni client-side fetch.
 - Para evitar eco de query maliciosa en HTML/RSC, parámetros no soportados o `repo_id`/`sha` inválidos se redirigen a URL canónica saneada antes de renderizar la página final.
+- Tras review de Chopper, la canonicalización se extendió también a fallback/degradación: con API no disponible, cualquier `repo_id`/`sha` o clave no soportada redirige a `/git` antes de renderizar fallback, evitando reflejo de query maliciosa en `__next_f`.
 
 ## Review
 Usopp + Chopper. Franky solo si se introduce backend/runtime/cache/polling o endpoint nuevo.

@@ -102,6 +102,10 @@ async function getGitPageData(searchParams: Record<string, string | string[] | u
   const requestedSha = getSingleSearchParam(searchParams, 'sha')
   const unsupportedSearchParams = hasUnsupportedGitSearchParams(searchParams)
 
+  if (unsupportedSearchParams) {
+    redirect('/git')
+  }
+
   try {
     const reposResponse = await fetchGitRepos()
     const repoIndex = reposResponse.data
@@ -109,6 +113,10 @@ async function getGitPageData(searchParams: Record<string, string | string[] | u
     const requestedRepoAccepted = Boolean(requestedRepoId && selectedRepo?.repo_id === requestedRepoId)
 
     if (reposResponse.status !== 'ready' || !selectedRepo) {
+      if (requestedRepoId || requestedSha) {
+        redirect('/git')
+      }
+
       return getFallbackData({
         status: 'revision',
         title: 'Repos Git en modo fallback local',
@@ -127,6 +135,10 @@ async function getGitPageData(searchParams: Record<string, string | string[] | u
     const requestedShaAccepted = Boolean(requestedSha && selectedCommit?.sha === requestedSha)
 
     if (!selectedCommit || commitsResponse.status !== 'ready') {
+      if (requestedSha) {
+        redirect(gitRepoHref(selectedRepo.repo_id))
+      }
+
       return {
         repoIndex,
         commits: commitsResponse.data,
@@ -175,6 +187,10 @@ async function getGitPageData(searchParams: Record<string, string | string[] | u
     }
   } catch (error) {
     if (isNextRedirectError(error)) throw error
+
+    if (requestedRepoId || requestedSha) {
+      redirect('/git')
+    }
 
     const apiError = error instanceof GitApiError ? error : null
     return getFallbackData({
