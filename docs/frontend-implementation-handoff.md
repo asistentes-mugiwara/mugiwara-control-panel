@@ -694,3 +694,13 @@ Regla del bloque:
 - no abrir nuevas capacidades de producto
 - no abrir nuevas superficies de escritura
 - si identidad y claridad compiten, gana claridad
+
+## Módulo frontend `git` — Issue #40.4 (`Repos Git`)
+- Ruta: `apps/web/src/app/git/page.tsx`.
+- Adapter: `apps/web/src/modules/git/api/git-http.ts`, siempre `server-only`, con `MUGIWARA_CONTROL_PANEL_API_URL`, `cache: 'no-store'`, validación `http(s)` y errores codificados/saneados.
+- Fixture/fallback: `apps/web/src/modules/git/view-models/git-surface.fixture.ts`, sin rutas host, secretos, detalles internos de ejecución ni errores crudos.
+- CSS/responsive: clases `git-*` en `globals.css` para listas/cards/diff con `min-width: 0`, wrap y scroll interno del diff.
+- Seguridad de presentación: la página no lee `process.env`, no hace fetch browser, no conoce backend URL, no acepta input de paths/refs/revspecs y solo encadena `repo_id`/SHA que vienen de respuestas backend.
+- Verificación obligatoria: `npm run verify:git-server-only`, typecheck, build, `npm run verify:visual-baseline`, `git diff --check` y smoke HTML/DOM anti-leakage.
+
+Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

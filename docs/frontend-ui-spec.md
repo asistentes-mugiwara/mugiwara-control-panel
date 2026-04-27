@@ -932,3 +932,15 @@ La dirección a implementar es:
 **dashboard premium y operativo + identidad One Piece sutil + fichas de Mugiwara con calavera y color propio.**
 
 Ese equilibrio debe mantenerse en todas las decisiones de frontend del MVP.
+
+
+## Ruta `/git` — Repos Git
+- Navegación principal: añadir `Repos Git` como superficie read-only de Zoro.
+- Propósito: consultar repositorios Git allowlisteados desde backend, historial reciente, ramas locales, detalle de commit y diff histórico ya saneado.
+- Copy obligatorio: dejar visible `Solo lectura`, `repo_id/SHA backend-owned` y `Diff redactado/truncado/omitido`.
+- Restricciones UI: sin paths cliente, sin discovery arbitrario, sin refs/rangos/revspecs, sin acciones Git y sin working-tree diff en Issue #40.4.
+- Layout: cards/listas responsive, no tablas anchas; el panel de diff usa scroll interno/controlado y `pre` con wrap para evitar overflow horizontal.
+- Estados: API real, fallback local saneado, fuente no configurada/degradada; nunca mostrar backend URL, rutas host, detalles internos de ejecución y errores crudos ni errores crudos.
+- Guardrail: `npm run verify:git-server-only`.
+
+Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

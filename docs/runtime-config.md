@@ -132,7 +132,7 @@ npm run verify:vault-server-only
 2. Ambos adapters leen `MUGIWARA_CONTROL_PANEL_API_URL` y validan esquema `http:`/`https:`.
 3. `/dashboard` y `/healthcheck` declaran `export const dynamic = 'force-dynamic'`.
 4. Los fetches usan `cache: 'no-store'`.
-5. Si la API falta o falla, ambas páginas muestran fallback local saneado con aviso visible; no muestran comandos, logs, stdout/stderr, URLs internas ni detalles host.
+5. Si la API falta o falla, ambas páginas muestran fallback local saneado con aviso visible; no muestran comandos, logs, detalles internos de ejecución, URLs internas ni detalles host.
 6. Healthcheck sigue usando un catálogo backend-owned saneado; Phase 14.1 endureció este camino parseando timestamps explícitamente para agregación de frescura y haciendo que Dashboard respete severidad `critical` a nivel de registro. Los conectores reales auditados y el enforcement de allowlist de backend host siguen como trabajo futuro separado si la topología de despliegue lo requiere.
 
 Antes de cerrar cambios que toquen Dashboard/Healthcheck config o fallback, ejecutar:
@@ -195,3 +195,19 @@ Resumen de la decisión:
 - El cliente opera únicamente con `repo_id` allowlisteado y SHA completo devuelto por el backend; no se aceptan paths, refs, rangos, revspecs ni comandos.
 - Los diffs históricos se tratan como sensibles: paths `.env`/credenciales/logs/dumps/DBs y binarios se omiten, contenido con tokens o rutas host se redacta y todas las salidas se truncan por fichero/total.
 - El cuerpo libre de commit no forma parte del contrato público; solo se lee internamente para trailers allowlisteados.
+
+## Git control frontend / Repos Git
+Issue #40.4 añade la ruta frontend `/git` con etiqueta visible `Repos Git`. La página es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`.
+
+Reglas de runtime:
+1. El navegador no recibe ni usa `MUGIWARA_CONTROL_PANEL_API_URL`, `NEXT_PUBLIC_*` ni backend URL absoluta.
+2. La UI no acepta paths, URLs, remotes, refs, rangos, revspecs ni comandos Git desde cliente; usa solo `repo_id` y SHA completo devueltos por backend.
+3. La página muestra índice de repos, commits, ramas locales, detalle de commit y diff histórico saneado. No muestra working-tree diff en 40.4.
+4. El fallback local está saneado y no renderiza rutas host, detalles internos de ejecución y errores crudos, errores crudos, tokens ni secretos.
+5. Antes de cerrar cambios sobre esta frontera ejecutar:
+
+```bash
+npm run verify:git-server-only
+```
+
+Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

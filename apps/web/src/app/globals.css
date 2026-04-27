@@ -557,3 +557,147 @@ button {
 :where(button, input, textarea, select):disabled {
   cursor: not-allowed;
 }
+
+
+.git-metric-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.git-metric-list dt {
+  color: #9aa7bd;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.git-metric-list dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.git-commit-list,
+.git-branch-list,
+.git-file-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.git-commit-row,
+.git-branch-row,
+.git-file-row {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.git-commit-row--selected {
+  border-color: rgba(232, 181, 106, 0.55);
+  background: rgba(232, 181, 106, 0.08);
+}
+
+.git-branch-row,
+.git-file-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.git-branch-list--dense {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.git-branch-list--dense .git-branch-row {
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.git-inline-code,
+.git-block-code,
+.git-diff-line {
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 7px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.git-block-code {
+  display: block;
+  max-width: 100%;
+}
+
+.git-sha-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  line-height: 1.7;
+  word-break: normal;
+}
+
+.git-sha-group {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.git-diff-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.git-diff-file {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.git-diff-file__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #9aa7bd;
+  font-size: 13px;
+}
+
+.git-diff-pre {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.git-diff-line {
+  display: block;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 720px) {
+  .git-metric-list,
+  .git-branch-row,
+  .git-file-row {
+    grid-template-columns: 1fr;
+  }
+}
