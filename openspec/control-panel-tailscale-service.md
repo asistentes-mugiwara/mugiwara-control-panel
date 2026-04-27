@@ -77,5 +77,7 @@ Requiere Franky + Chopper:
 - Smoke web Tailscale `/healthcheck`: HTTP 200, módulos reales renderizados y consola limpia.
 - No-leakage básico API/HTML: `PASS`.
 
+- Franky dejó `approve` operativo con follow-ups documentales menores ya incorporados: rollback exacto, validación de `Linger=yes` y nota de actualización si cambia la IP Tailscale.
+
 ## Incidencia corregida
 El primer arranque de API falló bajo systemd porque el entorno user service resolvía `python3` a `/usr/bin/python3`, sin `uvicorn`. Se corrigió el runner para usar por defecto `/home/agentops/.hermes/hermes-agent/venv/bin/python3`, con override explícito `MUGIWARA_CONTROL_PANEL_PYTHON` si más adelante se crea un venv propio del proyecto.

@@ -57,6 +57,25 @@ Guardarraíl:
 npm run verify:control-panel-service-runner
 ```
 
+Prerrequisito de arranque tras reboot:
+
+```bash
+loginctl show-user "$(id -un)" -p Linger
+```
+
+Debe devolver `Linger=yes` para que los servicios user-level puedan levantarse tras boot sin login interactivo.
+
+Rollback operativo:
+
+```bash
+systemctl --user disable --now mugiwara-control-panel-api.service mugiwara-control-panel-web.service
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/mugiwara-control-panel-api.service"
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/mugiwara-control-panel-web.service"
+systemctl --user daemon-reload
+```
+
+Si cambia la IP Tailscale del host, actualizar este documento, `openspec/control-panel-tailscale-service.md` y el guardarraíl `verify:control-panel-service-runner` antes de declarar válido el nuevo endpoint privado.
+
 ## Variables actuales
 
 | Variable | Consumidor | Exposición | Uso |
