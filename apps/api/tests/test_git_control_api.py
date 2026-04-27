@@ -149,6 +149,35 @@ def test_git_repo_status_reports_dirty_without_file_names_or_paths(tmp_path: Pat
     _assert_no_leakage(payload)
 
 
+def test_git_repo_status_neutralizes_local_fsmonitor_hook(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    repo = _make_repo(tmp_path / 'fsmonitor-private-repo')
+    marker = tmp_path / 'fsmonitor-ran-marker'
+    hook = tmp_path / 'fsmonitor-hook.sh'
+    hook.write_text(f'#!/bin/sh\nprintf ran > "{marker}"\nexit 0\n', encoding='utf-8')
+    hook.chmod(0o700)
+    _git(repo, 'config', 'core.fsmonitor', str(hook))
+    registry = GitRepoRegistry(
+        repos=(
+            GitRepoDefinition(repo_id='fixture-fsmonitor', label='Fixture fsmonitor repository', scope='test', path=repo),
+        )
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get('/api/v1/git/repos/fixture-fsmonitor/status')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'git.repo_status'
+    assert payload['status'] == 'ready'
+    assert payload['data']['status']['source_state'] == 'live'
+    assert payload['data']['status']['working_tree'] == 'clean'
+    assert not marker.exists()
+    assert str(hook) not in response.text
+    _assert_no_leakage(payload)
+
+
 def test_git_unknown_repo_id_returns_sanitized_not_found_without_echoing_input(tmp_path: Path) -> None:
     from apps.api.src.modules.git_control.registry import GitRepoRegistry
 

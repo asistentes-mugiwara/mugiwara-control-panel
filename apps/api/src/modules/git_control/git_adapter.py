@@ -7,6 +7,7 @@ from .domain import (
     FORBIDDEN_GIT_COMMANDS,
     GIT_COMMAND_TIMEOUT_SECONDS,
     GIT_MINIMAL_ENV,
+    GIT_SAFE_CONFIG_ARGS,
     GitRepoStatus,
     READ_ONLY_GIT_COMMANDS,
 )
@@ -28,6 +29,7 @@ def _run_git_status(repo_path: Path) -> str:
         [
             'git',
             '--no-optional-locks',
+            *GIT_SAFE_CONFIG_ARGS,
             'status',
             '--porcelain=v1',
             '--branch',
@@ -40,7 +42,7 @@ def _run_git_status(repo_path: Path) -> str:
 def _run_allowlisted_git(repo_path: Path, args: list[str]) -> str:
     if len(args) < 3 or args[0] != 'git':
         raise ValueError('unsupported git invocation')
-    command = args[2] if args[1].startswith('--') else args[1]
+    command = _extract_git_command(args)
     if command not in READ_ONLY_GIT_COMMANDS or command in FORBIDDEN_GIT_COMMANDS:
         raise ValueError('unsupported git command')
 
@@ -56,6 +58,20 @@ def _run_allowlisted_git(repo_path: Path, args: list[str]) -> str:
         text=True,
     )
     return completed.stdout
+
+
+def _extract_git_command(args: list[str]) -> str | None:
+    index = 1
+    while index < len(args):
+        value = args[index]
+        if value == '-c':
+            index += 2
+            continue
+        if value.startswith('--'):
+            index += 1
+            continue
+        return value
+    return None
 
 
 def _parse_porcelain_status(output: str) -> GitRepoStatus:

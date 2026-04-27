@@ -9,8 +9,16 @@ GIT_MINIMAL_ENV = {
     'PATH': '/usr/bin:/bin',
     'LANG': 'C',
     'LC_ALL': 'C',
+    'GIT_CONFIG_GLOBAL': '/dev/null',
+    'GIT_CONFIG_SYSTEM': '/dev/null',
     'GIT_CONFIG_NOSYSTEM': '1',
 }
+GIT_SAFE_CONFIG_ARGS = (
+    '-c',
+    'core.fsmonitor=false',
+    '-c',
+    'core.hooksPath=/dev/null',
+)
 READ_ONLY_GIT_COMMANDS = frozenset({'status'})
 FORBIDDEN_GIT_COMMANDS = frozenset(
     {
