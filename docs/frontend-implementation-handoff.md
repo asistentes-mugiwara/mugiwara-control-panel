@@ -121,6 +121,10 @@ apps/web/src/modules/
     api/
     view-models/
     index.ts
+  system/
+    api/                  # adapter server-only para métricas globales del header
+    view-models/          # snapshot serializable para AppShell/Topbar
+    index.ts              # opcional si el módulo crece
 ```
 
 ## 3.3 Shared

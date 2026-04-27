@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
+import type { HeaderSystemMetrics } from './system-metrics'
 import { appTheme } from '@/shared/theme/tokens'
 import { SidebarNav } from '@/shared/ui/navigation/SidebarNav'
 
@@ -9,9 +10,10 @@ import { Topbar } from './Topbar'
 
 type AppShellProps = {
   children: ReactNode
+  systemMetrics: HeaderSystemMetrics
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, systemMetrics }: AppShellProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
   const navId = useId()
@@ -82,6 +84,7 @@ export function AppShell({ children }: AppShellProps) {
           menuButtonRef={menuButtonRef}
           navId={navId}
           isMobileNavOpen={isMobileNavOpen}
+          systemMetrics={systemMetrics}
           onToggleNavigation={() => setIsMobileNavOpen((current) => !current)}
         />
 

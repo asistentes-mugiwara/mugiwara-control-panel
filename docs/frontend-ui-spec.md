@@ -98,9 +98,10 @@ Diseñar un shell de navegación estable y escaneable que:
 
 ### Topbar
 - identidad del producto
+- métricas globales siempre visibles: RAM, disco y uptime desde snapshot server-only saneado
 - búsqueda futura o comando rápido reservado
 - estado global resumido
-- timestamp / última actualización
+- timestamp / última actualización cuando la superficie lo aporte
 
 ### Convención de navegación
 - sidebar persistente en desktop

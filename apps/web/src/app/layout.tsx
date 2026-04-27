@@ -1,23 +1,42 @@
 import type { Metadata } from 'next'
 
+import { fetchSystemMetrics, SystemMetricsApiError } from '@/modules/system/api/system-metrics-http'
+import { createHeaderSystemMetricsSnapshot, createUnavailableHeaderSystemMetrics } from '@/modules/system/view-models/system-metrics-summary'
 import { AppShell } from '@/shared/ui/app-shell/AppShell'
 
 import './globals.css'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Mugiwara Control Panel',
   description: 'Private Mugiwara/Hermes control plane',
 }
 
-export default function RootLayout({
+async function loadHeaderSystemMetrics() {
+  try {
+    const response = await fetchSystemMetrics()
+    return createHeaderSystemMetricsSnapshot(response.data)
+  } catch (error) {
+    if (error instanceof SystemMetricsApiError && error.code === 'not_configured') {
+      return createUnavailableHeaderSystemMetrics('not_configured')
+    }
+
+    return createUnavailableHeaderSystemMetrics('unavailable')
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const headerSystemMetrics = await loadHeaderSystemMetrics()
+
   return (
     <html lang="es">
       <body>
-        <AppShell>{children}</AppShell>
+        <AppShell systemMetrics={headerSystemMetrics}>{children}</AppShell>
       </body>
     </html>
   )

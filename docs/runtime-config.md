@@ -141,6 +141,15 @@ Antes de cerrar cambios que toquen Dashboard/Healthcheck config o fallback, ejec
 npm run verify:health-dashboard-server-only
 ```
 
+## System metrics header
+El header global consume `GET /api/v1/system/metrics` desde Phase 36.2 mediante un adapter frontend `server-only`:
+
+1. `apps/web/src/modules/system/api/system-metrics-http.ts` importa `server-only`, lee solo `MUGIWARA_CONTROL_PANEL_API_URL` y valida esquema `http:`/`https:`.
+2. `apps/web/src/app/layout.tsx` es dinámico (`force-dynamic`), obtiene un snapshot server-side por request/navegación y pasa props serializables a `AppShell`/`Topbar`.
+3. `AppShell` y `Topbar` siguen siendo client components por la navegación responsive, pero no hacen fetch, no leen `process.env` y no conocen la URL backend.
+4. Si la API falta, falla o devuelve payload inválido, el header muestra métricas `—` y estado degradado/sin datos sin URL backend, errores crudos, stack traces, paths host ni detalles de configuración.
+5. Este primer corte no añade polling, cache/TTL ni refresh cliente. Si se introduce refresco posterior, requiere diseño y review Franky + Chopper.
+
 ## Decisiones relacionadas
 La planificación inicial vive en `openspec/phase-12-3e-server-only-migration-plan.md`, el diseño específico de Skills BFF vive en `openspec/phase-12-3g-skills-bff-design.md`, la implementación vive en `openspec/phase-12-3h-skills-bff-implementation.md`, Vault vive en `openspec/phase-12-4-vault-readonly-api.md` y Health/Dashboard en `openspec/phase-12-5-health-dashboard-aggregation.md`.
 
