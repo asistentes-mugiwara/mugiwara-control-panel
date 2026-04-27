@@ -21,6 +21,8 @@ const paths = {
   cronjobsStatusProducer: join(repoRoot, 'scripts/write-cronjobs-status.py'),
   vaultSyncStatusProducer: join(repoRoot, 'scripts/write-vault-sync-status.py'),
   vaultSyncStatusRunner: join(repoRoot, 'scripts/check-vault-sync-status-runner.mjs'),
+  backupHealthStatusProducer: join(repoRoot, 'scripts/write-backup-health-status.py'),
+  backupHealthStatusProducerGuardrail: join(repoRoot, 'scripts/check-backup-health-status-producer.mjs'),
 }
 
 const failures = []
@@ -67,6 +69,8 @@ const gatewayStatusProducer = read(paths.gatewayStatusProducer, 'gateway status 
 const cronjobsStatusProducer = read(paths.cronjobsStatusProducer, 'cronjobs status manifest producer')
 const vaultSyncStatusProducer = read(paths.vaultSyncStatusProducer, 'vault-sync status manifest producer')
 const vaultSyncStatusRunner = read(paths.vaultSyncStatusRunner, 'vault-sync status runner guardrail')
+const backupHealthStatusProducer = read(paths.backupHealthStatusProducer, 'backup-health status manifest producer')
+const backupHealthStatusProducerGuardrail = read(paths.backupHealthStatusProducerGuardrail, 'backup-health status producer guardrail')
 
 let packageJson
 try {
@@ -105,6 +109,14 @@ if (packageJson && packageJson.scripts?.['verify:vault-sync-status-producer'] !=
 
 if (packageJson && packageJson.scripts?.['verify:vault-sync-status-runner'] !== 'node scripts/check-vault-sync-status-runner.mjs') {
   failures.push('package.json must expose verify:vault-sync-status-runner')
+}
+
+if (packageJson && packageJson.scripts?.['write:backup-health-status'] !== 'python3 scripts/write-backup-health-status.py') {
+  failures.push('package.json must expose write:backup-health-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:backup-health-status-producer'] !== 'node scripts/check-backup-health-status-producer.mjs') {
+  failures.push('package.json must expose verify:backup-health-status-producer')
 }
 
 if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
@@ -244,6 +256,28 @@ for (const snippet of requiredVaultSyncStatusProducerSnippets) {
   mustInclude(vaultSyncStatusProducer, snippet, 'vault-sync status manifest producer')
 }
 
+const requiredBackupHealthStatusProducerSnippets = [
+  "DEFAULT_BACKUPS_DIR = Path('/srv/crew-core/backups')",
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at', 'checksum_present', 'retention_count')",
+  "DEGRADED_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'checksum_present', 'retention_count')",
+  'EXPECTED_RETENTION_COUNT = 4',
+  "['sha256sum', '-c', str(checksum_path)]",
+  'stdout=subprocess.DEVNULL',
+  'stderr=subprocess.DEVNULL',
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+  '_fsync_directory(output.parent)',
+]
+
+for (const snippet of requiredBackupHealthStatusProducerSnippets) {
+  mustInclude(backupHealthStatusProducer, snippet, 'backup-health status manifest producer')
+}
+
+mustInclude(backupHealthStatusProducerGuardrail, 'no unit/timer in Phase 18.3', 'backup-health status producer guardrail')
+mustInclude(backupHealthStatusProducerGuardrail, 'npm run write:backup-health-status', 'backup-health status producer guardrail')
+
 const requiredVaultSyncStatusRunnerSnippets = [
   'mugiwara-vault-sync-status.service',
   'mugiwara-vault-sync-status.timer',
@@ -304,6 +338,13 @@ const requiredDocSnippets = [
   'runs `npm run write:vault-sync-status`',
   'does not pass `--output`, `--sync-script` or `--timeout-seconds`',
   'TimeoutStartSec=620s',
+  'Phase 18.3 adds `scripts/write-backup-health-status.py`',
+  'observes only the fixed local backup artifact directory',
+  'validates the latest checksum with `sha256sum -c`',
+  'npm run write:backup-health-status',
+  'no unit/timer in Phase 18.3',
+  'does not run backups',
+  'does not serialize archive names, paths, sizes, hashes, Drive targets, stdout/stderr, logs or raw output',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 
