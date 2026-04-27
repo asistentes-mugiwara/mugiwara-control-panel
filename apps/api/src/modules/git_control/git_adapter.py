@@ -225,7 +225,6 @@ def _parse_git_log(output: str) -> list[GitCommitSummary]:
                 authored_at=_sanitize_text(authored_at, max_length=40),
                 committed_at=_sanitize_text(committed_at, max_length=40),
                 subject=_sanitize_text(subject, max_length=200),
-                body=_sanitize_body(body),
                 mugiwara_agent=trailers.get('mugiwara-agent'),
                 signed_off_by=trailers.get('signed-off-by'),
             )
@@ -264,15 +263,6 @@ def _extract_trailers(body: str) -> dict[str, str | None]:
         if normalized in trailers:
             trailers[normalized] = _sanitize_text(value.strip(), max_length=160)
     return trailers
-
-
-def _sanitize_body(body: str) -> str:
-    lines = []
-    for line in body.splitlines():
-        if line.lower().startswith(('mugiwara-agent:', 'signed-off-by:')):
-            continue
-        lines.append(_sanitize_text(line, max_length=200))
-    return '\n'.join(lines).strip()[:1000]
 
 
 def _sanitize_text(value: str, *, max_length: int) -> str:

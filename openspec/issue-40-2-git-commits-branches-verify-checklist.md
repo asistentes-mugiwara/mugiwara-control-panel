@@ -16,7 +16,7 @@
 - [x] Endpoint `GET /api/v1/git/repos/{repo_id}/branches` añadido.
 - [x] Cliente solo usa `repo_id`; commits solo acepta `limit` y cursor opaco `offset:<n>`.
 - [x] Límites inválidos y cursor/revspec malicioso devuelven error saneado sin ecoar input.
-- [x] Commits serializan hashes, autor/email saneado, fechas, subject/body acotado y trailers `Mugiwara-Agent`/`Signed-off-by`.
+- [x] Commits serializan hashes, autor/email saneado, fechas, subject y trailers `Mugiwara-Agent`/`Signed-off-by`; el cuerpo libre no se publica.
 - [x] Branches serializa únicamente ramas locales saneadas; sin remotes, refs arbitrarias ni discovery.
 - [x] Sin UI, sin diffs, sin working tree diff y sin commit detail por SHA.
 - [x] Sin checkout/reset/commit/push/pull/fetch/stash/merge/rebase.

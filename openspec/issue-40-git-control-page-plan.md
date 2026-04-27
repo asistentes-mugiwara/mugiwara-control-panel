@@ -65,7 +65,7 @@ La registry puede contener rutas absolutas internamente, pero esas rutas no debe
 - `GET /api/v1/git/repos`
   - Lista repos allowlisteados con rama actual, último commit resumido, estado clean/dirty, ahead/behind saneado si está disponible sin red, y `source_state`.
 - `GET /api/v1/git/repos/{repo_id}/commits?limit=&cursor=`
-  - Historial paginado con límite máximo bajo, hashes, autor/email opcionalmente saneado, fechas, asunto/body resumido y trailers.
+  - Historial paginado con límite máximo bajo, hashes, autor/email opcionalmente saneado, fechas, asunto y trailers; el cuerpo libre del commit se usa solo internamente para extraer trailers y no se publica.
 - `GET /api/v1/git/repos/{repo_id}/branches`
   - Ramas/refs locales allowlisted y rama actual; sin resolver refs arbitrarias desde cliente.
 - `GET /api/v1/git/repos/{repo_id}/commits/{sha}`

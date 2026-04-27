@@ -172,7 +172,7 @@ Issue #40.1 añade backend `GET /api/v1/git/repos` y `GET /api/v1/git/repos/{rep
 1. No requiere variable runtime nueva: la registry Git es backend-owned y deny-by-default.
 2. El cliente opera solo con `repo_id`; para commits solo puede aportar `limit` `1..50` y cursor opaco `offset:<n>` generado por backend. No existen parámetros `path`, `url`, `remote`, `command`, `ref`, `branch`, `sha` ni `revspec` controlando Git.
 3. Las rutas reales de la registry pueden existir internamente en backend, pero no se serializan en API, UI, logs públicos, errores ni docs públicas.
-4. La lectura Git de 40.2 es status/commits/branches-locales: no hay diffs, working-tree diff, remotes ni acciones destructivas/remotas.
+4. La lectura Git de 40.2 es status/commits/branches-locales: no hay diffs, working-tree diff, remotes ni acciones destructivas/remotas. La lista de commits publica metadata mínima y trailers allowlisteados; no publica el cuerpo libre del commit.
 5. Toda invocación Git mantiene `shell=False`, cwd fijo, timeout, env mínimo, `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `core.fsmonitor=false` y `core.hooksPath=/dev/null`.
 6. Antes de cerrar cambios que toquen esta frontera, ejecutar:
 

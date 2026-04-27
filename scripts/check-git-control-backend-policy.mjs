@@ -204,6 +204,9 @@ const requiredTestSnippets = [
   'test_git_unknown_repo_id_returns_sanitized_not_found_without_echoing_input',
   'test_git_repo_status_degrades_safely_for_unreadable_or_non_git_repo',
   'test_git_commits_lists_recent_commits_with_mugiwara_trailers_and_safe_cursor',
+  'test_git_commits_do_not_expose_sensitive_commit_body_while_extracting_trailers',
+  'SYNTHETIC-SECRET-COMMIT-BODY-MARKER',
+  "assert 'body' not in commit",
   'Mugiwara-Agent: zoro',
   'Signed-off-by: zoro <asistentes.mugiwara@gmail.com>',
   'test_git_branches_lists_local_branches_only_without_remotes_or_paths',
@@ -224,6 +227,7 @@ mustInclude(readModelsDoc, 'git.repo_index', 'read models doc')
 mustInclude(readModelsDoc, 'git.repo_status', 'read models doc')
 mustInclude(readModelsDoc, 'git.commit_list', 'read models doc')
 mustInclude(readModelsDoc, 'git.branch_list', 'read models doc')
+mustInclude(readModelsDoc, 'El cuerpo libre del commit no forma parte del contrato público', 'read models doc')
 mustInclude(runtimeConfigDoc, 'Git control backend', 'runtime config doc')
 
 if (failures.length > 0) {

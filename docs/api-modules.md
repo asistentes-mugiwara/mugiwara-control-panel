@@ -106,7 +106,7 @@
 - usar Git solo como lectura host-adjacent acotada para status, commits y ramas locales, con `subprocess.run` en lista de argumentos, `shell=False`, `cwd` fijo, timeout, entorno mínimo, config global/system nula y overrides `core.fsmonitor=false`/`core.hooksPath=/dev/null`
 - no ejecutar acciones destructivas ni remotas (`checkout`, `reset`, `commit`, `push`, `pull`, `fetch`, `stash`, `merge`, `rebase`)
 - no exponer rutas host, nombres de fichero de status, diffs, remotes privados, stdout/stderr, stack traces ni errores crudos
-- commits serializan solo hashes, autor/email saneado, fechas, subject/body acotado y trailers `Mugiwara-Agent`/`Signed-off-by`
+- commits serializan solo hashes, autor/email saneado, fechas, subject y trailers allowlisteados `Mugiwara-Agent`/`Signed-off-by`; el cuerpo libre del commit no se publica y solo se usa internamente para extraer esos trailers
 - branches serializa solo ramas locales con nombre saneado, `current`, sha y short_sha; no remotes ni refs arbitrarias
 - degradar repos ausentes/corruptos/ilegibles a `source_unavailable` con payload saneado
 - bloquear la frontera backend con `npm run verify:git-control-backend-policy`

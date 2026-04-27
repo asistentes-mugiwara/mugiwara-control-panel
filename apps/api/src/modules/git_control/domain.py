@@ -78,7 +78,6 @@ class GitCommitSummary:
     authored_at: str
     committed_at: str
     subject: str
-    body: str
     mugiwara_agent: str | None
     signed_off_by: str | None
 
@@ -91,7 +90,6 @@ class GitCommitSummary:
             'authored_at': self.authored_at,
             'committed_at': self.committed_at,
             'subject': self.subject,
-            'body': self.body,
             'trailers': {
                 'mugiwara_agent': self.mugiwara_agent,
                 'signed_off_by': self.signed_off_by,

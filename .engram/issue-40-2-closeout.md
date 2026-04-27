@@ -16,7 +16,7 @@ Se implementó la microfase 40.2 backend-only para Git control: endpoints read-o
 - El cliente sigue operando solo con `repo_id`; no hay paths, URLs, remotes, comandos, refs, branch selector ni revspecs desde cliente.
 - `GET /api/v1/git/repos/{repo_id}/commits` acepta `limit` `1..50` y cursor opaco `offset:<n>` generado por backend. No acepta SHAs ni revsets como cursor.
 - `GET /api/v1/git/repos/{repo_id}/branches` lista solo ramas locales mediante formato fijo de Git; no lista remotes.
-- Commits exponen metadata acotada y trailers `Mugiwara-Agent`/`Signed-off-by`; no exponen diffs ni nombres de ficheros.
+- Commits exponen metadata acotada y trailers `Mugiwara-Agent`/`Signed-off-by`; no exponen diffs, nombres de ficheros ni cuerpo libre del commit.
 - Git amplía la allowlist read-only a `status`, `log` y `branch`, manteniendo hardening de 40.1: `shell=False`, cwd fijo, timeout, env mínimo, `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `-c core.fsmonitor=false`, `-c core.hooksPath=/dev/null`.
 - Repos desconocidos, no Git o ilegibles degradan con payload saneado y sin filtrar rutas/stdout/stderr.
 

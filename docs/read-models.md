@@ -199,9 +199,10 @@ Uso:
 ### `git.commit_list`
 Campos esperados:
 - `repo_id`
-- `commits[]` con `sha`, `short_sha`, `author_name`, `author_email`, `authored_at`, `committed_at`, `subject`, `body` y `trailers`
+- `commits[]` con `sha`, `short_sha`, `author_name`, `author_email`, `authored_at`, `committed_at`, `subject` y `trailers`
 - `trailers.mugiwara_agent`
 - `trailers.signed_off_by`
+- El cuerpo libre del commit no forma parte del contrato público; se lee solo internamente para extraer trailers allowlisteados.
 - `limit`
 - `next_cursor` opaco `offset:<n>` o `null`
 - `source_state`

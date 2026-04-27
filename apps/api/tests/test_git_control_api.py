@@ -308,6 +308,7 @@ def test_git_commits_lists_recent_commits_with_mugiwara_trailers_and_safe_cursor
     assert payload['data']['commits'][0]['short_sha'] == newer_sha[:12]
     assert payload['data']['commits'][0]['subject'] == 'fix: add ops note'
     assert payload['data']['commits'][0]['trailers'] == {'mugiwara_agent': None, 'signed_off_by': None}
+    assert 'body' not in payload['data']['commits'][0]
     assert payload['data']['next_cursor'] == 'offset:1'
     _assert_no_leakage(payload)
 
@@ -321,9 +322,43 @@ def test_git_commits_lists_recent_commits_with_mugiwara_trailers_and_safe_cursor
         'mugiwara_agent': 'zoro',
         'signed_off_by': 'zoro <asistentes.mugiwara@gmail.com>',
     }
-    assert 'Detailed body line.' in trailer_commit['body']
+    assert 'body' not in trailer_commit
+    assert 'Detailed body line.' not in second_page.text
     assert '.git' not in second_page.text
     _assert_no_leakage(second_payload)
+
+
+def test_git_commits_do_not_expose_sensitive_commit_body_while_extracting_trailers(tmp_path: Path) -> None:
+    from apps.api.src.modules.git_control.registry import GitRepoDefinition, GitRepoRegistry
+
+    sensitive_marker = 'SYNTHETIC-SECRET-COMMIT-BODY-MARKER'
+    repo = _make_repo(tmp_path / 'sensitive-body-private-repo')
+    sha = _commit_file(
+        repo,
+        'safe-note.md',
+        'safe note\n',
+        'docs: add safe note',
+        f'Operational context {sensitive_marker}\n\nMugiwara-Agent: zoro\nSigned-off-by: zoro <asistentes.mugiwara@gmail.com>',
+    )
+    registry = GitRepoRegistry(
+        repos=(GitRepoDefinition(repo_id='fixture-sensitive-body', label='Fixture sensitive body repository', scope='test', path=repo),)
+    )
+    _install_git_control_override(registry)
+
+    response = TestClient(app).get('/api/v1/git/repos/fixture-sensitive-body/commits?limit=1')
+
+    assert response.status_code == 200
+    payload = response.json()
+    commit = payload['data']['commits'][0]
+    assert commit['sha'] == sha
+    assert commit['trailers'] == {
+        'mugiwara_agent': 'zoro',
+        'signed_off_by': 'zoro <asistentes.mugiwara@gmail.com>',
+    }
+    assert 'body' not in commit
+    assert sensitive_marker not in response.text
+    assert 'Operational context' not in response.text
+    _assert_no_leakage(payload)
 
 
 def test_git_branches_lists_local_branches_only_without_remotes_or_paths(tmp_path: Path) -> None:
