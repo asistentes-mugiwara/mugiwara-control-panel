@@ -33,6 +33,6 @@
 ## Verify ejecutado
 - [x] `git diff --check`
 - [x] revisión de diff final antes de commit
-- [ ] commit semántico con trailers Mugiwara
-- [ ] push de rama
-- [ ] PR abierta si aplica
+- [x] commit semántico con trailers Mugiwara
+- [x] push de rama
+- [x] PR abierta: #94
