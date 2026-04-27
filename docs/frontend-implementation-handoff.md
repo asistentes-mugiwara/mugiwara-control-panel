@@ -87,7 +87,7 @@ apps/web/src/app/
   vault/page.tsx
   vault/[...path]/page.tsx          # opcional si la navegación es por ruta
   healthcheck/page.tsx
-  usage/page.tsx                    # Usage Codex/Hermes current-state
+  usage/page.tsx                    # Usage Codex/Hermes current-state + calendario + ventanas 5h
 ```
 
 ## 3.2 Módulos funcionales

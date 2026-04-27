@@ -398,6 +398,18 @@ def test_usage_five_hour_windows_degrades_when_snapshot_db_is_absent(tmp_path):
     assert 'missing.sqlite' not in str(payload)
 
 
+def test_usage_five_hour_windows_rejects_invalid_limits_without_echoing_sensitive_values(tmp_path):
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing.sqlite', now=lambda: '2026-04-26T14:40:00+00:00'))
+
+    for value in ('0', '25', '/srv/crew-core/runtime/usage/codex-usage.sqlite'):
+        response = TestClient(app).get(f'/api/v1/usage/five-hour-windows?limit={value}')
+
+        assert response.status_code == 422
+        payload = response.json()
+        assert payload == {'detail': {'code': 'validation_error', 'message': 'Request validation failed.'}}
+        assert '/srv/crew-core/runtime/usage' not in str(payload)
+
+
 def test_usage_calendar_does_not_count_cycle_reset_as_daily_delta(tmp_path):
     db_path = tmp_path / 'codex-usage.sqlite'
     con = sqlite3.connect(db_path)

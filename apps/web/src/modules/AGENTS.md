@@ -7,5 +7,5 @@ Features y módulos funcionales del frontend (dashboard, mugiwaras, skills, memo
 - Mantener una correspondencia clara entre módulo UI y módulo de producto.
 - Evitar dependencias cruzadas desordenadas.
 - **Vigilar `.gitignore`** y no subir mocks, capturas o outputs sensibles no saneados.
-- `usage`: Usage/Codex quota read-only frontend consuming server-only current snapshot and calendar adapters. Historical 5h windows and Hermes activity stay in later phases.
+- `usage`: Usage/Codex quota read-only frontend consuming server-only current snapshot, calendar and dedicated five-hour windows adapters. Hermes activity stays in a later phase.
 - Si nace un módulo nuevo, documentarlo aquí y en docs.
