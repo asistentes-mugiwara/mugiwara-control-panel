@@ -8,6 +8,8 @@ export function mapHealthcheckStatusToBadgeStatus(status: HealthcheckStatus): Ap
     warn: 'revision',
     fail: 'incidencia',
     stale: 'stale',
+    not_configured: 'revision',
+    unknown: 'sin-datos',
   }
 
   return map[status]
@@ -19,6 +21,7 @@ export function mapHealthcheckSeverityToBadgeStatus(severity: HealthcheckSeverit
     medium: 'revision',
     high: 'incidencia',
     critical: 'incidencia',
+    unknown: 'sin-datos',
   }
 
   return map[severity]
@@ -26,10 +29,12 @@ export function mapHealthcheckSeverityToBadgeStatus(severity: HealthcheckSeverit
 
 export function getHealthcheckStatusLabel(status: HealthcheckStatus): string {
   const map: Record<HealthcheckStatus, string> = {
-    pass: 'Pass',
-    warn: 'Warn',
-    fail: 'Fail',
-    stale: 'Stale',
+    pass: 'Operativo',
+    warn: 'En revisión',
+    fail: 'Incidencia',
+    stale: 'Desactualizado',
+    not_configured: 'Fuente no configurada',
+    unknown: 'Estado desconocido',
   }
 
   return map[status]
@@ -41,6 +46,7 @@ export function getHealthcheckSeverityLabel(severity: HealthcheckSeverity): stri
     medium: 'Media',
     high: 'Alta',
     critical: 'Crítica',
+    unknown: 'Desconocida',
   }
 
   return map[severity]
@@ -52,6 +58,8 @@ const statusTriageRank: Record<HealthcheckStatus, number> = {
   stale: 55,
   warn: 50,
   pass: 10,
+  not_configured: 40,
+  unknown: 35,
 }
 
 const severityTriageRank: Record<HealthcheckSeverity, number> = {
@@ -59,6 +67,7 @@ const severityTriageRank: Record<HealthcheckSeverity, number> = {
   high: 80,
   medium: 45,
   low: 5,
+  unknown: 30,
 }
 
 export function getHealthcheckTriageRank(status: HealthcheckStatus, severity: HealthcheckSeverity): number {

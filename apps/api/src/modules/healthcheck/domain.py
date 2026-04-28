@@ -170,12 +170,24 @@ class HealthcheckRecord:
 
 
 @dataclass(frozen=True)
+class HealthcheckCurrentCause:
+    source_id: str
+    label: str
+    status: str
+    severity: str
+    summary: str
+    warning_text: str
+    freshness_state: str
+
+
+@dataclass(frozen=True)
 class HealthcheckSummaryBar:
     overall_status: str
     checks_total: int
     warnings: int
     incidents: int
     updated_at: str | None
+    current_cause: HealthcheckCurrentCause | None
 
 
 @dataclass(frozen=True)
@@ -195,6 +207,7 @@ class HealthcheckEvent:
     status: str
     timestamp: str
     detail: str
+    kind: str = 'historical'
 
 
 @dataclass(frozen=True)

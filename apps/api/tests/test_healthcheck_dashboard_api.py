@@ -12,6 +12,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_SOURCE_LABELS,
     HEALTHCHECK_SOURCE_MANIFEST_POLICIES,
     HEALTHCHECK_STATUS_VALUES,
+    HealthcheckEvent,
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
@@ -33,6 +34,16 @@ def _record(module_id, label, status, severity, updated_at):
         warning_text='Synthetic safe warning.',
         source_label='Synthetic safe source',
         freshness_label='Synthetic freshness',
+    )
+
+
+def _record_event(event_id, source, status, timestamp):
+    return HealthcheckEvent(
+        event_id=event_id,
+        source=source,
+        status=status,
+        timestamp=timestamp,
+        detail='Synthetic historical event.',
     )
 
 
@@ -747,9 +758,58 @@ def test_healthcheck_empty_source_is_not_configured():
 
     assert service.workspace_status() == 'not_configured'
     assert service.get_workspace()['summary_bar']['checks_total'] == 0
+    assert service.get_workspace()['summary_bar']['current_cause'] is None
     assert service.get_workspace()['modules'] == []
     assert service.get_workspace()['events'] == []
     assert service.get_workspace()['signals'] == []
+
+
+def test_healthcheck_current_cause_is_derived_from_current_records_not_historical_events():
+    service = HealthcheckService(
+        records=(
+            _record('project-health', 'Project health', 'warn', 'medium', '2026-04-24T07:30:00Z'),
+            _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        ),
+        events=(
+            # Historical fail must remain visible in bitacora but cannot become the current cause.
+            _record_event('evt-old-gateway-fail', 'gateway.zoro', 'fail', '2026-04-23T07:39:00Z'),
+        ),
+    )
+
+    payload = service.get_workspace()
+
+    assert payload['summary_bar']['overall_status'] == 'warn'
+    assert payload['summary_bar']['incidents'] == 0
+    assert payload['summary_bar']['current_cause'] == {
+        'source_id': 'project-health',
+        'label': 'Project health',
+        'status': 'warn',
+        'severity': 'medium',
+        'summary': 'Project health safe summary',
+        'warning_text': 'Synthetic safe warning.',
+        'freshness_state': 'fresh',
+    }
+    assert payload['events'][0]['kind'] == 'historical'
+    assert payload['events'][0]['status'] == 'fail'
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_healthcheck_pass_state_has_no_current_cause_even_with_historical_warning():
+    service = HealthcheckService(
+        records=(
+            _record('project-health', 'Project health', 'pass', 'low', '2026-04-24T07:30:00Z'),
+            _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        ),
+        events=(_record_event('evt-old-warning', 'cronjobs', 'warn', '2026-04-23T01:33:40+02:00'),),
+    )
+
+    payload = service.get_workspace()
+
+    assert payload['summary_bar']['overall_status'] == 'pass'
+    assert payload['summary_bar']['warnings'] == 0
+    assert payload['summary_bar']['incidents'] == 0
+    assert payload['summary_bar']['current_cause'] is None
+    assert payload['events'][0]['kind'] == 'historical'
 
 
 def test_healthcheck_degraded_source_state_is_visible(tmp_path):

@@ -9,6 +9,7 @@ import {
 import { fetchHealthcheckWorkspace, HealthcheckApiError } from '@/modules/healthcheck/api/healthcheck-http'
 import {
   healthcheckWorkspaceFixture,
+  type HealthcheckCurrentCause,
   type HealthcheckModuleCard,
   type HealthcheckSummaryItem,
   type HealthcheckWorkspace,
@@ -111,7 +112,7 @@ function getHealthcheckCardTone(status: HealthcheckModuleCard['status'], severit
   }
 }
 
-function sortByHealthcheckTriage<T extends { status: HealthcheckModuleCard['status']; severity: HealthcheckModuleCard['severity']; updated_at?: string; freshness?: { updated_at: string } }>(items: T[]) {
+function sortByHealthcheckTriage<T extends { status: HealthcheckModuleCard['status']; severity: HealthcheckModuleCard['severity']; updated_at?: string | null; freshness?: { updated_at: string | null } }>(items: T[]): T[] {
   return [...items].sort((left, right) => {
     const rankDelta = getHealthcheckTriageRank(right.status, right.severity) - getHealthcheckTriageRank(left.status, left.severity)
 
@@ -124,6 +125,23 @@ function sortByHealthcheckTriage<T extends { status: HealthcheckModuleCard['stat
 
     return (Number.isNaN(rightDate) ? 0 : rightDate) - (Number.isNaN(leftDate) ? 0 : leftDate)
   })
+}
+
+function getCurrentCauseCopy(cause: HealthcheckCurrentCause | null) {
+  if (!cause) {
+    return null
+  }
+
+  const status = mapHealthcheckStatusToBadgeStatus(cause.status)
+  const causeLabel = cause.status === 'warn' ? `En revisión por ${cause.label}` : `${getHealthcheckStatusLabel(cause.status)} por ${cause.label}`
+  const reason = cause.warning_text && cause.warning_text !== 'Sin alerta activa.' ? cause.warning_text : cause.summary
+
+  return {
+    status,
+    title: causeLabel,
+    description: reason,
+    detail: `Causa del estado actual · Severidad ${getHealthcheckSeverityLabel(cause.severity)} · No procede de la bitácora histórica`,
+  }
 }
 
 function getPriorityCopy(module: HealthcheckModuleCard | null) {
@@ -178,6 +196,19 @@ function HealthcheckStatusBadges({ status, severity, isSnapshotMode = false }: P
   )
 }
 
+function getHistoricalEventBadgeLabel(status: HealthcheckModuleCard['status']) {
+  const map: Record<HealthcheckModuleCard['status'], string> = {
+    pass: 'Evento histórico: operativo',
+    warn: 'Evento histórico: en revisión',
+    fail: 'Incidencia histórica',
+    stale: 'Evento histórico: desactualizado',
+    not_configured: 'Evento histórico: fuente no configurada',
+    unknown: 'Evento histórico: estado desconocido',
+  }
+
+  return map[status]
+}
+
 function formatTimestamp(value: string | null) {
   if (!value) {
     return 'Sin actualización'
@@ -200,7 +231,8 @@ export default async function HealthcheckPage() {
   const isSnapshotMode = Boolean(apiNotice)
   const sortedModules = sortByHealthcheckTriage(workspace.modules)
   const sortedSignals = sortByHealthcheckTriage(workspace.signals)
-  const priorityNotice = getPriorityCopy(sortedModules[0] ?? null)
+  const currentCauseNotice = getCurrentCauseCopy(workspace.summary_bar.current_cause)
+  const priorityNotice = currentCauseNotice ?? getPriorityCopy(sortedModules[0] ?? null)
   const healthSummaryNotice =
     workspace.summary_bar.incidents > 0
       ? {
@@ -223,7 +255,7 @@ export default async function HealthcheckPage() {
       <PageHeader
         eyebrow="Healthcheck"
         title="Salud del sistema"
-        subtitle="Resumen operativo del perímetro: estado general, módulos, eventos recientes y señales saneadas sin exponer metadata sensible del host."
+        subtitle="Resumen operativo del perímetro: estado actual, causa visible y bitácora histórica separada sin exponer metadata sensible del host."
         mugiwaraSlug="chopper"
         detailPills={['Perímetro', 'Señales saneadas', 'Respuesta priorizada']}
       />
@@ -246,7 +278,7 @@ export default async function HealthcheckPage() {
         </StatePanel>
       ) : null}
 
-      <SurfaceCard title="Resumen de salud" elevated eyebrow="Puesto médico" accent="danger">
+      <SurfaceCard title="Estado actual del Healthcheck" elevated eyebrow="Puesto médico" accent="danger">
         <div style={{ display: 'grid', gap: '14px' }}>
           <div className="layout-grid layout-grid--cards-180" style={{ gap: '12px' }}>
             <div style={{ display: 'grid', gap: '8px' }}>
@@ -291,9 +323,9 @@ export default async function HealthcheckPage() {
               title={priorityNotice.title}
               description={priorityNotice.description}
               detail={priorityNotice.detail}
-              eyebrow="Acción requerida"
+              eyebrow={currentCauseNotice ? 'Causa actual' : 'Acción requerida'}
               ariaRole={priorityNotice.status === 'incidencia' ? 'alert' : 'region'}
-              ariaLabel="Prioridad actual de Healthcheck"
+              ariaLabel={currentCauseNotice ? 'Causa actual de Healthcheck' : 'Prioridad actual de Healthcheck'}
             />
           ) : healthSummaryNotice ? (
             <StatePanel
@@ -339,7 +371,10 @@ export default async function HealthcheckPage() {
       </section>
 
       <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title={isSnapshotMode ? 'Eventos del snapshot' : 'Eventos recientes'} elevated eyebrow="Bitácora" accent="gold">
+        <SurfaceCard title="Bitácora histórica" elevated eyebrow={isSnapshotMode ? 'Snapshot histórico' : 'Histórico'} accent="gold">
+          <p style={{ margin: '0 0 14px', color: appTheme.colors.textMuted, fontSize: '13px' }}>
+            Eventos anteriores saneados. No representan necesariamente el estado activo ni participan en la causa actual.
+          </p>
           {workspace.events.length > 0 ? (
             <div style={{ display: 'grid', gap: '10px' }}>
               {workspace.events.map((event) => (
@@ -357,14 +392,10 @@ export default async function HealthcheckPage() {
                     <strong>{event.source}</strong>
                     <StatusBadge
                       status={mapHealthcheckStatusToBadgeStatus(event.status)}
-                      label={
-                        isSnapshotMode && mapHealthcheckStatusToBadgeStatus(event.status) === 'operativo'
-                          ? 'Operativo en último corte'
-                          : undefined
-                      }
+                      label={getHistoricalEventBadgeLabel(event.status)}
                     />
                   </div>
-                  <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{formatTimestamp(event.timestamp)}</span>
+                  <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>Histórico · {formatTimestamp(event.timestamp)}</span>
                   <p style={{ margin: 0, color: appTheme.colors.textSecondary }}>{event.detail}</p>
                 </article>
               ))}
@@ -372,8 +403,8 @@ export default async function HealthcheckPage() {
           ) : (
             <StatePanel
               status="sin-datos"
-              title="Sin eventos recientes"
-              description="No hay eventos saneados visibles para esta ventana de observación. La ausencia de eventos debe expresarse explícitamente en vez de dejar un panel vacío."
+              title="Sin eventos históricos"
+              description="No hay eventos saneados visibles en la bitácora histórica. La ausencia de eventos debe expresarse explícitamente en vez de dejar un panel vacío."
               eyebrow="Estado vacío"
             />
           )}

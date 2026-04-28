@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from .domain import (
+    HealthcheckCurrentCause,
     HealthcheckEvent,
     HealthcheckFreshness,
     HealthcheckModuleCard,
@@ -32,10 +33,10 @@ SAFE_HEALTHCHECK_RECORDS: tuple[HealthcheckRecord, ...] = (
 )
 
 SAFE_EVENTS: tuple[HealthcheckEvent, ...] = (
-    HealthcheckEvent('evt-cron-nightly', 'cronjobs', 'warn', '2026-04-24T01:33:40+02:00', 'Ejecución nocturna completada con advertencia saneada pendiente de revisión.'),
-    HealthcheckEvent('evt-gateway-latency', 'hermes-gateways', 'warn', '2026-04-24T07:44:00Z', 'Latencia sostenida por encima del umbral objetivo durante la última ventana de observación.'),
-    HealthcheckEvent('evt-zoro-gateway-capacity', 'gateway.zoro', 'fail', '2026-04-24T07:39:00Z', 'Capacidad degradada en un componente operativo; se ha marcado como incidencia para revisión.'),
-    HealthcheckEvent('evt-backup-checksum', 'backup-health', 'pass', '2026-04-24T07:35:00Z', 'Backup reciente validado con checksum sin desviaciones visibles.'),
+    HealthcheckEvent('evt-cron-nightly', 'cronjobs', 'warn', '2026-04-24T01:33:40+02:00', 'Ejecución nocturna completada con advertencia saneada pendiente de revisión histórica.'),
+    HealthcheckEvent('evt-gateway-latency', 'hermes-gateways', 'warn', '2026-04-24T07:44:00Z', 'Latencia registrada en una ventana anterior; no representa por sí sola el estado activo.'),
+    HealthcheckEvent('evt-zoro-gateway-capacity', 'gateway.zoro', 'fail', '2026-04-24T07:39:00Z', 'Incidencia saneada registrada en una revisión anterior; no representa por sí sola el estado activo.'),
+    HealthcheckEvent('evt-backup-checksum', 'backup-health', 'pass', '2026-04-24T07:35:00Z', 'Backup validado en una revisión anterior sin desviaciones visibles.'),
 )
 
 SAFE_PRINCIPLES: tuple[str, ...] = (
@@ -101,12 +102,27 @@ class HealthcheckService:
 
     def _summary_bar(self, modules: list[HealthcheckModuleCard]) -> HealthcheckSummaryBar:
         if not modules:
-            return HealthcheckSummaryBar('stale', 0, 0, 0, None)
+            return HealthcheckSummaryBar('stale', 0, 0, 0, None, None)
         incidents = sum(1 for module in modules if module.status == 'fail')
         warnings = sum(1 for module in modules if module.status in {'warn', 'stale', 'unknown', 'not_configured'})
-        overall = max(modules, key=lambda module: _STATUS_ORDER[module.status]).status
+        overall_record = max(self._records, key=lambda record: _STATUS_ORDER[record.status])
+        overall = overall_record.status
         updated_at = self._latest_updated_at(modules)
-        return HealthcheckSummaryBar(overall, len(modules), warnings, incidents, updated_at)
+        current_cause = self._current_cause(overall_record) if overall != 'pass' else None
+        return HealthcheckSummaryBar(overall, len(modules), warnings, incidents, updated_at, current_cause)
+
+    def _current_cause(self, record: HealthcheckRecord) -> HealthcheckCurrentCause:
+        freshness_state = self._freshness_state_by_module.get(record.module_id, 'stale' if record.status == 'stale' else 'fresh')
+        validate_healthcheck_freshness_state(freshness_state)
+        return HealthcheckCurrentCause(
+            source_id=record.module_id,
+            label=record.label,
+            status=record.status,
+            severity=record.severity,
+            summary=record.summary,
+            warning_text=record.warning_text,
+            freshness_state=freshness_state,
+        )
 
     def _latest_updated_at(self, modules: list[HealthcheckModuleCard]) -> str | None:
         latest: tuple[datetime, str] | None = None

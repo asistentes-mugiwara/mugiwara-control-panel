@@ -37,11 +37,16 @@ Uso:
 
 ### `healthcheck.workspace`
 Campos esperados:
-- `summary_bar`
-- `modules[]`
-- `events[]`
+- `summary_bar` con `overall_status`, contadores, `updated_at` y `current_cause` saneado cuando el estado actual no es `pass`.
+- `modules[]` como estado vivo/current de cada fuente allowlisted.
+- `events[]` como eventos históricos saneados (`kind: historical`); no participan en `overall_status`, `warnings`, `incidents` ni `current_cause`.
 - `principles[]`
-- `signals[]`
+- `signals[]` como motivos/causas actuales degradadas derivados de módulos vivos.
+
+Semántica issue #104:
+- `En revisión` (`warn`) significa que una fuente actual requiere atención, normalmente por estado operativo revisable, freshness próxima/stale, severidad media, fuente parcial/no configurada o manifiesto desconocido. La causa visible debe salir de `summary_bar.current_cause`/`signals`, no de la bitácora.
+- `current_cause` apunta al registro vivo de mayor prioridad y expone solo `source_id`, `label`, `status`, `severity`, `summary`, `warning_text` y `freshness_state` saneados.
+- La bitácora histórica puede contener eventos `fail` antiguos, pero esos eventos no elevan el estado actual ni deben mostrarse como incidencia activa.
 
 ### `healthcheck.summary[]`
 Campos esperados:

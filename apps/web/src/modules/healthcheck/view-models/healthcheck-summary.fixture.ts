@@ -1,9 +1,20 @@
-export type HealthcheckSeverity = 'low' | 'medium' | 'high' | 'critical'
-export type HealthcheckStatus = 'pass' | 'warn' | 'fail' | 'stale'
+export type HealthcheckSeverity = 'low' | 'medium' | 'high' | 'critical' | 'unknown'
+export type HealthcheckStatus = 'pass' | 'warn' | 'fail' | 'stale' | 'not_configured' | 'unknown'
 
 export type HealthcheckFreshness = {
-  updated_at: string
+  updated_at: string | null
   label: string
+  state?: 'fresh' | 'stale' | 'unknown'
+}
+
+export type HealthcheckCurrentCause = {
+  source_id: string
+  label: string
+  status: HealthcheckStatus
+  severity: HealthcheckSeverity
+  summary: string
+  warning_text: string | null
+  freshness_state: 'fresh' | 'stale' | 'unknown'
 }
 
 export type HealthcheckSummaryBar = {
@@ -11,7 +22,8 @@ export type HealthcheckSummaryBar = {
   checks_total: number
   warnings: number
   incidents: number
-  updated_at: string
+  updated_at: string | null
+  current_cause: HealthcheckCurrentCause | null
 }
 
 export type HealthcheckModuleCard = {
@@ -29,6 +41,7 @@ export type HealthcheckEvent = {
   status: HealthcheckStatus
   timestamp: string
   detail: string
+  kind: 'historical'
 }
 
 export type HealthcheckSummaryItem = {
@@ -51,11 +64,20 @@ export type HealthcheckWorkspace = {
 
 export const healthcheckWorkspaceFixture: HealthcheckWorkspace = {
   summary_bar: {
-    overall_status: 'warn',
+    overall_status: 'fail',
     checks_total: 6,
     warnings: 2,
     incidents: 1,
     updated_at: '2026-04-24T07:46:00Z',
+    current_cause: {
+      source_id: 'system',
+      label: 'System',
+      status: 'fail',
+      severity: 'high',
+      summary: 'Se detectó una incidencia abierta de capacidad que requiere revisión prioritaria.',
+      warning_text: 'Causa principal del snapshot saneado; no representa lectura real.',
+      freshness_state: 'stale',
+    },
   },
   modules: [
     {
@@ -113,28 +135,32 @@ export const healthcheckWorkspaceFixture: HealthcheckWorkspace = {
       source: 'cronjobs',
       status: 'warn',
       timestamp: '2026-04-24T01:33:40+02:00',
-      detail: 'Ejecución nocturna completada con salida OK, pero quedaron referencias de skills a normalizar.',
+      detail: 'Ejecución nocturna completada con advertencia saneada pendiente de revisión.',
+      kind: 'historical',
     },
     {
       event_id: 'evt-gateway-latency',
       source: 'gateways',
       status: 'warn',
       timestamp: '2026-04-24T07:44:00Z',
-      detail: 'Latencia sostenida por encima del umbral objetivo durante la última ventana de observación.',
+      detail: 'Latencia sostenida por encima del umbral objetivo durante una ventana de observación anterior.',
+      kind: 'historical',
     },
     {
       event_id: 'evt-system-capacity',
       source: 'system',
       status: 'fail',
       timestamp: '2026-04-24T07:39:00Z',
-      detail: 'Capacidad degradada en un componente del host; se ha marcado como incidencia para revisión.',
+      detail: 'Incidencia saneada registrada en una revisión anterior; no representa por sí sola el estado activo.',
+      kind: 'historical',
     },
     {
       event_id: 'evt-backup-checksum',
       source: 'backups',
       status: 'pass',
       timestamp: '2026-04-24T07:35:00Z',
-      detail: 'Backup reciente validado con checksum sin desviaciones.',
+      detail: 'Backup validado en una revisión anterior sin desviaciones visibles.',
+      kind: 'historical',
     },
   ],
   principles: [
