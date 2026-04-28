@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from difflib import unified_diff
 from pathlib import Path
@@ -22,6 +22,7 @@ from .domain import (
 
 MAX_SKILL_BYTES = 200_000
 DEFAULT_ALLOWED_ROOT = Path('/srv/crew-core/skills-source').resolve()
+DEFAULT_RUNTIME_ROOT = Path('~/.config/opencode/skills').expanduser().resolve()
 DEFAULT_AUDIT_PATH = Path('/srv/crew-core/projects/mugiwara-control-panel/runtime/skills-audit.jsonl')
 SKILL_ID_PATTERN = re.compile(r'^[a-z0-9][a-z0-9_-]{0,139}$')
 
@@ -48,7 +49,7 @@ DEFAULT_RUNTIME_SKILLS: tuple[SkillRegistryEntry, ...] = (
         public_repo_risk='high',
         repo_path='~/.config/opencode/skills/judgment-day/SKILL.md',
         path=Path('~/.config/opencode/skills/judgment-day/SKILL.md').expanduser(),
-        editable=False,
+        editable=True,
     ),
 )
 
@@ -150,10 +151,13 @@ class SkillService:
         *,
         registry: Iterable[SkillRegistryEntry] | None = None,
         allowed_root: Path = DEFAULT_ALLOWED_ROOT,
+        runtime_root: Path = DEFAULT_RUNTIME_ROOT,
         audit_log_path: Path = DEFAULT_AUDIT_PATH,
     ) -> None:
         self._allowed_root = allowed_root.resolve()
-        self._registry = {entry.skill_id: entry for entry in (registry or build_default_skill_registry(self._allowed_root))}
+        self._runtime_root = runtime_root.expanduser().resolve()
+        entries = tuple(replace(entry, editable=True) for entry in (registry or build_default_skill_registry(self._allowed_root)))
+        self._registry = {entry.skill_id: entry for entry in entries}
         self._audit_log_path = audit_log_path
 
     def list_catalog(self) -> list[SkillCatalogItem]:
@@ -208,9 +212,10 @@ class SkillService:
 
     def update_skill(self, *, skill_id: str, actor: str, candidate_content: str, expected_sha256: str) -> tuple[SkillDetail, SkillAuditRecord]:
         entry = self._get_entry(skill_id)
+        audit_actor = self._audit_actor_for_entry(entry)
         if not entry.editable:
             record = self._build_audit_record(
-                actor=actor,
+                actor=audit_actor,
                 entry=entry,
                 before_sha256='',
                 after_sha256='',
@@ -229,7 +234,7 @@ class SkillService:
             self._validate_candidate(candidate_content)
         except HTTPException as exc:
             record = self._build_audit_record(
-                actor=actor,
+                actor=audit_actor,
                 entry=entry,
                 before_sha256=current_fingerprint.sha256,
                 after_sha256=current_fingerprint.sha256,
@@ -256,7 +261,7 @@ class SkillService:
             fingerprint=next_fingerprint,
         )
         record = self._build_audit_record(
-            actor=actor,
+            actor=audit_actor,
             entry=entry,
             before_sha256=current_fingerprint.sha256,
             after_sha256=next_fingerprint.sha256,
@@ -294,8 +299,8 @@ class SkillService:
                 continue
             if parent.is_symlink():
                 raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Symlink no permitido en la allowlist.')
-        if entry.editable and self._allowed_root not in resolved.parents:
-            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'not_configured', 'La skill editable sale del árbol permitido.')
+        if entry.editable and not (self._allowed_root in resolved.parents or self._runtime_root in resolved.parents):
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'not_configured', 'La skill editable sale de los árboles permitidos.')
         if resolved.name != 'SKILL.md':
             raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'not_configured', 'La allowlist solo puede apuntar a SKILL.md.')
 
@@ -355,6 +360,11 @@ class SkillService:
             preview=preview,
             truncated=len(diff_lines) > len(preview),
         )
+
+    def _audit_actor_for_entry(self, entry: SkillRegistryEntry) -> str:
+        if entry.owner_slug == 'global':
+            return 'luffy'
+        return entry.owner_slug
 
     def _build_audit_record(
         self,

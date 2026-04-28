@@ -81,5 +81,5 @@ def update_skill(skill_id: str, payload: SkillUpdateRequest, service: SkillServi
         resource='skills.update',
         status='ready',
         data={'skill': asdict(detail), 'audit': asdict(audit)},
-        meta={'skill_id': skill_id, 'actor': payload.actor},
+        meta={'skill_id': skill_id, 'actor': audit.actor},
     )

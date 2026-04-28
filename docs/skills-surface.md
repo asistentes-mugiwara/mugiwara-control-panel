@@ -37,7 +37,7 @@ La allowlist debe estar gobernada por backend y no por el cliente.
 El catálogo visible se descubre desde rutas backend-owned bajo `/srv/crew-core/skills-source`:
 - `global/*/SKILL.md` como skills globales compartidas.
 - `agents/<mugiwara>/*/SKILL.md` como skills propias de cada Mugiwara allowlisteado.
-- referencias runtime explícitas, como `judgment-day`, pueden exponerse como solo lectura si no viven bajo el árbol editable.
+- referencias runtime explícitas, como `judgment-day`, pueden exponerse como editables si viven bajo el runtime root allowlisteado (`~/.config/opencode/skills`).
 
 Campos mínimos por entrada:
 - `skill_id` estable generado por backend (`global-<skill>` o `agent-<mugiwara>-<skill>`)
@@ -46,8 +46,8 @@ Campos mínimos por entrada:
 - `owner_scope`
 - `owner_slug`
 - `owner_label`
-- `editable_sections` si se quiere granularidad futura
-- `public_repo_risk`
+- `editable`
+- `shareable_label` derivada en UI desde la señal backend `public_repo_risk`: bajo → `Skill compartible: Sí (sin riesgo)`; medio/alto → `Skill compartible: No (riesgo de filtrado)`.
 
 La página `/skills` debe evitar listados largos por defecto. El flujo de lectura/edición es:
 1. seleccionar una fuente (`global` o un Mugiwara allowlisteado);
@@ -57,7 +57,12 @@ La página `/skills` debe evitar listados largos por defecto. El flujo de lectur
 
 El modo lector debe renderizar Markdown de forma legible. El modo editor conserva la escritura controlada mediante BFF same-origin y backend allowlist. No deben reintroducirse contenedores informativos sin acción directa que compitan con el selector y la ventana de trabajo.
 
-Decisión operativa: colocar una skill nueva bajo `skills-source/global` o `skills-source/agents/<mugiwara>` la incorpora al catálogo editable del panel si cumple el contrato `SKILL.md` y el slug de Mugiwara está allowlisteado. Si una skill debe ser solo referencia, debe declararse explícitamente como runtime/read-only o quedar fuera de esa superficie hasta que exista política granular.
+Decisión operativa: colocar una skill nueva bajo `skills-source/global`, `skills-source/agents/<mugiwara>` o el runtime root allowlisteado la incorpora al catálogo editable del panel si cumple el contrato `SKILL.md` y el slug de Mugiwara está allowlisteado. Las skills globales se editan con dueño/actor visible `luffy`; las skills de agente usan su `owner_slug`; las runtime usan `runtime` salvo política posterior más granular. Si una skill debe quedar fuera de edición, debe retirarse de esta superficie hasta que exista política granular.
+
+### Copy de edición
+- Todas las skills visibles se presentan como `Editable`.
+- La UI no muestra `Riesgo repo público`; usa `Skill compartible: Sí (sin riesgo)` o `Skill compartible: No (riesgo de filtrado)`.
+- El actor visible no se introduce a mano: lo calcula el frontend desde el dueño de la skill y lo envía al backend para auditoría.
 
 ## Reglas de seguridad
 - deny-by-default en backend
@@ -78,7 +83,7 @@ Decisión operativa: colocar una skill nueva bajo `skills-source/global` o `skil
 
 ## Contrato con frontend
 El frontend solo necesita:
-- lista de skills editables
+- lista de skills visibles y editables
 - detalle de una skill editable
 - preview de diff
 - resultado del guardado
