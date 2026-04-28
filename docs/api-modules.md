@@ -20,7 +20,9 @@
 
 ### `mugiwaras`
 - componer ficha por agente
-- agregar estado, identidad, built-in memory resumida y skills relacionadas
+- agregar estado operativo/canónico del Mugiwara, identidad, built-in memory resumida y skills relacionadas
+- el `status` principal de `/mugiwaras` representa pertenencia activa al roster operativo/canónico; no debe degradarse por disponibilidad parcial de skills, memory, MCPs o madurez de una capacidad concreta
+- las capacidades parciales o en standby se explican en descripción o badges secundarios allowlisted, sin convertir al agente activo en `revision` o `sin-datos`
 - exponer `GET /api/v1/mugiwaras` y `GET /api/v1/mugiwaras/{slug}` como superficies read-only
 - mostrar `/srv/crew-core/AGENTS.md` como documento canónico de reglas operativas en la sección Mugiwara; esta lectura pertenece al control plane privado y no debe exponerse fuera de la frontera operativa/autenticada del despliegue
 - no listar ni resolver por separado `/home/agentops/.hermes/hermes-agent/AGENTS.md`, porque es symlink al canon
