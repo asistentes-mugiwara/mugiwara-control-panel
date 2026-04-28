@@ -55,7 +55,7 @@ CREW_CARDS: tuple[MugiwaraCard, ...] = (
     MugiwaraCard(
         'usopp',
         'Usopp',
-        'revision',
+        'operativo',
         'Convierte ideas en marca, copy, diseño, campañas y experiencia de interfaz.',
         ['usopp-pr-design-review', 'frontend-spec-usopp'],
         'Diseño activo',
@@ -82,28 +82,28 @@ CREW_CARDS: tuple[MugiwaraCard, ...] = (
     MugiwaraCard(
         'brook',
         'Brook',
-        'revision',
-        'Analiza datos, modelos, métricas y pipelines cuando el sistema necesite lectura cuantitativa.',
+        'operativo',
+        'Analiza datos, modelos, métricas y pipelines; el Postgres MCP permanece en standby hasta disponer de una base analítica real.',
         ['data-analysis', 'analytics-standby'],
-        'Datos en standby',
+        'Gateway operativo',
         _crew_links('brook'),
     ),
     MugiwaraCard(
         'jinbe',
         'Jinbe',
-        'sin-datos',
+        'operativo',
         'Aporta criterio legal, contexto normativo y lectura prudente de riesgos jurídicos.',
         ['legal-context'],
-        'Definido en canon',
+        'Perfil activo',
         _crew_links('jinbe'),
     ),
     MugiwaraCard(
         'sanji',
         'Sanji',
-        'sin-datos',
-        'Cuida operaciones físicas, logística personal y soporte de alto contacto cuando aplique.',
-        ['physical-ops'],
-        'Definido en canon',
+        'operativo',
+        'Rastrea compras, reservas, servicios, viajes, restaurantes, caducidades y avisos prácticos.',
+        ['shopping-travel-watch', 'google-workspace-ops'],
+        'Perfil activo',
         _crew_links('sanji'),
     ),
 )
@@ -117,8 +117,8 @@ PROFILE_META: dict[str, dict[str, str]] = {
     'nami': {'role': 'CFO y directora financiera', 'accent_color': '#f97316'},
     'robin': {'role': 'Directora de research e inteligencia', 'accent_color': '#7c3aed'},
     'brook': {'role': 'CDO y data scientist', 'accent_color': '#64748b'},
-    'jinbe': {'role': 'CLO y asesor legal', 'accent_color': '#2563eb'},
-    'sanji': {'role': 'COO físico y concierge personal', 'accent_color': '#eab308'},
+    'jinbe': {'role': 'CLO y asesor legal-burocrático', 'accent_color': '#2563eb'},
+    'sanji': {'role': 'Scout de compras, reservas y servicios', 'accent_color': '#eab308'},
 }
 
 

@@ -68,14 +68,14 @@ export const MUGIWARA_PROFILES: Record<MugiwaraSlug, MugiwaraProfile> = {
   jinbe: {
     slug: 'jinbe',
     name: 'Jinbe',
-    role: 'CLO y Asesor Legal',
+    role: 'CLO y Asesor Legal-burocrático',
     crestSvgSrc: '/assets/mugiwaras/crests/jinbe.svg',
     crestPngSrc: '/assets/mugiwaras/crests-png/jinbe.png',
   },
   sanji: {
     slug: 'sanji',
     name: 'Sanji',
-    role: 'COO Físico y Concierge Personal',
+    role: 'Scout de Compras, Reservas y Servicios',
     crestSvgSrc: '/assets/mugiwaras/crests/sanji.svg',
     crestPngSrc: '/assets/mugiwaras/crests-png/sanji.png',
   },

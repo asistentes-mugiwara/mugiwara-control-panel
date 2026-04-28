@@ -11,6 +11,17 @@ Todos los recursos usan la envoltura común:
 - `meta`
 
 ## Modelos por recurso
+### `mugiwaras.catalog`
+Campos esperados:
+- `items[]` con `slug`, `name`, `status`, `description`, `skills`, `memory_badge` y `links[]` allowlisted
+- `crew_rules_document` con el AGENTS canónico read-only servido desde la ruta backend-owned
+
+Uso:
+- representar el roster operativo/canónico actual de Mugiwara en `/mugiwaras`
+- el `status` principal de una card expresa si el Mugiwara está operativo en el canon del roster, no si tiene todos los MCPs, skills, memoria o capacidades maduras disponibles
+- si una capacidad concreta está en standby, debe aparecer como copy descriptivo saneado o badge secundario, no como degradación del estado principal del agente
+- el frontend mantiene un fixture fallback saneado que debe conservar la misma semántica que `CREW_CARDS`
+
 ### `dashboard.summary`
 Campos esperados:
 - `sections[]` con `id`, `label` y estado saneado (`healthy`, `warning`, `degraded`)

@@ -46,6 +46,15 @@ def test_mugiwaras_catalog_returns_safe_cards_and_canonical_agents_document(tmp_
         'markdown': '# AGENTS.md\n\nCanon Mugiwara saneado.\n',
     }
 
+    active_roster = {'luffy', 'zoro', 'franky', 'nami', 'robin', 'usopp', 'jinbe', 'sanji', 'chopper', 'brook'}
+    assert set(cards_by_slug) == active_roster
+    assert {slug: cards_by_slug[slug]['status'] for slug in active_roster} == {slug: 'operativo' for slug in active_roster}
+    assert cards_by_slug['brook']['memory_badge'] != 'Datos en standby'
+    assert cards_by_slug['jinbe']['memory_badge'] != 'Definido en canon'
+    assert cards_by_slug['sanji']['memory_badge'] != 'Definido en canon'
+    assert 'Postgres MCP' in cards_by_slug['brook']['description']
+    assert 'standby' in cards_by_slug['brook']['description']
+
     app.dependency_overrides.clear()
 
 

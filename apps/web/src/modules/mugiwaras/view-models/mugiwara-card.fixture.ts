@@ -10,7 +10,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Capitán operativo',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=luffy' },
     ],
   },
   {
@@ -22,7 +22,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Continuidad fuerte',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=zoro' },
     ],
   },
   {
@@ -34,7 +34,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Runtime vigilado',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=franky' },
     ],
   },
   {
@@ -46,19 +46,19 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Riesgo controlado',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=chopper' },
     ],
   },
   {
     slug: 'usopp',
     name: 'Usopp',
-    status: 'revision',
+    status: 'operativo',
     description: 'Convierte ideas en marca, copy, diseño, campañas y experiencia de interfaz.',
     skills: ['usopp-pr-design-review', 'frontend-spec-usopp'],
     memory_badge: 'Diseño activo',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=usopp' },
     ],
   },
   {
@@ -70,7 +70,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Señales estables',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=nami' },
     ],
   },
   {
@@ -82,43 +82,43 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     memory_badge: 'Canon consultable',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=robin' },
     ],
   },
   {
     slug: 'brook',
     name: 'Brook',
-    status: 'revision',
-    description: 'Analiza datos, modelos, métricas y pipelines cuando el sistema necesite lectura cuantitativa.',
+    status: 'operativo',
+    description: 'Analiza datos, modelos, métricas y pipelines; el Postgres MCP permanece en standby hasta disponer de una base analítica real.',
     skills: ['data-analysis', 'analytics-standby'],
-    memory_badge: 'Datos en standby',
+    memory_badge: 'Gateway operativo',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=brook' },
     ],
   },
   {
     slug: 'jinbe',
     name: 'Jinbe',
-    status: 'sin-datos',
+    status: 'operativo',
     description: 'Aporta criterio legal, contexto normativo y lectura prudente de riesgos jurídicos.',
     skills: ['legal-context'],
-    memory_badge: 'Definido en canon',
+    memory_badge: 'Perfil activo',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=jinbe' },
     ],
   },
   {
     slug: 'sanji',
     name: 'Sanji',
-    status: 'sin-datos',
-    description: 'Cuida operaciones físicas, logística personal y soporte de alto contacto cuando aplique.',
-    skills: ['physical-ops'],
-    memory_badge: 'Definido en canon',
+    status: 'operativo',
+    description: 'Rastrea compras, reservas, servicios, viajes, restaurantes, caducidades y avisos prácticos.',
+    skills: ['shopping-travel-watch', 'google-workspace-ops'],
+    memory_badge: 'Perfil activo',
     links: [
       { label: 'Ver Memory', href: '/memory' },
-      { label: 'Ver Skills', href: '/skills' },
+      { label: 'Ver Skills', href: '/skills?mugiwara=sanji' },
     ],
   },
 ]
