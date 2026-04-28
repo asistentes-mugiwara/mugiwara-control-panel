@@ -29,6 +29,7 @@
     "verify:cronjobs-status-runner": "node scripts/check-cronjobs-status-runner.mjs",
     "verify:statepanel-aria": "node scripts/check-statepanel-aria.mjs",
     "verify:usage-server-only": "node scripts/check-usage-server-only.mjs",
+    "test:usage-partial-hermes-status": "node scripts/check-usage-partial-hermes-status.mjs",
     "write:project-health-status": "python3 scripts/write-project-health-status.py",
     "write:gateway-status": "python3 scripts/write-gateway-status.py",
     "write:cronjobs-status": "python3 scripts/write-cronjobs-status.py",

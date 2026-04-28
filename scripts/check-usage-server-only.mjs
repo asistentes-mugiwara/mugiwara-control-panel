@@ -57,6 +57,12 @@ if (!page.includes('Ventanas 5h históricas') || !page.includes('usage-windows-l
 if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-activity-list') || !page.includes('correlación orientativa')) {
   failures.push('usage page must render Hermes aggregated activity as orientative correlation without generic table overflow')
 }
+if (!page.includes('const usageCoreStatus = currentResponse.status') || page.includes(': hermesActivityResponse.status')) {
+  failures.push('usage page must not promote Hermes activity status to global Usage core status')
+}
+if (!page.includes('noticeFromHermesActivityStatus(hermesActivityResponse.status)') || !page.includes('Actividad Hermes no configurada')) {
+  failures.push('usage page must localize Hermes activity not_configured in its own section')
+}
 for (const forbidden of ['state.db', 'MUGIWARA_HERMES_PROFILES_ROOT', 'conversaciones', 'prompts crudos', 'tokens por sesión', 'tokens por conversación']) {
   if (page.includes(forbidden)) {
     failures.push(`usage page must not render Hermes sensitive internals: ${forbidden}`)
