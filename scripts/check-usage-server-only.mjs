@@ -63,6 +63,9 @@ if (!page.includes('const usageCoreStatus = currentResponse.status') || page.inc
 if (!page.includes('noticeFromHermesActivityStatus(hermesActivityResponse.status)') || !page.includes('Actividad Hermes no configurada')) {
   failures.push('usage page must localize Hermes activity not_configured in its own section')
 }
+if (!page.includes('Actividad Hermes sin sesiones en el rango') || !page.includes('hermes-activity: empty')) {
+  failures.push('usage page must distinguish configured Hermes activity with no sessions from not_configured')
+}
 for (const forbidden of ['state.db', 'MUGIWARA_HERMES_PROFILES_ROOT', 'conversaciones', 'prompts crudos', 'tokens por sesión', 'tokens por conversación']) {
   if (page.includes(forbidden)) {
     failures.push(`usage page must not render Hermes sensitive internals: ${forbidden}`)
@@ -106,6 +109,9 @@ if (!usageService.includes('HERMES_ACTIVITY_PROFILES =') || !usageService.includ
 }
 if (!usageService.includes("file:{state_db}?mode=ro")) {
   failures.push('usage hermes activity must open Hermes profile state read-only')
+}
+if (!usageService.includes("'no_activity'") || !usageService.includes("return 'empty'")) {
+  failures.push('usage hermes activity must distinguish configured empty activity from missing configuration')
 }
 for (const forbidden of ['SELECT *', 'system_prompt', 'model_config', 'user_id', 'token_count', 'input_tokens', 'output_tokens', 'reasoning_tokens', 'estimated_cost_usd', 'actual_cost_usd', 'billing_base_url', 'title']) {
   if (activityLoader.includes(forbidden)) {

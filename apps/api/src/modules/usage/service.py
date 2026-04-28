@@ -321,7 +321,7 @@ class UsageService:
                     'logs_crudos',
                 ],
             },
-            'empty_reason': None if totals['sessions_count'] > 0 else 'not_configured',
+            'empty_reason': None if totals['sessions_count'] > 0 else 'no_activity',
         }
 
     @staticmethod
@@ -330,8 +330,10 @@ class UsageService:
             return 'not_configured'
         if payload.get('empty_reason') == 'unknown':
             return 'unknown'
+        if payload.get('empty_reason') == 'no_activity':
+            return 'empty'
         if payload.get('totals', {}).get('sessions_count', 0) <= 0:
-            return 'not_configured'
+            return 'empty'
         return 'ready'
 
     @staticmethod

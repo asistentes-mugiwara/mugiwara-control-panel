@@ -312,7 +312,7 @@ export type UsageHermesActivity = {
     correlation: 'orientativa'
     exclusions: string[]
   }
-  empty_reason: 'not_configured' | 'unknown' | null
+  empty_reason: 'not_configured' | 'unknown' | 'no_activity' | null
 }
 
 

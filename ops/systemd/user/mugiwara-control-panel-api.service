@@ -11,6 +11,8 @@ RestartSec=5s
 TimeoutStartSec=30s
 
 # Private v1 contract: API remains loopback-only. The web service is the Tailscale-facing surface.
+# Hermes profile activity root is loaded from a local, non-versioned env file created by the installer.
+EnvironmentFile=-%h/.config/mugiwara-control-panel/api.env
 Environment=MUGIWARA_CONTROL_PANEL_API_HOST=127.0.0.1
 Environment=MUGIWARA_CONTROL_PANEL_API_PORT=8011
 

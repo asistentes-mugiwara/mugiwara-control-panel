@@ -573,6 +573,28 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
     _assert_no_usage_activity_leakage(payload)
 
 
+def test_usage_hermes_activity_returns_empty_when_profiles_are_configured_but_have_no_activity(tmp_path):
+    profiles_root = tmp_path / 'profiles'
+    _create_hermes_state_db(profiles_root / 'zoro' / 'state.db', [])
+    _override_usage_service(UsageService(db_path=tmp_path / 'missing-codex.sqlite', hermes_profiles_root=profiles_root, now=lambda: '2026-04-27T10:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/hermes-activity?range=7d')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['status'] == 'empty'
+    assert payload['data']['empty_reason'] == 'no_activity'
+    assert payload['data']['profiles'] == []
+    assert payload['data']['totals'] == {
+        'profiles_count': 0,
+        'sessions_count': 0,
+        'messages_count': 0,
+        'tool_calls_count': 0,
+        'dominant_profile': None,
+    }
+    _assert_no_usage_activity_leakage(payload)
+
+
 def test_usage_hermes_activity_degrades_when_profiles_root_is_not_configured(tmp_path):
     _override_usage_service(UsageService(db_path=tmp_path / 'missing-codex.sqlite', hermes_profiles_root=None, now=lambda: '2026-04-27T10:00:00+00:00'))
 
