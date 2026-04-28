@@ -88,8 +88,8 @@ const routes = [
     path: '/healthcheck',
     title: 'Salud del sistema',
     checks: [
-      'resumen agregado, módulos, eventos y señales respetan wrap y stacking',
-      'la prioridad actual aparece antes del grid cuando hay incidencia o advertencia',
+      'resumen actual, causa actual, módulos, bitácora histórica y señales respetan wrap y stacking',
+      'la causa actual aparece antes del grid y antes de la bitácora histórica cuando hay incidencia o advertencia',
       'badges de estado/severidad no duplican el mismo significado visual',
       'checks sanos mantienen menor peso visual que incidencias o advertencias',
       'si la API no está configurada, queda claro que los checks son snapshot local saneado y no tiempo real',

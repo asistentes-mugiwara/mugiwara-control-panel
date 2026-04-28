@@ -13,7 +13,7 @@ export type SafeLink = {
 
 export type Severity = 'operativo' | 'revision' | 'incidencia' | 'stale' | 'sin-datos'
 export type OperationalSeverity = 'low' | 'medium' | 'high' | 'critical'
-export type HealthcheckStatus = 'pass' | 'warn' | 'fail' | 'stale'
+export type HealthcheckStatus = 'pass' | 'warn' | 'fail' | 'stale' | 'not_configured' | 'unknown'
 
 export type DashboardSection = {
   id: 'dashboard' | 'healthcheck' | 'mugiwaras' | 'memory' | 'vault' | 'skills'
@@ -24,7 +24,7 @@ export type DashboardSection = {
 export type DashboardFreshness = {
   updated_at: string | null
   label: string
-  state: 'fresh' | 'stale'
+  state: 'fresh' | 'stale' | 'unknown'
 }
 
 export type DashboardCount = {
@@ -113,7 +113,17 @@ export type VaultDocument = {
 export type HealthcheckFreshness = {
   updated_at: string | null
   label: string
-  state: 'fresh' | 'stale'
+  state: 'fresh' | 'stale' | 'unknown'
+}
+
+export type HealthcheckCurrentCause = {
+  source_id: string
+  label: string
+  status: HealthcheckStatus
+  severity: OperationalSeverity | 'unknown'
+  summary: string
+  warning_text: string | null
+  freshness_state: 'fresh' | 'stale' | 'unknown'
 }
 
 export type HealthcheckSummaryBar = {
@@ -122,6 +132,7 @@ export type HealthcheckSummaryBar = {
   warnings: number
   incidents: number
   updated_at: string | null
+  current_cause: HealthcheckCurrentCause | null
 }
 
 export type HealthcheckModuleCard = {
@@ -139,6 +150,7 @@ export type HealthcheckEvent = {
   status: HealthcheckStatus
   timestamp: string
   detail: string
+  kind: 'historical'
 }
 
 export type HealthcheckSummary = {

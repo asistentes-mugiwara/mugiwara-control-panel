@@ -46,8 +46,11 @@ Cada vista del frontend debe contemplar al menos:
 ### Healthcheck
 - `stale`: healthchecks o cron con frescura fuera del umbral
 - `error`: fuente de estado no disponible
+- La vista debe separar explícitamente `Estado actual`, `Causa actual` y `Bitácora histórica`.
+- Cuando haya `En revisión`, el usuario debe ver la causa primaria (`summary_bar.current_cause`, por ejemplo `Project health`) antes de la bitácora.
+- La bitácora muestra eventos históricos saneados y no debe presentarlos como incidencias activas.
 - La vista debe priorizar visualmente `fail`, `high` y `critical` antes que checks sanos.
-- Cuando haya degradación, debe existir una señal superior de `Acción requerida` o prioridad actual sin añadir controles operativos.
+- Cuando haya degradación, debe existir una señal superior de `Causa actual`, `Acción requerida` o prioridad actual sin añadir controles operativos.
 - Los badges de estado/severidad no deben duplicar el mismo significado visual; si coinciden, se muestra un solo badge y la severidad queda como texto de apoyo.
 
 ## Contratos frontend esperados del backend
