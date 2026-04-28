@@ -49,7 +49,13 @@ Campos mínimos por entrada:
 - `editable_sections` si se quiere granularidad futura
 - `public_repo_risk`
 
-La página `/skills` debe permitir seleccionar Mugiwara y mostrar simultáneamente las skills globales y las skills propias del Mugiwara seleccionado.
+La página `/skills` debe evitar listados largos por defecto. El flujo de lectura/edición es:
+1. seleccionar una fuente (`global` o un Mugiwara allowlisteado);
+2. elegir una skill de esa fuente en un desplegable filtrado;
+3. abrir una única ventana de trabajo para esa skill;
+4. alternar entre modo lector y modo editor.
+
+El modo lector debe renderizar Markdown de forma legible. El modo editor conserva la escritura controlada mediante BFF same-origin y backend allowlist. No deben reintroducirse contenedores informativos sin acción directa que compitan con el selector y la ventana de trabajo.
 
 Decisión operativa: colocar una skill nueva bajo `skills-source/global` o `skills-source/agents/<mugiwara>` la incorpora al catálogo editable del panel si cumple el contrato `SKILL.md` y el slug de Mugiwara está allowlisteado. Si una skill debe ser solo referencia, debe declararse explícitamente como runtime/read-only o quedar fuera de esa superficie hasta que exista política granular.
 
