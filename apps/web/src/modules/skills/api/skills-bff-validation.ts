@@ -3,7 +3,7 @@ import 'server-only'
 export const SKILLS_BFF_BODY_LIMIT_BYTES = 256 * 1024
 export const SKILLS_BFF_CONTENT_LIMIT_BYTES = 200_000
 
-const SKILL_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/
+const SKILL_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,139}$/
 const SHA256_PATTERN = /^[a-fA-F0-9]{64}$/
 
 export const SKILLS_BFF_TRUSTED_ORIGINS_ENV = 'MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS'

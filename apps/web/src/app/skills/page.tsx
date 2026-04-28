@@ -32,6 +32,43 @@ type PreviewState = 'idle' | 'loading' | 'ready' | 'error'
 type SaveState = 'idle' | 'saving' | 'success' | 'stale' | 'error'
 
 const DEFAULT_ACTOR = 'zoro'
+const MUGIWARA_OPTIONS = [
+  { slug: 'luffy', label: 'Luffy' },
+  { slug: 'zoro', label: 'Zoro' },
+  { slug: 'franky', label: 'Franky' },
+  { slug: 'chopper', label: 'Chopper' },
+  { slug: 'usopp', label: 'Usopp' },
+  { slug: 'nami', label: 'Nami' },
+  { slug: 'robin', label: 'Robin' },
+  { slug: 'brook', label: 'Brook' },
+  { slug: 'jinbe', label: 'Jinbe' },
+  { slug: 'sanji', label: 'Sanji' },
+] as const
+
+type MugiwaraSkillSlug = (typeof MUGIWARA_OPTIONS)[number]['slug']
+
+function isMugiwaraSkillSlug(value: string | null): value is MugiwaraSkillSlug {
+  return MUGIWARA_OPTIONS.some((option) => option.slug === value)
+}
+
+function getInitialMugiwaraSlug(): MugiwaraSkillSlug {
+  if (typeof window === 'undefined') {
+    return 'zoro'
+  }
+
+  const value = new URLSearchParams(window.location.search).get('mugiwara')
+  return isMugiwaraSkillSlug(value) ? value : 'zoro'
+}
+
+function getVisibleSkillsForMugiwara(catalog: SkillCatalogItem[], ownerSlug: MugiwaraSkillSlug) {
+  return catalog.filter((skill) => skill.owner_slug === 'global' || skill.owner_slug === ownerSlug)
+}
+
+function getPreferredSkillId(catalog: SkillCatalogItem[], ownerSlug: MugiwaraSkillSlug) {
+  const agentSkill = catalog.find((skill) => skill.owner_slug === ownerSlug)
+  const globalSkill = catalog.find((skill) => skill.owner_slug === 'global')
+  return agentSkill?.skill_id ?? globalSkill?.skill_id ?? null
+}
 
 function formatTimestamp(value: string) {
   const date = new Date(value)
@@ -119,6 +156,7 @@ export default function SkillsPage() {
   const [viewState, setViewState] = useState<SkillsViewState>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [catalog, setCatalog] = useState<SkillCatalogItem[]>([])
+  const [selectedMugiwaraSlug, setSelectedMugiwaraSlug] = useState<MugiwaraSkillSlug>(() => getInitialMugiwaraSlug())
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [selectedSkill, setSelectedSkill] = useState<SkillDetail | null>(null)
   const [audit, setAudit] = useState<SkillAuditRecord[]>([])
@@ -146,6 +184,8 @@ export default function SkillsPage() {
         }
 
         const items = catalogResponse.data.items
+        const initialMugiwara = getInitialMugiwaraSlug()
+        setSelectedMugiwaraSlug(initialMugiwara)
         setCatalog(items)
         setAudit(auditResponse.data.items)
 
@@ -156,7 +196,13 @@ export default function SkillsPage() {
           return
         }
 
-        setSelectedSkillId((current) => current ?? items[0].skill_id)
+        setSelectedSkillId((current) => {
+          const visibleItems = getVisibleSkillsForMugiwara(items, initialMugiwara)
+          if (current && visibleItems.some((item) => item.skill_id === current)) {
+            return current
+          }
+          return getPreferredSkillId(visibleItems, initialMugiwara) ?? visibleItems[0]?.skill_id ?? null
+        })
         setViewState('ready')
       } catch (error) {
         if (cancelled) {
@@ -234,6 +280,23 @@ export default function SkillsPage() {
     setLastSavedAudit(null)
   }, [selectedSkill])
 
+  const visibleCatalog = useMemo(() => getVisibleSkillsForMugiwara(catalog, selectedMugiwaraSlug), [catalog, selectedMugiwaraSlug])
+  const selectedMugiwaraLabel = MUGIWARA_OPTIONS.find((option) => option.slug === selectedMugiwaraSlug)?.label ?? 'Zoro'
+  const globalSkillsCount = catalog.filter((skill) => skill.owner_slug === 'global').length
+  const selectedMugiwaraSkillsCount = catalog.filter((skill) => skill.owner_slug === selectedMugiwaraSlug).length
+
+  useEffect(() => {
+    if (catalog.length === 0) {
+      return
+    }
+
+    const selectedStillVisible = selectedSkillId ? visibleCatalog.some((item) => item.skill_id === selectedSkillId) : false
+    if (!selectedStillVisible) {
+      setSelectedSkillId(getPreferredSkillId(visibleCatalog, selectedMugiwaraSlug) ?? visibleCatalog[0]?.skill_id ?? null)
+      setSelectedSkill(null)
+    }
+  }, [catalog, selectedMugiwaraSlug, selectedSkillId, visibleCatalog])
+
   const latestAudit = useMemo(() => {
     if (!selectedSkill) {
       return null
@@ -247,8 +310,8 @@ export default function SkillsPage() {
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
   const normalizedActor = actorInput.trim()
   const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && normalizedActor && saveState !== 'saving')
-  const editableCount = catalog.filter((item) => item.editable).length
-  const readOnlyCount = catalog.length - editableCount
+  const editableCount = visibleCatalog.filter((item) => item.editable).length
+  const readOnlyCount = visibleCatalog.length - editableCount
   const draftSummary = useMemo(() => {
     if (!selectedSkill) {
       return null
@@ -272,6 +335,18 @@ export default function SkillsPage() {
             : hasDraftChanges
               ? 'revision'
               : 'operativo'
+
+
+  function handleSelectMugiwara(slug: MugiwaraSkillSlug) {
+    setSelectedMugiwaraSlug(slug)
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set('mugiwara', slug)
+    window.history.replaceState(null, '', `${nextUrl.pathname}?${nextUrl.searchParams.toString()}`)
+    const nextVisibleCatalog = getVisibleSkillsForMugiwara(catalog, slug)
+    setSelectedSkillId(getPreferredSkillId(nextVisibleCatalog, slug) ?? nextVisibleCatalog[0]?.skill_id ?? null)
+    setSelectedSkill(null)
+    resetFeedbackState()
+  }
 
   function resetFeedbackState() {
     setPreviewState('idle')
@@ -454,7 +529,7 @@ export default function SkillsPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {isRootUnavailable ? 'catálogo bloqueado' : `${editableCount} editable(s) · ${readOnlyCount} referencia(s)`}
+                  {isRootUnavailable ? 'catálogo bloqueado' : `${selectedMugiwaraLabel}: ${selectedMugiwaraSkillsCount} · globales: ${globalSkillsCount}`}
                 </span>
               </div>
             </div>
@@ -650,8 +725,42 @@ export default function SkillsPage() {
       </section>
 
       <section className="section-block layout-grid layout-grid--sidebar-detail">
-        <SurfaceCard title="Catálogo real" elevated eyebrow="Allowlist" accent="sky">
-          <div style={{ display: 'grid', gap: '10px' }}>
+        <SurfaceCard title="Catálogo real" elevated eyebrow="Global + Mugiwara" accent="sky">
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Mugiwara seleccionado</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {MUGIWARA_OPTIONS.map((option) => {
+                  const selected = option.slug === selectedMugiwaraSlug
+
+                  return (
+                    <button
+                      key={option.slug}
+                      type="button"
+                      onClick={() => handleSelectMugiwara(option.slug)}
+                      aria-pressed={selected}
+                      disabled={isRootUnavailable}
+                      style={{
+                        borderRadius: '999px',
+                        border: `1px solid ${selected ? appTheme.colors.brandSky500 : appTheme.colors.borderSubtle}`,
+                        background: selected ? appTheme.colors.bgSurface2 : appTheme.colors.bgSurface1,
+                        color: selected ? appTheme.colors.brandSky500 : appTheme.colors.textSecondary,
+                        padding: '7px 11px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: isRootUnavailable ? 'not-allowed' : 'pointer',
+                        opacity: isRootUnavailable ? 0.6 : 1,
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '13px' }}>
+                Mostrando skills globales y skills propias de <strong>{selectedMugiwaraLabel}</strong>.
+              </p>
+            </div>
             {sourceNotice ? (
               <StatePanel
                 status={sourceNotice.status}
@@ -666,7 +775,7 @@ export default function SkillsPage() {
               />
             ) : null}
 
-            {catalog.map((skill) => {
+            {visibleCatalog.map((skill) => {
               const isSelected = skill.skill_id === selectedSkillId
 
               return (
@@ -693,6 +802,7 @@ export default function SkillsPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                     <strong>{skill.display_name}</strong>
+                    <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{skill.owner_label}</span>
                     <StatusBadge status={mapCatalogSkillToBadgeStatus(skill)} />
                   </div>
                   <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{skill.skill_id}</span>

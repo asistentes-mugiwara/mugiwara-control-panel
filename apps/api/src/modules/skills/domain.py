@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 SkillOwnerScope = Literal['agent', 'shared', 'runtime']
+SkillOwnerSlug = Literal['global', 'runtime', 'luffy', 'zoro', 'franky', 'chopper', 'usopp', 'nami', 'robin', 'brook', 'jinbe', 'sanji']
 PublicRepoRisk = Literal['low', 'medium', 'high']
 OperationResult = Literal['success', 'rejected', 'failed']
 
@@ -14,6 +15,8 @@ class SkillRegistryEntry:
     skill_id: str
     display_name: str
     owner_scope: SkillOwnerScope
+    owner_slug: str
+    owner_label: str
     public_repo_risk: PublicRepoRisk
     repo_path: str
     path: Path
@@ -31,6 +34,8 @@ class SkillCatalogItem:
     skill_id: str
     display_name: str
     owner_scope: SkillOwnerScope
+    owner_slug: str
+    owner_label: str
     public_repo_risk: PublicRepoRisk
     editable: bool
     repo_path: str
@@ -41,6 +46,8 @@ class SkillDetail:
     skill_id: str
     display_name: str
     owner_scope: SkillOwnerScope
+    owner_slug: str
+    owner_label: str
     public_repo_risk: PublicRepoRisk
     editable: bool
     repo_path: str

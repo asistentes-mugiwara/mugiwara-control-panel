@@ -36,18 +36,22 @@ description: runtime
     service = SkillService(
         registry=(
             SkillRegistryEntry(
-                skill_id='demo-skill',
+                skill_id='agent-zoro-demo-skill',
                 display_name='Demo skill',
                 owner_scope='agent',
+                owner_slug='zoro',
+                owner_label='Zoro',
                 public_repo_risk='low',
                 repo_path=str(skill_path),
                 path=skill_path,
                 editable=True,
             ),
             SkillRegistryEntry(
-                skill_id='judgment-day',
+                skill_id='runtime-judgment-day',
                 display_name='Judgment Day',
                 owner_scope='runtime',
+                owner_slug='runtime',
+                owner_label='Runtime OpenCode',
                 public_repo_risk='high',
                 repo_path=str(runtime_skill_path),
                 path=runtime_skill_path,
@@ -70,7 +74,90 @@ def test_catalog_lists_editable_and_read_only_entries(tmp_path: Path) -> None:
     payload = response.json()
     assert payload['resource'] == 'skills.catalog'
     assert payload['meta']['editable_count'] == 1
-    assert {item['skill_id'] for item in payload['data']['items']} == {'demo-skill', 'judgment-day'}
+    assert {item['skill_id'] for item in payload['data']['items']} == {'agent-zoro-demo-skill', 'runtime-judgment-day'}
+
+    app.dependency_overrides.clear()
+
+
+def test_default_registry_discovers_global_and_agent_skills(tmp_path: Path) -> None:
+    allowed_root = tmp_path / 'skills-source'
+    global_skill = allowed_root / 'global' / 'mugiwara-git-identity' / 'SKILL.md'
+    franky_skill = allowed_root / 'agents' / 'franky' / 'vault-sync-ops' / 'SKILL.md'
+    ignored_skill = allowed_root / 'agents' / 'unknown-agent' / 'private-scratch' / 'SKILL.md'
+    for skill_path in (global_skill, franky_skill, ignored_skill):
+        skill_path.parent.mkdir(parents=True)
+        skill_path.write_text(f"""---
+name: {skill_path.parent.name}
+description: demo
+---
+""", encoding='utf-8')
+
+    service = SkillService(allowed_root=allowed_root, audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl')
+    catalog = service.list_catalog()
+    by_id = {item.skill_id: item for item in catalog}
+
+    assert by_id['global-mugiwara-git-identity'].owner_scope == 'shared'
+    assert by_id['global-mugiwara-git-identity'].owner_slug == 'global'
+    assert by_id['agent-franky-vault-sync-ops'].owner_scope == 'agent'
+    assert by_id['agent-franky-vault-sync-ops'].owner_slug == 'franky'
+    assert 'agent-unknown-agent-private-scratch' not in by_id
+
+
+def test_rejects_path_like_or_invalid_skill_ids(tmp_path: Path) -> None:
+    service, _ = build_service(tmp_path)
+    app.dependency_overrides[get_skill_service] = lambda: service
+    client = TestClient(app)
+
+    for skill_id in ('..%2fsecret', 'agent-zoro-demo skill', 'a' * 142):
+        response = client.get(f'/api/v1/skills/{skill_id}')
+        assert response.status_code == 404
+        detail = response.json()['detail']
+        if isinstance(detail, dict):
+            assert detail['code'] == 'not_found'
+
+    app.dependency_overrides.clear()
+
+
+def test_rejects_allowlisted_skill_symlink(tmp_path: Path) -> None:
+    allowed_root = tmp_path / 'skills-source'
+    target_dir = allowed_root / 'agents' / 'zoro' / 'target-skill'
+    target_dir.mkdir(parents=True)
+    target = target_dir / 'SKILL.md'
+    target.write_text("""---
+name: target-skill
+description: demo
+---
+""", encoding='utf-8')
+
+    symlink_dir = allowed_root / 'agents' / 'zoro' / 'symlink-skill'
+    symlink_dir.mkdir(parents=True)
+    symlink_path = symlink_dir / 'SKILL.md'
+    symlink_path.symlink_to(target)
+
+    service = SkillService(
+        registry=(
+            SkillRegistryEntry(
+                skill_id='agent-zoro-symlink-skill',
+                display_name='Symlink skill',
+                owner_scope='agent',
+                owner_slug='zoro',
+                owner_label='Zoro',
+                public_repo_risk='low',
+                repo_path=str(symlink_path),
+                path=symlink_path,
+                editable=True,
+            ),
+        ),
+        allowed_root=allowed_root,
+        audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl',
+    )
+    app.dependency_overrides[get_skill_service] = lambda: service
+    client = TestClient(app)
+
+    response = client.get('/api/v1/skills/agent-zoro-symlink-skill')
+    assert response.status_code == 503
+    assert response.json()['detail']['code'] == 'source_unavailable'
+    assert str(target) not in response.text
 
     app.dependency_overrides.clear()
 
@@ -80,7 +167,7 @@ def test_detail_returns_fingerprint(tmp_path: Path) -> None:
     app.dependency_overrides[get_skill_service] = lambda: service
     client = TestClient(app)
 
-    response = client.get('/api/v1/skills/demo-skill')
+    response = client.get('/api/v1/skills/agent-zoro-demo-skill')
     assert response.status_code == 200
     payload = response.json()
     assert payload['data']['repo_path'] == str(skill_path)
@@ -94,7 +181,7 @@ def test_preview_and_update_skill_with_audit(tmp_path: Path) -> None:
     app.dependency_overrides[get_skill_service] = lambda: service
     client = TestClient(app)
 
-    detail = client.get('/api/v1/skills/demo-skill').json()['data']
+    detail = client.get('/api/v1/skills/agent-zoro-demo-skill').json()['data']
     current_sha = detail['fingerprint']['sha256']
     updated_content = detail['content'] + """
 ## Updated
@@ -102,14 +189,14 @@ def test_preview_and_update_skill_with_audit(tmp_path: Path) -> None:
 """
 
     preview = client.post(
-        '/api/v1/skills/demo-skill/preview',
+        '/api/v1/skills/agent-zoro-demo-skill/preview',
         json={'content': updated_content, 'expected_sha256': current_sha},
     )
     assert preview.status_code == 200
     assert preview.json()['data']['diff_summary']['lines_added'] >= 2
 
     update = client.put(
-        '/api/v1/skills/demo-skill',
+        '/api/v1/skills/agent-zoro-demo-skill',
         json={'actor': 'zoro', 'content': updated_content, 'expected_sha256': current_sha},
     )
     assert update.status_code == 200
@@ -121,7 +208,7 @@ def test_preview_and_update_skill_with_audit(tmp_path: Path) -> None:
     assert audit.status_code == 200
     audit_items = audit.json()['data']['items']
     assert audit_items[0]['actor'] == 'zoro'
-    assert audit_items[0]['skill_id'] == 'demo-skill'
+    assert audit_items[0]['skill_id'] == 'agent-zoro-demo-skill'
 
     app.dependency_overrides.clear()
 
@@ -132,7 +219,7 @@ def test_rejects_stale_fingerprint(tmp_path: Path) -> None:
     client = TestClient(app)
 
     response = client.put(
-        '/api/v1/skills/demo-skill',
+        '/api/v1/skills/agent-zoro-demo-skill',
         json={'actor': 'zoro', 'content': """---
 name: demo-skill
 description: demo
@@ -155,12 +242,12 @@ def test_rejects_read_only_runtime_skill(tmp_path: Path) -> None:
     app.dependency_overrides[get_skill_service] = lambda: service
     client = TestClient(app)
 
-    detail = client.get('/api/v1/skills/judgment-day')
+    detail = client.get('/api/v1/skills/runtime-judgment-day')
     assert detail.status_code == 200
     fingerprint = detail.json()['data']['fingerprint']['sha256']
 
     response = client.put(
-        '/api/v1/skills/judgment-day',
+        '/api/v1/skills/runtime-judgment-day',
         json={'actor': 'zoro', 'content': detail.json()['data']['content'], 'expected_sha256': fingerprint},
     )
     assert response.status_code == 403
