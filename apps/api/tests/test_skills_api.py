@@ -24,6 +24,15 @@ description: demo
 # Demo
 """, encoding='utf-8')
 
+    global_skill_dir = allowed_root / 'global' / 'shared-skill'
+    global_skill_dir.mkdir(parents=True)
+    global_skill_path = global_skill_dir / 'SKILL.md'
+    global_skill_path.write_text("""---
+name: shared-skill
+description: shared
+---
+""", encoding='utf-8')
+
     runtime_skill_dir = tmp_path / '.config' / 'opencode' / 'skills' / 'judgment-day'
     runtime_skill_dir.mkdir(parents=True)
     runtime_skill_path = runtime_skill_dir / 'SKILL.md'
@@ -35,6 +44,17 @@ description: runtime
 
     service = SkillService(
         registry=(
+            SkillRegistryEntry(
+                skill_id='global-shared-skill',
+                display_name='Shared skill',
+                owner_scope='shared',
+                owner_slug='global',
+                owner_label='Global',
+                public_repo_risk='low',
+                repo_path=str(global_skill_path),
+                path=global_skill_path,
+                editable=True,
+            ),
             SkillRegistryEntry(
                 skill_id='agent-zoro-demo-skill',
                 display_name='Demo skill',
@@ -59,12 +79,13 @@ description: runtime
             ),
         ),
         allowed_root=allowed_root,
+        runtime_root=tmp_path / '.config' / 'opencode' / 'skills',
         audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl',
     )
     return service, skill_path
 
 
-def test_catalog_lists_editable_and_read_only_entries(tmp_path: Path) -> None:
+def test_catalog_marks_all_visible_entries_editable(tmp_path: Path) -> None:
     service, _ = build_service(tmp_path)
     app.dependency_overrides[get_skill_service] = lambda: service
     client = TestClient(app)
@@ -73,8 +94,9 @@ def test_catalog_lists_editable_and_read_only_entries(tmp_path: Path) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload['resource'] == 'skills.catalog'
-    assert payload['meta']['editable_count'] == 1
-    assert {item['skill_id'] for item in payload['data']['items']} == {'agent-zoro-demo-skill', 'runtime-judgment-day'}
+    assert payload['meta']['editable_count'] == 3
+    assert {item['skill_id'] for item in payload['data']['items']} == {'global-shared-skill', 'agent-zoro-demo-skill', 'runtime-judgment-day'}
+    assert all(item['editable'] is True for item in payload['data']['items'])
 
     app.dependency_overrides.clear()
 
@@ -149,6 +171,7 @@ description: demo
             ),
         ),
         allowed_root=allowed_root,
+        runtime_root=tmp_path / '.config' / 'opencode' / 'skills',
         audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl',
     )
     app.dependency_overrides[get_skill_service] = lambda: service
@@ -213,6 +236,41 @@ def test_preview_and_update_skill_with_audit(tmp_path: Path) -> None:
     app.dependency_overrides.clear()
 
 
+def test_update_derives_audit_actor_from_skill_owner_not_payload(tmp_path: Path) -> None:
+    service, _ = build_service(tmp_path)
+    app.dependency_overrides[get_skill_service] = lambda: service
+    client = TestClient(app)
+
+    expected_actors = {
+        'agent-zoro-demo-skill': 'zoro',
+        'global-shared-skill': 'luffy',
+        'runtime-judgment-day': 'runtime',
+    }
+    spoofed_actors = {
+        'agent-zoro-demo-skill': 'luffy',
+        'global-shared-skill': 'zoro',
+        'runtime-judgment-day': 'luffy',
+    }
+
+    for skill_id, expected_actor in expected_actors.items():
+        detail = client.get(f'/api/v1/skills/{skill_id}').json()['data']
+        updated_content = detail['content'] + f"\n## spoof check {skill_id}\n"
+        response = client.put(
+            f'/api/v1/skills/{skill_id}',
+            json={
+                'actor': spoofed_actors[skill_id],
+                'content': updated_content,
+                'expected_sha256': detail['fingerprint']['sha256'],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload['data']['audit']['actor'] == expected_actor
+        assert payload['meta']['actor'] == expected_actor
+
+    app.dependency_overrides.clear()
+
+
 def test_rejects_stale_fingerprint(tmp_path: Path) -> None:
     service, _ = build_service(tmp_path)
     app.dependency_overrides[get_skill_service] = lambda: service
@@ -237,20 +295,24 @@ description: demo
     app.dependency_overrides.clear()
 
 
-def test_rejects_read_only_runtime_skill(tmp_path: Path) -> None:
+def test_runtime_skill_is_editable_when_inside_runtime_root(tmp_path: Path) -> None:
     service, _ = build_service(tmp_path)
     app.dependency_overrides[get_skill_service] = lambda: service
     client = TestClient(app)
 
     detail = client.get('/api/v1/skills/runtime-judgment-day')
     assert detail.status_code == 200
-    fingerprint = detail.json()['data']['fingerprint']['sha256']
+    payload = detail.json()['data']
+    assert payload['editable'] is True
+    fingerprint = payload['fingerprint']['sha256']
+    updated_content = payload['content'] + "\n## Runtime edit\n- controlled\n"
 
     response = client.put(
         '/api/v1/skills/runtime-judgment-day',
-        json={'actor': 'zoro', 'content': detail.json()['data']['content'], 'expected_sha256': fingerprint},
+        json={'actor': 'runtime', 'content': updated_content, 'expected_sha256': fingerprint},
     )
-    assert response.status_code == 403
-    assert response.json()['detail']['code'] == 'forbidden'
+    assert response.status_code == 200
+    assert response.json()['data']['audit']['result'] == 'success'
+    assert response.json()['data']['audit']['actor'] == 'runtime'
 
     app.dependency_overrides.clear()

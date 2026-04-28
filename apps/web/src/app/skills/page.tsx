@@ -13,7 +13,7 @@ import {
   SkillsApiError,
   updateSkill,
 } from '@/modules/skills/api/skills-http'
-import { mapCatalogSkillToBadgeStatus, mapRiskToBadgeStatus, mapSkillsViewStateToBadgeStatus } from '@/modules/skills/view-models/skill-surface.mappers'
+import { mapSkillsViewStateToBadgeStatus } from '@/modules/skills/view-models/skill-surface.mappers'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
@@ -26,7 +26,6 @@ type PreviewState = 'idle' | 'loading' | 'ready' | 'error'
 type SaveState = 'idle' | 'saving' | 'success' | 'stale' | 'error'
 type WorkspaceMode = 'reader' | 'editor'
 
-const DEFAULT_ACTOR = 'zoro'
 // Guardrail note: Skills uses BFF same-origin and server-only MUGIWARA_CONTROL_PANEL_API_URL; never expose backend URL to the browser.
 const GLOBAL_SOURCE = 'global'
 const RUNTIME_SOURCE = 'runtime'
@@ -127,6 +126,46 @@ function formatTimestamp(value: string) {
 
 function getLatestAuditForSkill(audit: SkillAuditRecord[], skillId: string) {
   return audit.find((item) => item.skill_id === skillId) ?? null
+}
+
+function getSkillAuditActor(skill: Pick<SkillCatalogItem | SkillDetail, 'owner_scope' | 'owner_slug'>) {
+  if (skill.owner_scope === 'shared' || skill.owner_slug === GLOBAL_SOURCE) {
+    return 'luffy'
+  }
+
+  return skill.owner_slug
+}
+
+function getSkillOwnerDisplay(skill: Pick<SkillCatalogItem | SkillDetail, 'owner_label' | 'owner_scope' | 'owner_slug'>) {
+  if (skill.owner_scope === 'shared' || skill.owner_slug === GLOBAL_SOURCE) {
+    return 'Luffy · skills globales'
+  }
+
+  return skill.owner_label
+}
+
+function getShareableSkillCopy(skill: Pick<SkillCatalogItem | SkillDetail, 'public_repo_risk'>) {
+  if (skill.public_repo_risk === 'low') {
+    return {
+      status: 'operativo' as const,
+      label: 'Skill compartible: Sí',
+      detail: 'sin riesgo',
+    }
+  }
+
+  return {
+    status: 'incidencia' as const,
+    label: 'Skill compartible: No',
+    detail: 'riesgo de filtrado',
+  }
+}
+
+function getEditableSkillCopy() {
+  return {
+    status: 'operativo' as const,
+    label: 'Editable',
+    detail: 'Todas las skills visibles se pueden editar desde esta pantalla',
+  }
 }
 
 function getSaveStateStatus(state: SaveState): AppStatus {
@@ -342,7 +381,6 @@ export default function SkillsPage() {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('reader')
   const [audit, setAudit] = useState<SkillAuditRecord[]>([])
   const [draftContent, setDraftContent] = useState('')
-  const [actorInput, setActorInput] = useState(DEFAULT_ACTOR)
   const [previewState, setPreviewState] = useState<PreviewState>('idle')
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [previewResponse, setPreviewResponse] = useState<SkillPreviewResponse['data'] | null>(null)
@@ -464,8 +502,11 @@ export default function SkillsPage() {
   const sourceNotice = getSkillsViewNotice(viewState, apiConnectionLabel, errorMessage)
   const isRootUnavailable = viewState === 'not_configured' || viewState === 'error'
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
-  const normalizedActor = actorInput.trim()
-  const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && normalizedActor && saveState !== 'saving')
+  const selectedSkillActor = selectedSkill ? getSkillAuditActor(selectedSkill) : ''
+  const selectedSkillOwner = selectedSkill ? getSkillOwnerDisplay(selectedSkill) : ''
+  const shareableSkillCopy = selectedSkill ? getShareableSkillCopy(selectedSkill) : null
+  const editableSkillCopy = selectedSkill ? getEditableSkillCopy() : null
+  const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && selectedSkillActor && saveState !== 'saving')
   const draftSummary = useMemo(() => {
     if (!selectedSkill) {
       return null
@@ -589,9 +630,9 @@ export default function SkillsPage() {
       return
     }
 
-    if (!normalizedActor) {
+    if (!selectedSkillActor) {
       setSaveState('error')
-      setSaveMessage('Indica un actor visible antes de guardar.')
+      setSaveMessage('La skill no tiene dueño de edición calculado.')
       return
     }
 
@@ -601,7 +642,7 @@ export default function SkillsPage() {
 
     try {
       const response = await updateSkill(selectedSkill.skill_id, {
-        actor: normalizedActor,
+        actor: selectedSkillActor,
         content: draftContent,
         expected_sha256: selectedSkill.fingerprint.sha256,
       })
@@ -708,10 +749,8 @@ export default function SkillsPage() {
                 <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{selectedSkill.skill_id}</span>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Edición</span>
-                <StatusBadge status={mapCatalogSkillToBadgeStatus(selectedSkill)} />
-                <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Riesgo repo público</span>
-                <StatusBadge status={mapRiskToBadgeStatus(selectedSkill.public_repo_risk)} />
+                {editableSkillCopy ? <StatusBadge status={editableSkillCopy.status} label={editableSkillCopy.label} detail={editableSkillCopy.detail} /> : null}
+                {shareableSkillCopy ? <StatusBadge status={shareableSkillCopy.status} label={shareableSkillCopy.label} detail={shareableSkillCopy.detail} /> : null}
                 <button
                   type="button"
                   onClick={() => setWorkspaceMode('reader')}
@@ -732,7 +771,7 @@ export default function SkillsPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>Fuente: <strong>{selectedSkill.owner_label}</strong></span>
+              <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>Fuente: <strong>{selectedSkillOwner}</strong></span>
               <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>bytes: <strong>{selectedSkill.fingerprint.bytes}</strong></span>
               <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>fingerprint: <strong>{selectedSkill.fingerprint.sha256.slice(0, 12)}…</strong></span>
             </div>
@@ -744,18 +783,11 @@ export default function SkillsPage() {
             ) : (
               <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
                 <div className="layout-grid layout-grid--cards-180" style={{ gap: '10px' }}>
-                  <label style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
-                    <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Actor visible</span>
-                    <input
-                      id="skills-actor-input"
-                      type="text"
-                      value={actorInput}
-                      onChange={(event) => setActorInput(event.target.value)}
-                      placeholder="zoro"
-                      disabled={saveState === 'saving' || !selectedSkill.editable}
-                      style={{ borderRadius: '12px', border: `1px solid ${appTheme.colors.borderSubtle}`, background: appTheme.colors.bgSurface1, color: appTheme.colors.textPrimary, padding: '12px 14px' }}
-                    />
-                  </label>
+                  <div style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
+                    <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Dueño / actor de guardado</span>
+                    <strong style={{ color: appTheme.colors.textPrimary }}>{selectedSkillActor}</strong>
+                    <span style={{ color: appTheme.colors.textMuted, fontSize: '12px' }}>{selectedSkillOwner}</span>
+                  </div>
                   <div style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
                     <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>Estado del borrador</span>
                     <strong style={{ color: hasDraftChanges ? appTheme.colors.stateWarning : appTheme.colors.stateSuccess }}>{hasDraftChanges ? 'cambios pendientes' : 'sin cambios'}</strong>
