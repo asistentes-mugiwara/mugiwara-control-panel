@@ -59,6 +59,8 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
   }, [windowDays.days])
   const [selectedDate, setSelectedDate] = useState(initialDate)
   const selectedDay = windowDays.days.find((day) => day.date === selectedDate) ?? windowDays.days.at(-1)
+  const selectedTabId = selectedDay ? `usage-window-day-tab-${selectedDay.date}` : undefined
+  const selectedPanelId = selectedDay ? `usage-window-day-panel-${selectedDay.date}` : undefined
 
   return (
     <div style={{ display: 'grid', gap: '12px' }}>
@@ -73,12 +75,16 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
       <div className="usage-window-day-selector" role="tablist" aria-label="Últimos 7 días de ventanas 5h">
         {windowDays.days.map((day) => {
           const selected = day.date === selectedDay?.date
+          const tabId = `usage-window-day-tab-${day.date}`
+          const panelId = `usage-window-day-panel-${day.date}`
           return (
             <button
+              id={tabId}
               type="button"
               role="tab"
               aria-selected={selected}
-              aria-controls={`usage-window-day-${day.date}`}
+              aria-controls={panelId}
+              tabIndex={selected ? 0 : -1}
               className="usage-window-day-selector__button"
               data-selected={selected ? 'true' : 'false'}
               key={day.date}
@@ -89,7 +95,8 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
           )
         })}
       </div>
-      <div id={selectedDay ? `usage-window-day-${selectedDay.date}` : undefined} className="usage-windows-list usage-windows-list--scroll" role="tabpanel" aria-label={selectedDay ? `Ventanas 5h de ${selectedDay.date}` : 'Ventanas 5h por día'}>
+      <p className="usage-scroll-hint" aria-hidden="true">Desplaza dentro del panel para ver todas las ventanas del día seleccionado.</p>
+      <div id={selectedPanelId} className="usage-windows-list usage-windows-list--scroll usage-scroll-affordance" role="tabpanel" aria-labelledby={selectedTabId} aria-label={selectedDay ? undefined : 'Ventanas 5h por día'}>
         {selectedDay && selectedDay.windows.length > 0 ? (
           selectedDay.windows.map((window) => {
             const status = windowStatusMap[window.status]

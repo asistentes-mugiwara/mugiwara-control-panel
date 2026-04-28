@@ -467,6 +467,29 @@ function formatActivityCount(value: number) {
   return new Intl.NumberFormat('es-ES').format(value)
 }
 
+function formatCompactActivityCount(value: number) {
+  return new Intl.NumberFormat('es-ES', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value)
+}
+
+function CompactActivityCount({ value, ariaLabel }: { value: number; ariaLabel: string }) {
+  const fullValue = formatActivityCount(value)
+
+  return (
+    <data
+      className="usage-compact-number"
+      value={String(value)}
+      title={`${ariaLabel}: ${fullValue}`}
+      aria-label={`${ariaLabel}: ${fullValue}`}
+    >
+      <span aria-hidden="true">{formatCompactActivityCount(value)}</span>
+      <span className="usage-compact-number__full">{fullValue}</span>
+    </data>
+  )
+}
+
 function formatProfileName(profile: string | null) {
   if (!profile) {
     return 'Sin perfil dominante'
@@ -520,18 +543,19 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
           </div>
           <div>
             <dt>Tokens 7 días</dt>
-            <dd>{formatActivityCount(activity.totals.weekly_tokens_count)}</dd>
+            <dd><CompactActivityCount value={activity.totals.weekly_tokens_count} ariaLabel="Tokens Hermes de los últimos 7 días" /></dd>
           </div>
           <div>
             <dt>Tokens totales</dt>
-            <dd>{formatActivityCount(activity.totals.total_tokens_count)}</dd>
+            <dd><CompactActivityCount value={activity.totals.total_tokens_count} ariaLabel="Tokens Hermes totales" /></dd>
           </div>
         </dl>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
           <StatusBadge status={activity.totals.dominant_profile ? 'revision' : 'sin-datos'} label={`Perfil dominante: ${dominantProfile}`} />
           <span style={{ color: appTheme.colors.textSecondary }}>Rango: {formatTimestamp(activity.range.started_at)} → {formatTimestamp(activity.range.ended_at)}</span>
         </div>
-        <div className="usage-hermes-activity-list" role="list" aria-label="Actividad Hermes agregada por perfil">
+        <p className="usage-scroll-hint" aria-hidden="true">Desplaza dentro del panel para ver más perfiles cuando haya overflow.</p>
+        <div className="usage-hermes-activity-list usage-scroll-affordance" role="list" aria-label="Actividad Hermes agregada por perfil">
           {profiles.length > 0 ? (
             profiles.map((profile) => {
               const level = activityLevelMap[profile.activity_level]
@@ -559,11 +583,11 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
                     </div>
                     <div>
                       <dt>Tokens 7d</dt>
-                      <dd>{formatActivityCount(profile.tokens_count)}</dd>
+                      <dd><CompactActivityCount value={profile.tokens_count} ariaLabel={`Tokens Hermes de ${formatProfileName(profile.profile)} en 7 días`} /></dd>
                     </div>
                   </dl>
                   <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>
-                    Primera/última señal agregada: {formatTimestamp(profile.first_activity_at)} → {formatTimestamp(profile.last_activity_at)}. Tokens totales: {formatActivityCount(profile.total_tokens_count)}.
+                    Primera/última señal agregada: {formatTimestamp(profile.first_activity_at)} → {formatTimestamp(profile.last_activity_at)}. Tokens totales: <CompactActivityCount value={profile.total_tokens_count} ariaLabel={`Tokens Hermes totales de ${formatProfileName(profile.profile)}`} />.
                   </p>
                 </article>
               )
@@ -621,11 +645,11 @@ export default async function UsagePage() {
           <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
             <div>
               <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos 7 días</dt>
-              <dd style={{ margin: 0, fontSize: '26px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.weekly_tokens_count)}</dd>
+              <dd style={{ margin: 0, fontSize: '26px', fontWeight: 800 }}><CompactActivityCount value={hermesActivity.totals.weekly_tokens_count} ariaLabel="Tokens Hermes de los últimos 7 días" /></dd>
             </div>
             <div>
               <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Hermes</dt>
-              <dd style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.total_tokens_count)}</dd>
+              <dd style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}><CompactActivityCount value={hermesActivity.totals.total_tokens_count} ariaLabel="Tokens Hermes totales" /></dd>
             </div>
           </dl>
         </SurfaceCard>

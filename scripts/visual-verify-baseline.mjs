@@ -101,7 +101,7 @@ const routes = [
     path: '/usage',
     title: 'Uso Codex/Hermes',
     checks: [
-      'las cards de ventana 5h, ciclo semanal Codex, plan y recomendación apilan sin overflow',
+      'las cards de Tokens Hermes, Ventana semanal, Ventana 5h y Cuenta Codex apilan sin overflow',
       'el ciclo se etiqueta como ciclo semanal Codex y no como calendario lunes-domingo',
       'stale, not_configured o fallback quedan visibles como fuente degradada/no tiempo real',
       'fórmulas y privacidad hacen wrap sin filtrar detalles internos del host',

@@ -18,6 +18,8 @@ const usageWindowDaysSelector = readFileSync(usageWindowDaysSelectorPath, 'utf8'
 const nav = readFileSync(navPath, 'utf8')
 const usageService = readFileSync(usageServicePath, 'utf8')
 const usageRouter = readFileSync(usageRouterPath, 'utf8')
+const globalsPath = join(repoRoot, 'apps/web/src/app/globals.css')
+const globals = readFileSync(globalsPath, 'utf8')
 const activityLoader = usageService.slice(
   usageService.indexOf('def _load_hermes_profile_activity'),
   usageService.indexOf('def _load_latest_snapshot'),
@@ -67,6 +69,18 @@ if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-
 }
 if (!page.includes('Tokens Hermes') || !page.includes('weekly_tokens_count') || !page.includes('total_tokens_count')) {
   failures.push('usage page must render aggregate Hermes token counters without raw sessions')
+}
+if (!page.includes('CompactActivityCount') || !page.includes('formatCompactActivityCount') || !page.includes('usage-compact-number') || !page.includes('aria-label={`${ariaLabel}: ${fullValue}`')) {
+  failures.push('usage token counters must use compact visual numbers while preserving full values accessibly')
+}
+if (!usageWindowDaysSelector.includes('usage-window-day-tab-') || !usageWindowDaysSelector.includes('usage-window-day-panel-') || !usageWindowDaysSelector.includes('aria-labelledby={selectedTabId}') || !usageWindowDaysSelector.includes('tabIndex={selected ? 0 : -1}')) {
+  failures.push('usage daily selector must expose stable tab ids, aria-labelledby tabpanel wiring and roving focus baseline')
+}
+if (!usageWindowDaysSelector.includes('usage-scroll-hint') || !usageWindowDaysSelector.includes('usage-scroll-affordance') || !page.includes('usage-scroll-affordance')) {
+  failures.push('usage internal scroll areas must expose a visible scroll affordance and hint')
+}
+if (!globals.includes('.usage-window-day-selector__button:focus-visible') || !globals.includes('.usage-scroll-affordance') || !globals.includes('scrollbar-color') || !globals.includes('.usage-compact-number__full')) {
+  failures.push('usage CSS must preserve focus-visible, scroll affordance and compact-number styling')
 }
 const topCardsStart = page.indexOf('aria-label="Estado actual de Usage"')
 const topCardsEnd = page.indexOf('aria-label="Calendario Usage"')
