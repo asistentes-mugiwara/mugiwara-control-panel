@@ -30,6 +30,9 @@ def test_mugiwaras_catalog_returns_safe_cards_and_canonical_agents_document(tmp_
     assert payload['meta']['count'] >= 4
     assert payload['meta']['crew_rules_document'] == '/srv/crew-core/AGENTS.md'
     assert {item['slug'] for item in payload['data']['items']} >= {'luffy', 'zoro', 'usopp', 'chopper'}
+    cards_by_slug = {item['slug']: item for item in payload['data']['items']}
+    assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=franky'} in cards_by_slug['franky']['links']
+    assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=zoro'} in cards_by_slug['zoro']['links']
     assert payload['data']['crew_rules_document'] == {
         'document_id': 'crew-core-agents',
         'title': 'AGENTS.md — reglas operativas Mugiwara',

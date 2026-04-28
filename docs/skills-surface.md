@@ -31,16 +31,27 @@ Flujo objetivo:
 5. backend aplica cambio de forma auditable
 6. backend devuelve resultado, diff resumido y metadata de trazabilidad
 
-## Allowlist mínima
+## Allowlist de catálogo
 La allowlist debe estar gobernada por backend y no por el cliente.
 
+El catálogo visible se descubre desde rutas backend-owned bajo `/srv/crew-core/skills-source`:
+- `global/*/SKILL.md` como skills globales compartidas.
+- `agents/<mugiwara>/*/SKILL.md` como skills propias de cada Mugiwara allowlisteado.
+- referencias runtime explícitas, como `judgment-day`, pueden exponerse como solo lectura si no viven bajo el árbol editable.
+
 Campos mínimos por entrada:
-- `skill_id`
+- `skill_id` estable generado por backend (`global-<skill>` o `agent-<mugiwara>-<skill>`)
 - `display_name`
 - `repo_path`
 - `owner_scope`
+- `owner_slug`
+- `owner_label`
 - `editable_sections` si se quiere granularidad futura
 - `public_repo_risk`
+
+La página `/skills` debe permitir seleccionar Mugiwara y mostrar simultáneamente las skills globales y las skills propias del Mugiwara seleccionado.
+
+Decisión operativa: colocar una skill nueva bajo `skills-source/global` o `skills-source/agents/<mugiwara>` la incorpora al catálogo editable del panel si cumple el contrato `SKILL.md` y el slug de Mugiwara está allowlisteado. Si una skill debe ser solo referencia, debe declararse explícitamente como runtime/read-only o quedar fuera de esa superficie hasta que exista política granular.
 
 ## Reglas de seguridad
 - deny-by-default en backend

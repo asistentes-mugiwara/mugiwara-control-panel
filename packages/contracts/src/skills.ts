@@ -7,6 +7,8 @@ export type SkillCatalogItem = {
   skill_id: string
   display_name: string
   owner_scope: SkillOwnerScope
+  owner_slug: string
+  owner_label: string
   public_repo_risk: PublicRepoRisk
   editable: boolean
   repo_path: string

@@ -11,17 +11,21 @@ MAX_CREW_RULES_BYTES = 200_000
 DEFAULT_CREW_RULES_PATH = Path('/srv/crew-core/AGENTS.md')
 CANONICAL_CREW_RULES_DISPLAY_PATH = '/srv/crew-core/AGENTS.md'
 
+def _crew_links(slug: str) -> list[SafeLink]:
+    return [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', f'/skills?mugiwara={slug}')]
+
+
 CREW_CARDS: tuple[MugiwaraCard, ...] = (
-    MugiwaraCard('luffy', 'Luffy', 'operativo', ['delegation-contract', 'crew-orchestration'], 'Capitán operativo', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('zoro', 'Zoro', 'operativo', ['sdd-orchestrator-zoro', 'zoro-pr-review-handoff'], 'Continuidad fuerte', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('franky', 'Franky', 'operativo', ['franky-pr-ops-review', 'vault-sync-ops'], 'Runtime vigilado', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('chopper', 'Chopper', 'operativo', ['chopper-pr-security-review', 'security-hardening'], 'Riesgo controlado', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('usopp', 'Usopp', 'revision', ['usopp-pr-design-review', 'frontend-spec-usopp'], 'Diseño activo', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('nami', 'Nami', 'operativo', ['finance-ops', 'google-sheets-control'], 'Señales estables', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('robin', 'Robin', 'operativo', ['research-synthesis', 'vault-canon'], 'Canon consultable', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('brook', 'Brook', 'revision', ['data-analysis', 'analytics-standby'], 'Datos en standby', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('jinbe', 'Jinbe', 'sin-datos', ['legal-context'], 'Definido en canon', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
-    MugiwaraCard('sanji', 'Sanji', 'sin-datos', ['physical-ops'], 'Definido en canon', [SafeLink('Ver Memory', '/memory'), SafeLink('Ver Skills', '/skills')]),
+    MugiwaraCard('luffy', 'Luffy', 'operativo', ['delegation-contract', 'crew-orchestration'], 'Capitán operativo', _crew_links('luffy')),
+    MugiwaraCard('zoro', 'Zoro', 'operativo', ['sdd-orchestrator-zoro', 'zoro-pr-review-handoff'], 'Continuidad fuerte', _crew_links('zoro')),
+    MugiwaraCard('franky', 'Franky', 'operativo', ['franky-pr-ops-review', 'vault-sync-ops'], 'Runtime vigilado', _crew_links('franky')),
+    MugiwaraCard('chopper', 'Chopper', 'operativo', ['chopper-pr-security-review', 'security-hardening'], 'Riesgo controlado', _crew_links('chopper')),
+    MugiwaraCard('usopp', 'Usopp', 'revision', ['usopp-pr-design-review', 'frontend-spec-usopp'], 'Diseño activo', _crew_links('usopp')),
+    MugiwaraCard('nami', 'Nami', 'operativo', ['finance-ops', 'google-sheets-control'], 'Señales estables', _crew_links('nami')),
+    MugiwaraCard('robin', 'Robin', 'operativo', ['research-synthesis', 'vault-canon'], 'Canon consultable', _crew_links('robin')),
+    MugiwaraCard('brook', 'Brook', 'revision', ['data-analysis', 'analytics-standby'], 'Datos en standby', _crew_links('brook')),
+    MugiwaraCard('jinbe', 'Jinbe', 'sin-datos', ['legal-context'], 'Definido en canon', _crew_links('jinbe')),
+    MugiwaraCard('sanji', 'Sanji', 'sin-datos', ['physical-ops'], 'Definido en canon', _crew_links('sanji')),
 )
 
 PROFILE_META: dict[str, dict[str, str]] = {
