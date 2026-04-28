@@ -77,7 +77,6 @@ export function VaultClient({ initialWorkspace, apiState, apiErrorCode }: VaultC
         eyebrow="Vault"
         title="Vault"
         subtitle="Lectura documental y editorial del canon curado, con árbol allowlisted, documento legible y metadatos visibles."
-        mugiwaraSlug="robin"
         detailPills={['Canon curado', 'Lectura editorial', 'Sin memoria viva']}
       />
 

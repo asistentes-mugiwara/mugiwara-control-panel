@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { fetchSystemMetrics, SystemMetricsApiError } from '@/modules/system/api/system-metrics-http'
 import { createHeaderSystemMetricsSnapshot, createUnavailableHeaderSystemMetrics } from '@/modules/system/view-models/system-metrics-summary'
+import { LAYA_MUGIWARA_FAVICON_SRC } from '@/shared/brand/laya-mugiwara-brand'
 import { AppShell } from '@/shared/ui/app-shell/AppShell'
 
 import './globals.css'
@@ -11,6 +12,13 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Mugiwara Control Panel',
   description: 'Private Mugiwara/Hermes control plane',
+  icons: {
+    icon: [
+      { url: LAYA_MUGIWARA_FAVICON_SRC, type: 'image/svg+xml' },
+    ],
+    shortcut: [LAYA_MUGIWARA_FAVICON_SRC],
+    apple: [LAYA_MUGIWARA_FAVICON_SRC],
+  },
 }
 
 async function loadHeaderSystemMetrics() {

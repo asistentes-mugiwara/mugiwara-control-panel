@@ -338,7 +338,6 @@ export default async function GitPage({ searchParams }: GitPageProps) {
         eyebrow="Repos Git"
         title="Repos Git"
         subtitle="Lectura server-only de repositorios allowlisteados con selección controlada por enlaces: historial, ramas locales, detalle de commit y diff histórico saneado. Sin operaciones mutables ni rutas cliente."
-        mugiwaraSlug="zoro"
         detailPills={['Solo lectura', 'repo_id/SHA backend-owned', 'Selección controlada', 'Diff redactado/truncado/omitido']}
       />
 

@@ -611,7 +611,6 @@ export default async function UsagePage() {
         eyebrow="Uso"
         title="Uso Codex/Hermes"
         subtitle="Cuota Codex, ciclos de reset, ventanas 5h y actividad local agregada saneada."
-        mugiwaraSlug="franky"
         detailPills={[
           `Plan: ${usage.plan.type}`,
           `${isSnapshotMode ? 'Corte del snapshot' : 'Última actualización'}: ${formatTimestamp(usage.current_snapshot.captured_at)}`,

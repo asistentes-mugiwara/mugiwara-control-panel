@@ -146,7 +146,6 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
         eyebrow="Memory"
         title="Memoria operativa"
         subtitle="Selector por Mugiwara, tabs Built-in/Honcho y lectura resumida de fuente, manteniendo separación explícita respecto a Vault."
-        mugiwaraSlug="robin"
         detailPills={['Continuidad viva', 'Fuentes separadas', apiState === 'ready' ? 'API solo lectura' : 'Fallback saneado']}
       />
 

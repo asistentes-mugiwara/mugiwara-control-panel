@@ -107,7 +107,6 @@ export default async function DashboardPage() {
         eyebrow="Dashboard"
         title="Estado del barco"
         subtitle="Resumen de observabilidad de solo lectura con contadores, severidad visible y accesos a módulos propietarios."
-        mugiwaraSlug="luffy"
         detailPills={['Puente de mando', 'Lectura saneada', 'Módulos propietarios']}
       />
 

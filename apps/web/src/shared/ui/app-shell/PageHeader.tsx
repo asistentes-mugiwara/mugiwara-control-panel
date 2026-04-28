@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { MugiwaraSlug } from '@/shared/mugiwara/crest-map'
-import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
+import { LayaMugiwaraMark } from '@/shared/brand/LayaMugiwaraMark'
 import { appTheme } from '@/shared/theme/tokens'
 
 type PageHeaderProps = {
@@ -9,32 +8,29 @@ type PageHeaderProps = {
   subtitle?: string
   eyebrow?: string
   actions?: ReactNode
-  mugiwaraSlug?: MugiwaraSlug
   detailPills?: string[]
 }
 
-export function PageHeader({ title, subtitle, eyebrow, actions, mugiwaraSlug, detailPills = [] }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, eyebrow, actions, detailPills = [] }: PageHeaderProps) {
   return (
     <section className="page-header">
       <div className="page-header__body">
         <div>
-          {eyebrow || mugiwaraSlug ? (
+          {eyebrow ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-              {mugiwaraSlug ? <MugiwaraCrest slug={mugiwaraSlug} size="sm" accent /> : null}
-              {eyebrow ? (
-                <p
-                  style={{
-                    margin: 0,
-                    color: appTheme.colors.brandSky500,
-                    fontWeight: 700,
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  {eyebrow}
-                </p>
-              ) : null}
+              <LayaMugiwaraMark size="sm" />
+              <p
+                style={{
+                  margin: 0,
+                  color: appTheme.colors.brandSky500,
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {eyebrow}
+              </p>
             </div>
           ) : null}
 

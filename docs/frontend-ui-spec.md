@@ -253,9 +253,11 @@ Contiene layout principal.
 ### `PageHeader`
 - título
 - subtítulo
+- emblema visual general del panel con `apps/web/public/assets/brand/laya-mugiwara.jpg`
 - acciones contextuales si aplican
 - opcional: breadcrumbs
 - en tablet/mobile debe apilar cuerpo y acciones sin provocar overflow; pills y badges deben poder envolver
+- las calaveras de cada Mugiwara quedan reservadas para `/mugiwaras` y contextos donde el agente concreto sea el contenido, no para cabeceras generales
 
 ## 4.2 Foundation components
 ### `SurfaceCard`
