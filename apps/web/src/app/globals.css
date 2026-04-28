@@ -66,6 +66,14 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.usage-top-cards {
+  align-items: stretch;
+}
+
+.usage-top-cards > .surface-card {
+  height: 100%;
+}
+
 .layout-grid--sidebar-detail {
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
 }

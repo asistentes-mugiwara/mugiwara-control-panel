@@ -25,6 +25,9 @@ UI/accesibilidad only en frontend:
 - Usar formato compacto visual con `Intl.NumberFormat(..., { notation: 'compact' })` y preservar valor completo vía `data[value]`, `title` y `aria-label`.
 - Reforzar scroll interno con scrollbar visible, sombra/fade interno y microcopy discreta no anunciada por lector.
 - Mantener selector como tabs: IDs estables `usage-window-day-tab-<date>` y `usage-window-day-panel-<date>`, tabpanel etiquetado por el tab seleccionado y foco visible explícito.
+- Añadir navegación de teclado real al tablist (`ArrowLeft/Right`, `ArrowUp/Down`, `Home`, `End`) manteniendo foco en el tab activo.
+- Ordenar las ventanas 5h del día seleccionado de más reciente a más antigua para que la lectura operativa empiece por la hora actual/más cercana.
+- Estirar las cards superiores de `/usage` para que tengan la misma altura visual por abajo.
 
 ## Definition of Done
 - `/usage` sigue siendo página server-side dinámica y read-only.

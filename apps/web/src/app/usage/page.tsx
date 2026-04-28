@@ -640,7 +640,7 @@ export default async function UsagePage() {
         </StatePanel>
       ) : null}
 
-      <section className="layout-grid layout-grid--dashboard-metrics section-block" aria-label="Estado actual de Usage">
+      <section className="layout-grid layout-grid--dashboard-metrics usage-top-cards section-block" aria-label="Estado actual de Usage">
         <SurfaceCard title="Tokens Hermes" eyebrow="Última semana + total" accent="gold" elevated>
           <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
             <div>
