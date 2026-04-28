@@ -91,10 +91,11 @@ Si cambia la IP Tailscale del host, actualizar este documento, `openspec/control
 `/usage` usa fuentes server-side/read-only desde Phase 17:
 
 1. El frontend consume el backend mediante adapter `server-only` y `MUGIWARA_CONTROL_PANEL_API_URL`, sin `NEXT_PUBLIC_*` ni lectura directa de env en la página.
-2. `GET /api/v1/usage/current`, `calendar` y `five-hour-windows` leen únicamente la SQLite saneada de Codex usage.
-3. `GET /api/v1/usage/hermes-activity` lee actividad Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en el backend; abre perfiles allowlisted en modo lectura y serializa únicamente agregados por perfil/rango.
-4. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; si la fuente falta degrada a `not_configured`, y si está configurada pero no hay sesiones en el rango devuelve un vacío explícito `empty`/`no_activity`.
-5. La UI consume `hermes-activity?range=7d` mediante el mismo adapter server-only y muestra solo agregados por perfil/rango como correlación orientativa, sin valores internos de configuración ni rutas.
+2. `GET /api/v1/usage/current`, `calendar`, `five-hour-windows` y `five-hour-window-days` leen únicamente la SQLite saneada de Codex usage.
+3. `five-hour-window-days` organiza los últimos siete días naturales `Europe/Madrid` y asigna ventanas que cruzan medianoche al día local con mayor duración de solape.
+4. `GET /api/v1/usage/hermes-activity` lee actividad Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en el backend; abre perfiles allowlisted en modo lectura y serializa únicamente agregados por perfil/rango.
+5. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; los tokens se exponen solo como contadores agregados semanales/totales y por perfil agregado. Si la fuente falta degrada a `not_configured`, y si está configurada pero no hay sesiones en el rango devuelve un vacío explícito `empty`/`no_activity`.
+6. La UI consume `hermes-activity?range=7d` mediante el mismo adapter server-only y muestra solo agregados por perfil/rango como correlación orientativa, sin valores internos de configuración ni rutas.
 
 Antes de cerrar cambios que toquen Usage config, ejecutar:
 

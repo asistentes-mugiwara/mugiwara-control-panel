@@ -270,14 +270,29 @@ export type UsageCalendar = {
   empty_reason?: 'not_configured' | 'unknown'
 }
 
+export type UsageFiveHourWindow = {
+  started_at: string
+  ended_at: string
+  assigned_date?: string | null
+  peak_used_percent: number | null
+  delta_percent: number | null
+  samples_count: number
+  status: UsageWindowStatus
+}
+
 export type UsageFiveHourWindows = {
-  windows: Array<{
+  windows: UsageFiveHourWindow[]
+  empty_reason: 'not_configured' | null
+}
+
+export type UsageFiveHourWindowDays = {
+  timezone: 'Europe/Madrid'
+  days: Array<{
+    date: string
     started_at: string
     ended_at: string
-    peak_used_percent: number | null
-    delta_percent: number | null
-    samples_count: number
-    status: UsageWindowStatus
+    relative_label: 'hoy' | 'ayer' | null
+    windows: UsageFiveHourWindow[]
   }>
   empty_reason: 'not_configured' | null
 }
@@ -296,6 +311,8 @@ export type UsageHermesActivity = {
     sessions_count: number
     messages_count: number
     tool_calls_count: number
+    weekly_tokens_count: number
+    total_tokens_count: number
     dominant_profile: string | null
   }
   profiles: Array<{
@@ -303,8 +320,10 @@ export type UsageHermesActivity = {
     sessions_count: number
     messages_count: number
     tool_calls_count: number
-    first_activity_at: string
-    last_activity_at: string
+    tokens_count: number
+    total_tokens_count: number
+    first_activity_at: string | null
+    last_activity_at: string | null
     activity_level: UsageActivityLevel
   }>
   privacy: {
@@ -426,6 +445,7 @@ export type HealthcheckSummaryResponse = ResourceEnvelope<{ items: HealthcheckSu
 export type UsageCurrentResponse = ResourceEnvelope<UsageCurrent, { read_only: true; sanitized: true; source: string; refresh_interval_minutes: number }>
 export type UsageCalendarResponse = ResourceEnvelope<UsageCalendar, { read_only: true; sanitized: true; source: string; range: UsageCalendarRange; timezone: 'Europe/Madrid' }>
 export type UsageFiveHourWindowsResponse = ResourceEnvelope<UsageFiveHourWindows, { read_only: true; sanitized: true; source: string; limit: number }>
+export type UsageFiveHourWindowDaysResponse = ResourceEnvelope<UsageFiveHourWindowDays, { read_only: true; sanitized: true; source: string; range: '7d'; timezone: 'Europe/Madrid' }>
 export type UsageHermesActivityResponse = ResourceEnvelope<UsageHermesActivity, { read_only: true; sanitized: true; source: string; range: UsageActivityRange }>
 export type GitMeta = { read_only: true; sanitized: true; source: string }
 export type GitRepoIndexResponse = ResourceEnvelope<GitRepoIndex, GitMeta>

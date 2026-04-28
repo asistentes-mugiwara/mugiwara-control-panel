@@ -180,6 +180,41 @@ button {
   gap: 12px;
 }
 
+.usage-windows-list--scroll {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.usage-window-day-selector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.usage-window-day-selector__button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #dce6f6;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.usage-window-day-selector__button[data-selected='true'] {
+  border-color: rgba(232, 181, 106, 0.9);
+  background: rgba(232, 181, 106, 0.18);
+  color: #ffe4b9;
+}
+
 .usage-window-row {
   display: grid;
   gap: 12px;
@@ -224,7 +259,7 @@ button {
 .usage-hermes-activity-summary,
 .usage-hermes-activity-row__metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
   margin: 0;
 }
@@ -246,6 +281,10 @@ button {
 .usage-hermes-activity-list {
   display: grid;
   gap: 12px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
 }
 
 .usage-hermes-activity-row {

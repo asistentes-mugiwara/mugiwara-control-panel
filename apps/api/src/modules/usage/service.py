@@ -16,6 +16,7 @@ UsageCalendarRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
 UsageActivityRange = Literal['current_cycle', 'previous_cycle', '7d', '30d']
 MAX_USAGE_WINDOWS_LIMIT = 24
 DEFAULT_USAGE_WINDOWS_LIMIT = 8
+USAGE_WINDOW_DAYS_COUNT = 7
 HERMES_PROFILES_ROOT_ENV = 'MUGIWARA_HERMES_PROFILES_ROOT'
 HERMES_ACTIVITY_SOURCE_LABEL = 'hermes-profile-state-aggregate'
 HERMES_ACTIVITY_PROFILES = ('luffy', 'zoro', 'nami', 'usopp', 'sanji', 'chopper', 'robin', 'franky', 'brook', 'jinbe')
@@ -240,37 +241,50 @@ class UsageService:
     def get_five_hour_windows(self, limit: int = DEFAULT_USAGE_WINDOWS_LIMIT) -> dict[str, Any]:
         safe_limit = max(1, min(MAX_USAGE_WINDOWS_LIMIT, limit))
         snapshots = self._load_latest_snapshots(limit=safe_limit * 96)
-        if not snapshots:
-            return {'windows': [], 'empty_reason': 'not_configured'}
-
-        grouped: dict[tuple[str, str], list[UsageSnapshot]] = {}
-        for snapshot in snapshots:
-            if snapshot.primary_window_start_at is None or snapshot.primary_reset_at is None:
-                continue
-            started_at = _window_bucket_timestamp(snapshot.primary_window_start_at)
-            ended_at = _window_bucket_timestamp(snapshot.primary_reset_at)
-            grouped.setdefault((started_at, ended_at), []).append(snapshot)
-
-        windows: list[dict[str, Any]] = []
-        for (started_at, ended_at), window_snapshots in grouped.items():
-            ordered = sorted(window_snapshots, key=lambda item: item.captured_at)
-            values = [value for value in (item.primary_used_percent for item in ordered) if value is not None]
-            peak = round(max(values), 2) if values else None
-            delta = _positive_delta(values) if values else None
-            windows.append(
-                {
-                    'started_at': started_at,
-                    'ended_at': ended_at,
-                    'peak_used_percent': peak,
-                    'delta_percent': delta,
-                    'samples_count': len(ordered),
-                    'status': _window_status(peak),
-                }
-            )
-
+        windows = self._usage_window_summaries(snapshots)
         windows.sort(key=lambda item: item['started_at'], reverse=True)
         windows = windows[:safe_limit]
         return {'windows': windows, 'empty_reason': None if windows else 'not_configured'}
+
+    def get_five_hour_window_days(self) -> dict[str, Any]:
+        now = _parse_datetime(self._now()) or datetime.now(timezone.utc)
+        local_today = now.astimezone(USAGE_CALENDAR_TIMEZONE).date()
+        day_starts = [
+            datetime.combine(local_today - timedelta(days=offset), time.min, tzinfo=USAGE_CALENDAR_TIMEZONE)
+            for offset in range(USAGE_WINDOW_DAYS_COUNT - 1, -1, -1)
+        ]
+        start_at = day_starts[0] - timedelta(hours=5)
+        end_at = day_starts[-1] + timedelta(days=1)
+        snapshots = self._load_snapshots_between(start_at.astimezone(timezone.utc), end_at.astimezone(timezone.utc))
+        windows = self._usage_window_summaries(snapshots)
+        days = []
+        for day_start in day_starts:
+            day_key = day_start.date().isoformat()
+            day_windows = [window for window in windows if window.get('assigned_date') == day_key]
+            day_windows.sort(key=lambda item: item['started_at'])
+            windows_count = len(day_windows)
+            peak_used_percent = max((window['peak_used_percent'] for window in day_windows), default=None)
+            total_delta_percent = round(sum(window['delta_percent'] for window in day_windows), 2) if day_windows else 0.0
+            day_status = 'empty'
+            for candidate in ('critical', 'high', 'normal'):
+                if any(window['status'] == candidate for window in day_windows):
+                    day_status = candidate
+                    break
+            days.append(
+                {
+                    'date': day_key,
+                    'started_at': _isoformat_utc(day_start),
+                    'ended_at': _isoformat_utc(day_start + timedelta(days=1)),
+                    'relative_label': 'hoy' if day_start.date() == local_today else ('ayer' if day_start.date() == local_today - timedelta(days=1) else None),
+                    'windows_count': windows_count,
+                    'peak_used_percent': peak_used_percent,
+                    'total_delta_percent': total_delta_percent,
+                    'status': day_status,
+                    'empty_reason': None if day_windows else 'no_windows',
+                    'windows': day_windows,
+                }
+            )
+        return {'timezone': 'Europe/Madrid', 'days': days, 'empty_reason': None if any(day['windows'] for day in days) else 'not_configured'}
 
     @staticmethod
     def five_hour_windows_status_for(payload: dict[str, Any]) -> str:
@@ -291,10 +305,9 @@ class UsageService:
         for profile in HERMES_ACTIVITY_PROFILES:
             state_db = self.hermes_profiles_root / profile / 'state.db'
             profile_summary = self._load_hermes_profile_activity(profile=profile, state_db=state_db, start_at=start_at, end_at=end_at)
-            if profile_summary is not None and profile_summary['sessions_count'] > 0:
-                profiles.append(profile_summary)
+            profiles.append(profile_summary if profile_summary is not None else self._empty_profile_activity(profile))
 
-        profiles.sort(key=lambda item: (-item['messages_count'], -item['tool_calls_count'], item['profile']))
+        profiles.sort(key=lambda item: (-item['tokens_count'], -item['messages_count'], -item['tool_calls_count'], -item['sessions_count'], item['profile']))
         totals = self._activity_totals(profiles)
         return {
             'range': {
@@ -423,6 +436,57 @@ class UsageService:
         start_at = _local_midnight(latest_captured) - timedelta(days=days - 1)
         return start_at.astimezone(timezone.utc), end_at
 
+    def _usage_window_summaries(self, snapshots: list[UsageSnapshot]) -> list[dict[str, Any]]:
+        grouped: dict[tuple[str, str], list[UsageSnapshot]] = {}
+        for snapshot in snapshots:
+            if snapshot.primary_window_start_at is None or snapshot.primary_reset_at is None:
+                continue
+            started_at = _window_bucket_timestamp(snapshot.primary_window_start_at)
+            ended_at = _window_bucket_timestamp(snapshot.primary_reset_at)
+            grouped.setdefault((started_at, ended_at), []).append(snapshot)
+
+        windows: list[dict[str, Any]] = []
+        for (started_at, ended_at), window_snapshots in grouped.items():
+            ordered = sorted(window_snapshots, key=lambda item: item.captured_at)
+            values = [value for value in (item.primary_used_percent for item in ordered) if value is not None]
+            peak = round(max(values), 2) if values else None
+            delta = _positive_delta(values) if values else None
+            windows.append(
+                {
+                    'started_at': started_at,
+                    'ended_at': ended_at,
+                    'assigned_date': self._assign_usage_window_date(started_at, ended_at),
+                    'peak_used_percent': peak,
+                    'delta_percent': delta,
+                    'samples_count': len(ordered),
+                    'status': _window_status(peak),
+                }
+            )
+        return windows
+
+    @staticmethod
+    def _assign_usage_window_date(started_at: str, ended_at: str) -> str | None:
+        started = _parse_datetime(started_at)
+        ended = _parse_datetime(ended_at)
+        if started is None or ended is None or ended <= started:
+            return started.astimezone(USAGE_CALENDAR_TIMEZONE).date().isoformat() if started is not None else None
+        local_start = started.astimezone(USAGE_CALENDAR_TIMEZONE)
+        local_end = ended.astimezone(USAGE_CALENDAR_TIMEZONE)
+        best_date = local_start.date()
+        best_seconds = -1.0
+        cursor = datetime.combine(local_start.date(), time.min, tzinfo=USAGE_CALENDAR_TIMEZONE)
+        last_day = datetime.combine(local_end.date(), time.min, tzinfo=USAGE_CALENDAR_TIMEZONE)
+        while cursor <= last_day:
+            next_cursor = cursor + timedelta(days=1)
+            overlap_start = max(local_start, cursor)
+            overlap_end = min(local_end, next_cursor)
+            overlap_seconds = max(0.0, (overlap_end - overlap_start).total_seconds())
+            if overlap_seconds > best_seconds:
+                best_seconds = overlap_seconds
+                best_date = cursor.date()
+            cursor = next_cursor
+        return best_date.isoformat()
+
     def _calendar_days(
         self,
         snapshots: list[UsageSnapshot],
@@ -515,6 +579,8 @@ class UsageService:
                 'sessions_count': 0,
                 'messages_count': 0,
                 'tool_calls_count': 0,
+                'weekly_tokens_count': 0,
+                'total_tokens_count': 0,
                 'dominant_profile': None,
             },
             'profiles': [],
@@ -552,13 +618,31 @@ class UsageService:
         sessions_count = sum(int(profile['sessions_count']) for profile in profiles)
         messages_count = sum(int(profile['messages_count']) for profile in profiles)
         tool_calls_count = sum(int(profile['tool_calls_count']) for profile in profiles)
-        dominant_profile = profiles[0]['profile'] if profiles else None
+        weekly_tokens_count = sum(int(profile['tokens_count']) for profile in profiles)
+        total_tokens_count = sum(int(profile['total_tokens_count']) for profile in profiles)
+        dominant_profile = next((profile['profile'] for profile in profiles if int(profile['sessions_count']) > 0), None)
         return {
             'profiles_count': len(profiles),
             'sessions_count': sessions_count,
             'messages_count': messages_count,
             'tool_calls_count': tool_calls_count,
+            'weekly_tokens_count': weekly_tokens_count,
+            'total_tokens_count': total_tokens_count,
             'dominant_profile': dominant_profile,
+        }
+
+    @staticmethod
+    def _empty_profile_activity(profile: str) -> dict[str, Any]:
+        return {
+            'profile': profile,
+            'sessions_count': 0,
+            'messages_count': 0,
+            'tool_calls_count': 0,
+            'tokens_count': 0,
+            'total_tokens_count': 0,
+            'first_activity_at': None,
+            'last_activity_at': None,
+            'activity_level': 'low',
         }
 
     def _load_hermes_profile_activity(self, *, profile: str, state_db: Path, start_at: datetime, end_at: datetime) -> dict[str, Any] | None:
@@ -573,12 +657,20 @@ class UsageService:
                     COUNT(*) AS sessions_count,
                     COALESCE(SUM(message_count), 0) AS messages_count,
                     COALESCE(SUM(tool_call_count), 0) AS tool_calls_count,
+                    COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens + cache_write_tokens + reasoning_tokens), 0) AS tokens_count,
                     MIN(started_at) AS first_activity_epoch,
                     MAX(started_at) AS last_activity_epoch
                 FROM sessions
                 WHERE started_at >= ? AND started_at <= ?
                 """,
                 (start_at.timestamp(), end_at.timestamp()),
+            ).fetchone()
+            total_row = con.execute(
+                """
+                SELECT
+                    COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens + cache_write_tokens + reasoning_tokens), 0) AS total_tokens_count
+                FROM sessions
+                """
             ).fetchone()
         except sqlite3.Error:
             return None
@@ -587,20 +679,24 @@ class UsageService:
                 con.close()
             except UnboundLocalError:
                 pass
-        if row is None or int(row['sessions_count'] or 0) <= 0:
+        if row is None:
             return None
         sessions_count = int(row['sessions_count'] or 0)
         messages_count = int(row['messages_count'] or 0)
         tool_calls_count = int(row['tool_calls_count'] or 0)
-        first_epoch = float(row['first_activity_epoch'])
-        last_epoch = float(row['last_activity_epoch'])
+        tokens_count = int(row['tokens_count'] or 0)
+        total_tokens_count = int(total_row['total_tokens_count'] or 0) if total_row is not None else 0
+        first_epoch = float(row['first_activity_epoch']) if row['first_activity_epoch'] is not None else None
+        last_epoch = float(row['last_activity_epoch']) if row['last_activity_epoch'] is not None else None
         return {
             'profile': profile,
             'sessions_count': sessions_count,
             'messages_count': messages_count,
             'tool_calls_count': tool_calls_count,
-            'first_activity_at': datetime.fromtimestamp(first_epoch, timezone.utc).isoformat(),
-            'last_activity_at': datetime.fromtimestamp(last_epoch, timezone.utc).isoformat(),
+            'tokens_count': tokens_count,
+            'total_tokens_count': total_tokens_count,
+            'first_activity_at': datetime.fromtimestamp(first_epoch, timezone.utc).isoformat() if first_epoch is not None else None,
+            'last_activity_at': datetime.fromtimestamp(last_epoch, timezone.utc).isoformat() if last_epoch is not None else None,
             'activity_level': self._activity_level(messages_count, tool_calls_count),
         }
 

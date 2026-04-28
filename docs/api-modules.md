@@ -80,10 +80,11 @@
 - serializar snapshot actual, plan, ventana 5h, ciclo semanal Codex, frescura y recomendación sin paths runtime ni raw payload
 - serializar calendario por fecha natural en zona `Europe/Madrid`, deltas diarios del ciclo semanal Codex calculados por segmento continuo para no contar resets como consumo, tramos parciales por inicio/reset de ciclo, número de ventanas 5h y pico diario sin prompts, raw payload ni actividad Hermes
 - exponer `GET /api/v1/usage/five-hour-windows?limit=8` como read model dedicado de últimas ventanas 5h, agrupado por inicio/reset de ventana normalizado a minuto UTC y limitado a `1..24`
+- exponer `GET /api/v1/usage/five-hour-window-days` como read model simplificado para seleccionar un día de los últimos siete días naturales `Europe/Madrid`; las ventanas que cruzan medianoche se asignan al día local con mayor solape
 - serializar ventanas 5h solo con inicio, fin, pico %, delta positivo intra-ventana, muestras y estado; sin paths runtime, prompts, raw payload ni actividad Hermes
 - exponer `GET /api/v1/usage/hermes-activity?range=7d|30d|current_cycle|previous_cycle` como read model backend-only de actividad Hermes agregada por perfiles allowlisted
 - leer perfiles Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en servidor; abrir cada SQLite de perfil en `mode=ro` y no exponer la ruta del fichero ni el root configurado
-- serializar actividad Hermes solo como agregados por perfil/rango: sesiones, mensajes, tool calls, primera/última actividad, perfil dominante e índice bajo/medio/alto; sin prompts, conversaciones, tool payloads, tokens por sesión/conversación, IDs, targets, secretos, headers, cookies ni logs
+- serializar actividad Hermes solo como agregados por perfil/rango: sesiones, mensajes, tool calls, tokens agregados semanales/totales, primera/última actividad, perfil dominante e índice bajo/medio/alto; sin prompts, conversaciones, tool payloads, tokens por sesión/conversación, IDs, targets, secretos, headers, cookies ni logs
 - degradar DB ausente/ilegible/sin snapshots a `not_configured`/`unknown` visible, nunca a dato sano silencioso
 - la UI `/usage` consume la actividad Hermes agregada en 17.4d como correlación orientativa y no como causalidad exacta por perfil
 

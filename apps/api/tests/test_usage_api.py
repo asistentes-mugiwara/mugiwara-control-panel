@@ -195,11 +195,11 @@ def _create_hermes_state_db(path: Path, rows: list[dict[str, Any]]) -> None:
                 row.get('end_reason', 'stop'),
                 row.get('message_count', 0),
                 row.get('tool_call_count', 0),
-                row.get('input_tokens', 999999),
-                row.get('output_tokens', 999999),
-                row.get('cache_read_tokens', 999999),
-                row.get('cache_write_tokens', 999999),
-                row.get('reasoning_tokens', 999999),
+                row.get('input_tokens', 100),
+                row.get('output_tokens', 50),
+                row.get('cache_read_tokens', 10),
+                row.get('cache_write_tokens', 5),
+                row.get('reasoning_tokens', 20),
                 row.get('billing_provider', 'secret-provider'),
                 row.get('billing_base_url', 'https://token.example.invalid'),
                 row.get('billing_mode', 'secret-mode'),
@@ -226,7 +226,6 @@ def _assert_no_usage_activity_leakage(payload: dict[str, Any]) -> None:
         'conversation title',
         'secret-model-name',
         'token.example.invalid',
-        '999999',
         '42.0',
         '43.0',
         'chat_id',
@@ -484,6 +483,7 @@ def test_usage_five_hour_windows_groups_latest_windows_without_leaking_runtime_p
     assert windows[0] == {
         'started_at': '2026-04-26T15:00:00+00:00',
         'ended_at': '2026-04-26T20:00:00+00:00',
+        'assigned_date': '2026-04-26',
         'peak_used_percent': 98.0,
         'delta_percent': 96.0,
         'samples_count': 3,
@@ -494,6 +494,55 @@ def test_usage_five_hour_windows_groups_latest_windows_without_leaking_runtime_p
     assert '/srv/crew-core/runtime/usage' not in str(payload)
     assert 'raw_payload_value' not in str(payload)
 
+
+
+
+def test_usage_five_hour_window_days_assigns_cross_midnight_windows_by_dominant_local_day(tmp_path):
+    db_path = tmp_path / 'codex-usage.sqlite'
+    con = sqlite3.connect(db_path)
+    _create_usage_schema(con)
+    # 22:00 -> 03:00 Europe/Madrid: 2h on Apr 25, 3h on Apr 26, assigned to Apr 26.
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-25T21:30:00+00:00',
+        primary_used_percent=12.0,
+        primary_window_start_at='2026-04-25T20:00:00+00:00',
+        primary_reset_at='2026-04-26T01:00:00+00:00',
+        secondary_used_percent=40.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    # Exact 2h/2h split in Europe/Madrid: tie is assigned to start day.
+    _insert_usage_snapshot(
+        con,
+        captured_at='2026-04-27T23:00:00+00:00',
+        primary_used_percent=33.0,
+        primary_window_start_at='2026-04-27T20:00:00+00:00',
+        primary_reset_at='2026-04-28T00:00:00+00:00',
+        secondary_used_percent=43.0,
+        secondary_cycle_start_at='2026-04-21T18:25:51+00:00',
+        secondary_reset_at='2026-04-28T18:25:51+00:00',
+    )
+    con.commit()
+    con.close()
+    _override_usage_service(UsageService(db_path=db_path, now=lambda: '2026-04-28T10:00:00+00:00'))
+
+    response = TestClient(app).get('/api/v1/usage/five-hour-window-days')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'usage.five_hour_window_days'
+    assert payload['status'] == 'ready'
+    assert payload['meta']['timezone'] == 'Europe/Madrid'
+    days = {day['date']: day for day in payload['data']['days']}
+    assert list(days) == ['2026-04-22', '2026-04-23', '2026-04-24', '2026-04-25', '2026-04-26', '2026-04-27', '2026-04-28']
+    assert days['2026-04-28']['relative_label'] == 'hoy'
+    assert days['2026-04-27']['relative_label'] == 'ayer'
+    assert len(days['2026-04-26']['windows']) == 1
+    assert days['2026-04-26']['windows'][0]['assigned_date'] == '2026-04-26'
+    assert len(days['2026-04-27']['windows']) == 1
+    assert days['2026-04-27']['windows'][0]['assigned_date'] == '2026-04-27'
+    assert '/srv/crew-core/runtime/usage' not in str(payload)
 
 def test_usage_five_hour_windows_degrades_when_snapshot_db_is_absent(tmp_path):
     _override_usage_service(UsageService(db_path=tmp_path / 'missing.sqlite', now=lambda: '2026-04-26T14:40:00+00:00'))
@@ -551,10 +600,12 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
     }
     assert payload['data']['range']['name'] == '7d'
     assert payload['data']['totals'] == {
-        'profiles_count': 2,
+        'profiles_count': 10,
         'sessions_count': 3,
         'messages_count': 17,
         'tool_calls_count': 5,
+        'weekly_tokens_count': 555,
+        'total_tokens_count': 740,
         'dominant_profile': 'zoro',
     }
     profiles = payload['data']['profiles']
@@ -563,12 +614,18 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
         'sessions_count': 2,
         'messages_count': 12,
         'tool_calls_count': 4,
+        'tokens_count': 370,
+        'total_tokens_count': 555,
         'first_activity_at': '2026-04-25T12:00:00+00:00',
         'last_activity_at': '2026-04-26T09:00:00+00:00',
         'activity_level': 'medium',
     }
     assert profiles[1]['profile'] == 'franky'
+    assert profiles[1]['tokens_count'] == 185
     assert profiles[1]['activity_level'] == 'low'
+    assert len(profiles) == 10
+    assert profiles[-1]['sessions_count'] == 0
+    assert profiles[-1]['first_activity_at'] is None
     assert payload['data']['privacy']['correlation'] == 'orientativa'
     _assert_no_usage_activity_leakage(payload)
 
@@ -584,12 +641,15 @@ def test_usage_hermes_activity_returns_empty_when_profiles_are_configured_but_ha
     payload = response.json()
     assert payload['status'] == 'empty'
     assert payload['data']['empty_reason'] == 'no_activity'
-    assert payload['data']['profiles'] == []
+    assert len(payload['data']['profiles']) == 10
+    assert all(profile['sessions_count'] == 0 for profile in payload['data']['profiles'])
     assert payload['data']['totals'] == {
-        'profiles_count': 0,
+        'profiles_count': 10,
         'sessions_count': 0,
         'messages_count': 0,
         'tool_calls_count': 0,
+        'weekly_tokens_count': 0,
+        'total_tokens_count': 0,
         'dominant_profile': None,
     }
     _assert_no_usage_activity_leakage(payload)
