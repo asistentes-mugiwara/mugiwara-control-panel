@@ -207,6 +207,15 @@ function noticeFromHermesActivityStatus(status: ResourceStatus): HermesActivityN
     }
   }
 
+  if (status === 'empty') {
+    return {
+      status: 'sin-datos',
+      title: 'Actividad Hermes sin sesiones en el rango',
+      description: 'La fuente agregada de Hermes está configurada, pero no hay actividad allowlisted para el rango actual. No se muestran rutas ni datos internos.',
+      detail: 'Estado técnico de hermes-activity: empty',
+    }
+  }
+
   if (status === 'stale') {
     return {
       status: 'stale',

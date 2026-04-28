@@ -71,6 +71,7 @@ mustInclude(webRunner, 'npm --prefix apps/web run start -- --hostname "$web_host
 mustNotInclude(stripHelp(webRunner), /--hostname\s+0\.0\.0\.0|NEXT_PUBLIC|tailscale\s+(funnel|serve)|--reload/i, 'web runner', 'wildcard bind, browser env, Tailscale Funnel/Serve or dev reload')
 
 mustInclude(apiService, 'ExecStart=/usr/bin/env bash scripts/run-control-panel-api.sh', 'API service')
+mustInclude(apiService, 'EnvironmentFile=-%h/.config/mugiwara-control-panel/api.env', 'API service')
 mustInclude(apiService, 'Environment=MUGIWARA_CONTROL_PANEL_API_HOST=127.0.0.1', 'API service')
 mustInclude(apiService, 'Environment=MUGIWARA_CONTROL_PANEL_API_PORT=8011', 'API service')
 mustInclude(apiService, 'Restart=on-failure', 'API service')
@@ -87,10 +88,16 @@ mustInclude(webService, 'Restart=on-failure', 'web service')
 mustInclude(webService, 'WantedBy=default.target', 'web service')
 mustNotInclude(stripComments(webService), /User=|Group=|0\.0\.0\.0|NEXT_PUBLIC|funnel|serve/i, 'web service', 'system user/group, wildcard bind or public exposure')
 
+mustInclude(installer, 'api_env_file="$config_root/api.env"', 'installer')
+mustInclude(installer, 'hermes_profiles_root="${MUGIWARA_HERMES_PROFILES_ROOT:-$HOME/.hermes/profiles}"', 'installer')
+mustInclude(installer, 'MUGIWARA_HERMES_PROFILES_ROOT=%q', 'installer')
+mustInclude(installer, 'chmod 0600 "$api_env_file"', 'installer')
 mustInclude(installer, 'npm --prefix apps/web run build', 'installer')
 mustInclude(installer, 'tailscale ip -4', 'installer')
-mustInclude(installer, 'systemctl --user enable --now "$api_service"', 'installer')
-mustInclude(installer, 'systemctl --user enable --now "$web_service"', 'installer')
+mustInclude(installer, 'systemctl --user enable "$api_service"', 'installer')
+mustInclude(installer, 'systemctl --user enable "$web_service"', 'installer')
+mustInclude(installer, 'systemctl --user restart "$api_service"', 'installer')
+mustInclude(installer, 'systemctl --user restart "$web_service"', 'installer')
 mustNotInclude(stripHelp(installer), /0\.0\.0\.0|funnel|serve|NEXT_PUBLIC|--host\s+0/i, 'installer', 'public exposure or browser env')
 
 for (const [text, label] of [[runtimeConfig, 'runtime config docs'], [openspec, 'OpenSpec']]) {

@@ -36,6 +36,8 @@ Instalación:
 scripts/install-control-panel-user-services.sh
 ```
 
+El instalador copia las units, escribe la configuración local privada de API, ejecuta `daemon-reload` y reinicia API/Web para que los cambios de configuración server-only apliquen inmediatamente.
+
 URL privada actual:
 
 ```text
@@ -46,10 +48,11 @@ http://<magicdns-host>:3017
 Contrato de seguridad:
 
 1. La API no se expone por Tailscale ni por LAN; escucha solo en loopback.
-2. La web consume `MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011` solo server-side.
-3. El runner web detecta la IPv4 de Tailscale y rechaza bind wildcard (`0.0.0.0`/`::`).
-4. Esto sigue siendo `internet-public: unsupported`: no usa Tailscale Funnel, no abre puertos públicos ni añade auth pública/rate-limit.
-5. Si Tailscale no está disponible, el servicio web falla y systemd reintenta, en vez de caer silenciosamente a exposición pública.
+2. La unidad API carga configuración local server-only desde un `EnvironmentFile` no versionado y creado por el instalador; ahí vive la raíz de perfiles Hermes para `usage.hermes_activity`.
+3. La web consume `MUGIWARA_CONTROL_PANEL_API_URL=http://127.0.0.1:8011` solo server-side.
+4. El runner web detecta la IPv4 de Tailscale y rechaza bind wildcard (`0.0.0.0`/`::`).
+5. Esto sigue siendo `internet-public: unsupported`: no usa Tailscale Funnel, no abre puertos públicos ni añade auth pública/rate-limit.
+6. Si Tailscale no está disponible, el servicio web falla y systemd reintenta, en vez de caer silenciosamente a exposición pública.
 
 Guardarraíl:
 
@@ -82,7 +85,7 @@ Si cambia la IP Tailscale del host, actualizar este documento, `openspec/control
 | --- | --- | --- | --- |
 | `MUGIWARA_CONTROL_PANEL_API_URL` | `/memory`, `/mugiwaras`, `/skills` BFF/server loaders, `/vault`, `/dashboard`, `/healthcheck` | Server-only | Base URL del backend para superficies que deben resolver datos desde servidor o frontera BFF. Debe apuntar a loopback, red privada o Tailscale/private hostname; no es configuración pública de navegador. |
 | `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` | `/skills` BFF write routes | Server-only | Allowlist separada por comas de orígenes exactos `http:`/`https:` permitidos para `POST`/`PUT` de Skills. Debe contener solo orígenes privados/locales/Tailscale; si falta, las escrituras BFF devuelven `403 trusted_origins_not_configured`. |
-| `MUGIWARA_HERMES_PROFILES_ROOT` | Backend `usage.hermes_activity` | Server-only | Raíz local de perfiles Hermes usada solo por el backend para agregados read-only. Si falta, el endpoint degrada a `not_configured`; el valor runtime y las rutas de bases de datos no se serializan en API ni UI. |
+| `MUGIWARA_HERMES_PROFILES_ROOT` | Backend `usage.hermes_activity` | Server-only | Raíz local de perfiles Hermes cargada por el servicio API desde configuración local no versionada para agregados read-only. Si falta, el endpoint degrada a `not_configured`; si existe pero no hay sesiones en el rango, responde `empty`/`no_activity`; el valor runtime y las rutas de bases de datos no se serializan en API ni UI. |
 
 ## Usage
 `/usage` usa fuentes server-side/read-only desde Phase 17:
@@ -90,7 +93,7 @@ Si cambia la IP Tailscale del host, actualizar este documento, `openspec/control
 1. El frontend consume el backend mediante adapter `server-only` y `MUGIWARA_CONTROL_PANEL_API_URL`, sin `NEXT_PUBLIC_*` ni lectura directa de env en la página.
 2. `GET /api/v1/usage/current`, `calendar` y `five-hour-windows` leen únicamente la SQLite saneada de Codex usage.
 3. `GET /api/v1/usage/hermes-activity` lee actividad Hermes solo si `MUGIWARA_HERMES_PROFILES_ROOT` está configurado en el backend; abre perfiles allowlisted en modo lectura y serializa únicamente agregados por perfil/rango.
-4. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; si la fuente falta o falla, degrada a `not_configured`.
+4. La actividad Hermes no devuelve rutas, prompts, conversaciones, payloads de herramientas, tokens por sesión/conversación, identificadores, secrets, cabeceras, cookies ni logs; si la fuente falta degrada a `not_configured`, y si está configurada pero no hay sesiones en el rango devuelve un vacío explícito `empty`/`no_activity`.
 5. La UI consume `hermes-activity?range=7d` mediante el mismo adapter server-only y muestra solo agregados por perfil/rango como correlación orientativa, sin valores internos de configuración ni rutas.
 
 Antes de cerrar cambios que toquen Usage config, ejecutar:

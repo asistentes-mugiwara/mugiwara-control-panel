@@ -31,11 +31,13 @@ Runtime Tailscale detectado:
 2. **Web Tailscale-only por defecto**: el runner web exige una IP Tailscale salvo override explícito. No cae silenciosamente a `0.0.0.0`.
 3. **Production Next**: el servicio web usa `next start`, no `next dev`; el installer construye `apps/web/.next` antes de arrancar.
 4. **systemd user-level**: evita `User=`/`Group=` y sigue el patrón operativo ya usado por los runners Healthcheck.
-5. **Fail closed**: si Tailscale no está disponible y no hay override, la web falla y systemd reintenta, en vez de abrir en todas las interfaces.
+5. **Config API local server-only**: la unidad API carga un `EnvironmentFile` no versionado creado por el instalador para habilitar fuentes backend-only como Hermes activity sin poner valores runtime en el repo.
+6. **Fail closed**: si Tailscale no está disponible y no hay override, la web falla y systemd reintenta, en vez de abrir en todas las interfaces.
 
 ## Definition of Done
 - Units versionadas en `ops/systemd/user/`.
 - Scripts runner e installer versionados en `scripts/`.
+- Installer crea configuración local server-only para la fuente Hermes activity sin versionar valores runtime.
 - Guardrail `verify:control-panel-service-runner` pasa.
 - `systemd-analyze --user verify` acepta ambas units.
 - Installer instala, habilita y arranca ambos servicios.
