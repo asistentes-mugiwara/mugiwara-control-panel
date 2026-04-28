@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { type KeyboardEvent, useMemo, useState } from 'react'
 import type { UsageFiveHourWindowDays, UsageWindowStatus } from '@contracts/read-models'
 
 import { StatePanel } from '@/shared/ui/state/StatePanel'
@@ -52,6 +52,13 @@ function formatSamples(value: number) {
   return value === 1 ? '1 muestra' : `${value} muestras`
 }
 
+function compareWindowByMostRecentStartedAt(
+  left: UsageFiveHourWindowDays['days'][number]['windows'][number],
+  right: UsageFiveHourWindowDays['days'][number]['windows'][number],
+) {
+  return new Date(right.started_at).getTime() - new Date(left.started_at).getTime()
+}
+
 export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { windowDays: UsageFiveHourWindowDays; isSnapshotMode: boolean }) {
   const initialDate = useMemo(() => {
     const today = windowDays.days.find((day) => day.relative_label === 'hoy')
@@ -59,6 +66,50 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
   }, [windowDays.days])
   const [selectedDate, setSelectedDate] = useState(initialDate)
   const selectedDay = windowDays.days.find((day) => day.date === selectedDate) ?? windowDays.days.at(-1)
+  const selectedTabId = selectedDay ? `usage-window-day-tab-${selectedDay.date}` : undefined
+  const selectedPanelId = selectedDay ? `usage-window-day-panel-${selectedDay.date}` : undefined
+  const selectedDayIndex = selectedDay ? windowDays.days.findIndex((day) => day.date === selectedDay.date) : -1
+  const selectedWindows = useMemo(
+    () => [...(selectedDay?.windows ?? [])].sort(compareWindowByMostRecentStartedAt),
+    [selectedDay?.windows],
+  )
+
+  function selectDayByIndex(nextIndex: number) {
+    const nextDay = windowDays.days[nextIndex]
+    if (!nextDay) return
+
+    setSelectedDate(nextDay.date)
+    window.requestAnimationFrame(() => {
+      document.getElementById(`usage-window-day-tab-${nextDay.date}`)?.focus()
+    })
+  }
+
+  function handleTabListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (windowDays.days.length === 0) return
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      selectDayByIndex((selectedDayIndex + 1) % windowDays.days.length)
+      return
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      selectDayByIndex((selectedDayIndex - 1 + windowDays.days.length) % windowDays.days.length)
+      return
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      selectDayByIndex(0)
+      return
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault()
+      selectDayByIndex(windowDays.days.length - 1)
+    }
+  }
 
   return (
     <div style={{ display: 'grid', gap: '12px' }}>
@@ -70,15 +121,19 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
           Ventanas mostradas desde snapshot/fallback saneado: sirven para validar composición visual, no para decidir consumo real.
         </p>
       ) : null}
-      <div className="usage-window-day-selector" role="tablist" aria-label="Últimos 7 días de ventanas 5h">
+      <div className="usage-window-day-selector" role="tablist" aria-label="Últimos 7 días de ventanas 5h" onKeyDown={handleTabListKeyDown}>
         {windowDays.days.map((day) => {
           const selected = day.date === selectedDay?.date
+          const tabId = `usage-window-day-tab-${day.date}`
+          const panelId = `usage-window-day-panel-${day.date}`
           return (
             <button
+              id={tabId}
               type="button"
               role="tab"
               aria-selected={selected}
-              aria-controls={`usage-window-day-${day.date}`}
+              aria-controls={panelId}
+              tabIndex={selected ? 0 : -1}
               className="usage-window-day-selector__button"
               data-selected={selected ? 'true' : 'false'}
               key={day.date}
@@ -89,9 +144,10 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
           )
         })}
       </div>
-      <div id={selectedDay ? `usage-window-day-${selectedDay.date}` : undefined} className="usage-windows-list usage-windows-list--scroll" role="tabpanel" aria-label={selectedDay ? `Ventanas 5h de ${selectedDay.date}` : 'Ventanas 5h por día'}>
-        {selectedDay && selectedDay.windows.length > 0 ? (
-          selectedDay.windows.map((window) => {
+      <p className="usage-scroll-hint" aria-hidden="true">Desplaza dentro del panel para ver todas las ventanas del día seleccionado.</p>
+      <div id={selectedPanelId} className="usage-windows-list usage-windows-list--scroll usage-scroll-affordance" role="tabpanel" aria-labelledby={selectedTabId} aria-label={selectedDay ? undefined : 'Ventanas 5h por día'}>
+        {selectedDay && selectedWindows.length > 0 ? (
+          selectedWindows.map((window) => {
             const status = windowStatusMap[window.status]
             return (
               <article className="usage-window-row" key={`${window.started_at}-${window.ended_at}`} role="listitem" aria-label={`Ventana 5h ${formatTimestamp(window.started_at)}: ${status.label}`}>
