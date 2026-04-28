@@ -5,6 +5,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'luffy',
     name: 'Luffy',
     status: 'operativo',
+    description: 'Coordina prioridades, reparte trabajo entre especialistas y cierra decisiones ejecutivas.',
     skills: ['delegation-contract', 'crew-orchestration'],
     memory_badge: 'Capitán operativo',
     links: [
@@ -16,6 +17,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'zoro',
     name: 'Zoro',
     status: 'operativo',
+    description: 'Diseña, implementa y valida software: arquitectura, PRs, testing y calidad técnica.',
     skills: ['sdd-orchestrator-zoro', 'zoro-pr-review-handoff'],
     memory_badge: 'Continuidad fuerte',
     links: [
@@ -27,6 +29,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'franky',
     name: 'Franky',
     status: 'operativo',
+    description: 'Opera infraestructura, servicios, automatizaciones, backups y salud del runtime.',
     skills: ['franky-pr-ops-review', 'vault-sync-ops'],
     memory_badge: 'Runtime vigilado',
     links: [
@@ -38,6 +41,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'chopper',
     name: 'Chopper',
     status: 'operativo',
+    description: 'Vigila seguridad, permisos, secretos, dependencias y exposición accidental.',
     skills: ['chopper-pr-security-review', 'security-hardening'],
     memory_badge: 'Riesgo controlado',
     links: [
@@ -49,6 +53,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'usopp',
     name: 'Usopp',
     status: 'revision',
+    description: 'Convierte ideas en marca, copy, diseño, campañas y experiencia de interfaz.',
     skills: ['usopp-pr-design-review', 'frontend-spec-usopp'],
     memory_badge: 'Diseño activo',
     links: [
@@ -60,6 +65,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'nami',
     name: 'Nami',
     status: 'operativo',
+    description: 'Ordena finanzas, hojas de cálculo, métricas económicas y control operativo.',
     skills: ['finance-ops', 'google-sheets-control'],
     memory_badge: 'Señales estables',
     links: [
@@ -71,6 +77,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'robin',
     name: 'Robin',
     status: 'operativo',
+    description: 'Investiga, sintetiza contexto, mantiene canon y separa memoria útil de ruido.',
     skills: ['research-synthesis', 'vault-canon'],
     memory_badge: 'Canon consultable',
     links: [
@@ -82,6 +89,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'brook',
     name: 'Brook',
     status: 'revision',
+    description: 'Analiza datos, modelos, métricas y pipelines cuando el sistema necesite lectura cuantitativa.',
     skills: ['data-analysis', 'analytics-standby'],
     memory_badge: 'Datos en standby',
     links: [
@@ -93,6 +101,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'jinbe',
     name: 'Jinbe',
     status: 'sin-datos',
+    description: 'Aporta criterio legal, contexto normativo y lectura prudente de riesgos jurídicos.',
     skills: ['legal-context'],
     memory_badge: 'Definido en canon',
     links: [
@@ -104,6 +113,7 @@ export const mugiwaraCardFixture: MugiwaraCard[] = [
     slug: 'sanji',
     name: 'Sanji',
     status: 'sin-datos',
+    description: 'Cuida operaciones físicas, logística personal y soporte de alto contacto cuando aplique.',
     skills: ['physical-ops'],
     memory_badge: 'Definido en canon',
     links: [

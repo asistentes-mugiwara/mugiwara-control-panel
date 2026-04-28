@@ -14,6 +14,7 @@ class MugiwaraCard:
     slug: str
     name: str
     status: str
+    description: str
     skills: list[str]
     memory_badge: str
     links: list[SafeLink]
