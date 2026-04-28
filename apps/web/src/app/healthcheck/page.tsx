@@ -256,7 +256,6 @@ export default async function HealthcheckPage() {
         eyebrow="Healthcheck"
         title="Salud del sistema"
         subtitle="Resumen operativo del perímetro: estado actual, causa visible y bitácora histórica separada sin exponer metadata sensible del host."
-        mugiwaraSlug="chopper"
         detailPills={['Perímetro', 'Señales saneadas', 'Respuesta priorizada']}
       />
 

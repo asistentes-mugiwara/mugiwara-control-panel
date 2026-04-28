@@ -652,7 +652,6 @@ export default function SkillsPage() {
         eyebrow="Skills"
         title="Skills"
         subtitle="Selecciona una fuente, elige una skill y alterna entre lectura Markdown y edición controlada."
-        mugiwaraSlug="zoro"
         detailPills={["Globales o Mugiwara", "Lector Markdown", "Editor auditado"]}
       />
 

@@ -45,7 +45,8 @@
     "verify:system-metrics-backend-policy": "node scripts/check-system-metrics-backend-policy.mjs",
     "verify:system-metrics-server-only": "node scripts/check-system-metrics-server-only.mjs",
     "verify:git-server-only": "node scripts/check-git-server-only.mjs",
-    "verify:control-panel-service-runner": "node scripts/check-control-panel-service-runner.mjs"
+    "verify:control-panel-service-runner": "node scripts/check-control-panel-service-runner.mjs",
+    "verify:laya-mugiwara-brand": "node scripts/check-laya-mugiwara-brand.mjs"
   },
   "overrides": {
     "postcss": "8.5.10"

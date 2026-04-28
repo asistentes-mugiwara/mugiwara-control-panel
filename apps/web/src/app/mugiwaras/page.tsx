@@ -348,7 +348,6 @@ export default async function MugiwarasPage() {
         eyebrow="Mugiwaras"
         title="Tripulación"
         subtitle="Vista de solo lectura de la tripulación, con descripción humana por agente y canon operativo AGENTS.md renderizado como Markdown seguro."
-        mugiwaraSlug="luffy"
         detailPills={['Índice de tripulación', 'Descripción humana', 'AGENTS.md read-only']}
       />
 

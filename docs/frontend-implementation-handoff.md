@@ -254,6 +254,7 @@ Responsabilidades:
 ### `PageHeader`
 - `title`
 - `subtitle`
+- emblema visual general con `laya-mugiwara.jpg` mediante componente compartido de marca; no usar `MugiwaraCrest` ni `mugiwaraSlug` en cabeceras generales
 - `actions`
 - `breadcrumbs?`
 - puede usar un heading editorial visible distinto del nombre canónico de ruta si la spec lo permite (ej. `Dashboard` -> `Estado del barco`)
@@ -418,27 +419,29 @@ Pero la recomendación sigue siendo migrar luego a SVG.
 
 Con eso ya se puede construir una interfaz muy buena.
 
-## 7.2 Convenientes pero no imprescindibles
-### A. Logo o wordmark del producto
-Ruta sugerida:
+## 7.2 Assets de marca privados/locales
+### A. Emblema y favicon `laya-mugiwara`
+Rutas privadas/locales esperadas:
 ```text
 apps/web/public/assets/brand/
-  mugiwara-control-panel-logo.svg
-  mugiwara-control-panel-mark.svg
+  laya-mugiwara.svg
+  laya-mugiwara.jpg
 ```
 
 Sirve para:
-- topbar
-- sidebar
-- favicon futura
+- favicon/app icon: `laya-mugiwara.svg`
+- emblema de `PageHeader` y títulos generales: `laya-mugiwara.jpg`
+
+Política de empaquetado:
+- `apps/web/public/assets/brand/` permanece ignorado en `.gitignore`.
+- No versionar ni forzar `git add -f` de estos assets en el repo público salvo orden explícita de Pablo.
+- El despliegue privado debe mantener esos dos ficheros presentes localmente.
+- Las crests de Mugiwara siguen en `assets/mugiwaras/crests*` para cards/selectores/contextos de agente.
 
 ### B. Favicon / app icon
-Ruta sugerida:
+Si en el futuro se decide publicar un fallback público, debe ser una decisión explícita. La implementación actual usa metadata de Next apuntando al SVG privado/local:
 ```text
-apps/web/public/
-  favicon.ico
-  icon.png
-  apple-touch-icon.png
+apps/web/public/assets/brand/laya-mugiwara.svg
 ```
 
 ### C. Textura o fondo muy sutil opcional
