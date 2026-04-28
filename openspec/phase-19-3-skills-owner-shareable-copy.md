@@ -7,9 +7,7 @@ Pablo pidió que la pantalla `/skills` deje de mostrar un actor manual y estados
 - Mostrar el dueño real de la skill como actor de guardado.
 - Usar `luffy` como dueño/actor visible para skills globales.
 - Mantener todas las skills visibles como editables desde el panel.
-- Sustituir el copy de riesgo público por una señal de compartibilidad:
-  - `Skill compartible: Sí (sin riesgo)` cuando la señal backend es baja.
-  - `Skill compartible: No (riesgo de filtrado)` cuando la señal backend es media/alta.
+- Eliminar el copy de riesgo público sin sustituirlo por una señal de compartibilidad visible; no hay flujo de compartir/publicar skills desde esta pantalla.
 - Evitar chips pegados en móvil.
 
 ## Non-goals
@@ -22,7 +20,7 @@ Pablo pidió que la pantalla `/skills` deje de mostrar un actor manual y estados
 - El backend normaliza el catálogo a `editable=true` para entradas visibles y valida escritura solo dentro de raíces allowlisteadas: `skills-source` y runtime root explícito.
 - La UI calcula el actor de auditoría desde `owner_slug`: global/shared → `luffy`; agente → su slug; runtime → `runtime`.
 - La UI elimina el input manual de actor y presenta `Dueño / actor de guardado` como dato calculado.
-- `StatusBadge` acepta `detail` para renderizar chips autocontenidos y legibles.
+- `StatusBadge` se usa en `/skills` con el copy mínimo `Editable`, sin detalle largo ni badge de compartibilidad.
 
 ## Verification
 - `npm --prefix apps/web run typecheck`
@@ -31,4 +29,4 @@ Pablo pidió que la pantalla `/skills` deje de mostrar un actor manual y estados
 - `npm run verify:skills-server-only`
 - `npm run verify:visual-baseline`
 - `git diff --check`
-- Browser smoke local en `/skills?mugiwara=franky`: consola limpia, chips `Editable` y `Skill compartible` separados, sin `Riesgo repo público` visible.
+- Browser smoke local en `/skills?mugiwara=franky`: consola limpia, badge `Editable` visible, sin `Skill compartible` ni `Riesgo repo público` visible.

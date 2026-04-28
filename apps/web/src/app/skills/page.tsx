@@ -144,27 +144,10 @@ function getSkillOwnerDisplay(skill: Pick<SkillCatalogItem | SkillDetail, 'owner
   return skill.owner_label
 }
 
-function getShareableSkillCopy(skill: Pick<SkillCatalogItem | SkillDetail, 'public_repo_risk'>) {
-  if (skill.public_repo_risk === 'low') {
-    return {
-      status: 'operativo' as const,
-      label: 'Skill compartible: Sí',
-      detail: 'sin riesgo',
-    }
-  }
-
-  return {
-    status: 'incidencia' as const,
-    label: 'Skill compartible: No',
-    detail: 'riesgo de filtrado',
-  }
-}
-
 function getEditableSkillCopy() {
   return {
     status: 'operativo' as const,
     label: 'Editable',
-    detail: 'Todas las skills visibles se pueden editar desde esta pantalla',
   }
 }
 
@@ -504,7 +487,6 @@ export default function SkillsPage() {
   const hasDraftChanges = selectedSkill ? draftContent !== selectedSkill.content : false
   const selectedSkillActor = selectedSkill ? getSkillAuditActor(selectedSkill) : ''
   const selectedSkillOwner = selectedSkill ? getSkillOwnerDisplay(selectedSkill) : ''
-  const shareableSkillCopy = selectedSkill ? getShareableSkillCopy(selectedSkill) : null
   const editableSkillCopy = selectedSkill ? getEditableSkillCopy() : null
   const canSave = Boolean(selectedSkill?.editable && hasDraftChanges && selectedSkillActor && saveState !== 'saving')
   const draftSummary = useMemo(() => {
@@ -749,8 +731,7 @@ export default function SkillsPage() {
                 <span className="text-break" style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>{selectedSkill.skill_id}</span>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {editableSkillCopy ? <StatusBadge status={editableSkillCopy.status} label={editableSkillCopy.label} detail={editableSkillCopy.detail} /> : null}
-                {shareableSkillCopy ? <StatusBadge status={shareableSkillCopy.status} label={shareableSkillCopy.label} detail={shareableSkillCopy.detail} /> : null}
+                {editableSkillCopy ? <StatusBadge status={editableSkillCopy.status} label={editableSkillCopy.label} /> : null}
                 <button
                   type="button"
                   onClick={() => setWorkspaceMode('reader')}

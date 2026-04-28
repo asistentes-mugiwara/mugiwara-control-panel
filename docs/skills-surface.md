@@ -47,7 +47,7 @@ Campos mínimos por entrada:
 - `owner_slug`
 - `owner_label`
 - `editable`
-- `shareable_label` derivada en UI desde la señal backend `public_repo_risk`: bajo → `Skill compartible: Sí (sin riesgo)`; medio/alto → `Skill compartible: No (riesgo de filtrado)`.
+- `public_repo_risk` puede mantenerse como señal backend interna, pero la UI no muestra copy de compartibilidad porque el panel no usa `/skills` para decidir publicación externa.
 
 La página `/skills` debe evitar listados largos por defecto. El flujo de lectura/edición es:
 1. seleccionar una fuente (`global` o un Mugiwara allowlisteado);
@@ -61,7 +61,8 @@ Decisión operativa: colocar una skill nueva bajo `skills-source/global`, `skill
 
 ### Copy de edición
 - Todas las skills visibles se presentan como `Editable`.
-- La UI no muestra `Riesgo repo público`; usa `Skill compartible: Sí (sin riesgo)` o `Skill compartible: No (riesgo de filtrado)`.
+- La UI muestra solo el badge verde `Editable`, sin explicación larga.
+- La UI no muestra `Riesgo repo público` ni `Skill compartible`, porque no hay flujo de compartir/publicar skills desde esta pantalla.
 - El actor visible no se introduce a mano: lo calcula el frontend desde el dueño de la skill y lo envía al backend para auditoría.
 
 ## Reglas de seguridad
