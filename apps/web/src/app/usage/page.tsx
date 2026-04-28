@@ -406,9 +406,6 @@ function UsageCalendarPanel({ calendar, isSnapshotMode }: { calendar: UsageCalen
   return (
     <SurfaceCard title="Calendario por fecha natural" eyebrow={`Ciclo semanal Codex · ${calendar.timezone}`} accent="gold" elevated>
       <div style={{ display: 'grid', gap: '12px' }}>
-        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-          Primera lectura histórica saneada: agrupa por fecha natural Europe/Madrid, sin contenido privado ni actividad Hermes. El delta diario se calcula por segmentos continuos del ciclo semanal Codex para no contar resets como consumo.
-        </p>
         {isSnapshotMode ? (
           <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
             Calendario mostrado desde snapshot/fallback saneado: útil para validar composición visual, no para decidir consumo real.
@@ -505,9 +502,6 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
   return (
     <SurfaceCard title="Actividad Hermes agregada" eyebrow="Últimos 7 días · correlación orientativa" accent="gold" elevated>
       <div style={{ display: 'grid', gap: '14px' }}>
-        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-          Lectura read-only de actividad local Hermes por perfiles Mugiwara allowlisted. Es una correlación orientativa con el ritmo Codex: no atribuye causalidad exacta ni muestra actividad por sesión.
-        </p>
         {isSnapshotMode ? (
           <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
             Actividad mostrada desde fallback saneado: valida composición visual, no representa lectura real.

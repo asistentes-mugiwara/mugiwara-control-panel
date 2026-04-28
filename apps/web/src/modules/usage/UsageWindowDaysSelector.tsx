@@ -113,9 +113,6 @@ export function UsageWindowDaysSelector({ windowDays, isSnapshotMode }: { window
 
   return (
     <div style={{ display: 'grid', gap: '12px' }}>
-      <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-        Elige un día natural en Europe/Madrid y revisa solo las ventanas 5h asignadas a ese día. Si una ventana cruza medianoche, queda en el día donde aporta más duración.
-      </p>
       {isSnapshotMode ? (
         <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
           Ventanas mostradas desde snapshot/fallback saneado: sirven para validar composición visual, no para decidir consumo real.

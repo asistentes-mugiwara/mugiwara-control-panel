@@ -58,11 +58,13 @@ if (!page.includes('Calendario por fecha natural') || !page.includes('Europe/Mad
 if (!page.includes('usage-calendar-grid') || !page.includes('primary_windows_count')) {
   failures.push('usage page must render a responsive calendar grid without generic table overflow')
 }
+for (const removedCopy of ['Primera lectura histórica saneada', 'Elige un día natural en Europe/Madrid', 'Lectura read-only de actividad local Hermes']) {
+  if (page.includes(removedCopy) || usageWindowDaysSelector.includes(removedCopy)) {
+    failures.push(`usage page must not render removed explanatory copy: ${removedCopy}`)
+  }
+}
 if (!page.includes('Ventanas 5h por día') || !usageWindowDaysSelector.includes('usage-window-day-selector') || !usageWindowDaysSelector.includes('role="tablist"') || !usageWindowDaysSelector.includes('delta_percent')) {
   failures.push('usage page must render selectable five-hour window days without generic table overflow')
-}
-if (!usageWindowDaysSelector.includes('Europe/Madrid') || !usageWindowDaysSelector.includes('más duración')) {
-  failures.push('usage window day selector must explain local-day assignment')
 }
 if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-activity-list') || !page.includes('correlación orientativa')) {
   failures.push('usage page must render Hermes aggregated activity as orientative correlation without generic table overflow')
@@ -160,6 +162,9 @@ if (!usageService.includes("'no_activity'") || !usageService.includes("return 'e
 }
 if (!usageService.includes('weekly_tokens_count') || !usageService.includes('total_tokens_count')) {
   failures.push('usage hermes activity must expose only aggregate token counters')
+}
+if (!usageService.includes('def _assign_relative_activity_levels') || !usageService.includes('percentile <= 1 / 3') || !usageService.includes("profile['activity_level'] = 'medium'")) {
+  failures.push('usage hermes activity must distribute activity levels relatively across Mugiwara profiles')
 }
 if (!usageService.includes('def _assign_usage_window_date') || !usageService.includes('USAGE_CALENDAR_TIMEZONE')) {
   failures.push('usage backend must assign five-hour windows to Europe/Madrid natural days')
