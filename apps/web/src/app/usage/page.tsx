@@ -1,10 +1,11 @@
 import type { ResourceStatus } from '@contracts/resource'
-import type { UsageActivityLevel, UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageFiveHourWindows, UsageHermesActivity, UsageWindowStatus } from '@contracts/read-models'
+import type { UsageActivityLevel, UsageCalendar, UsageCalendarDayStatus, UsageCurrent, UsageFiveHourWindowDays, UsageHermesActivity, UsageWindowStatus } from '@contracts/read-models'
 
-import { fetchUsageCalendar, fetchUsageCurrent, fetchUsageFiveHourWindows, fetchUsageHermesActivity, UsageApiError } from '@/modules/usage/api/usage-http'
+import { fetchUsageCalendar, fetchUsageCurrent, fetchUsageFiveHourWindowDays, fetchUsageHermesActivity, UsageApiError } from '@/modules/usage/api/usage-http'
+import { UsageWindowDaysSelector } from '@/modules/usage/UsageWindowDaysSelector'
 import { usageCalendarFixture } from '@/modules/usage/view-models/usage-calendar.fixture'
 import { usageCurrentFixture } from '@/modules/usage/view-models/usage-current.fixture'
-import { usageFiveHourWindowsFixture } from '@/modules/usage/view-models/usage-five-hour-windows.fixture'
+import { usageFiveHourWindowDaysFixture } from '@/modules/usage/view-models/usage-five-hour-window-days.fixture'
 import { usageHermesActivityFixture } from '@/modules/usage/view-models/usage-hermes-activity.fixture'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
@@ -33,7 +34,7 @@ type HermesActivityNotice = {
 type UsagePageData = {
   usage: UsageCurrent
   calendar: UsageCalendar
-  fiveHourWindows: UsageFiveHourWindows
+  fiveHourWindowDays: UsageFiveHourWindowDays
   hermesActivity: UsageHermesActivity
   resourceStatus: ResourceStatus | 'fallback'
   notice: UsageNotice | null
@@ -76,12 +77,12 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     const [currentResponse, calendarResponse, fiveHourWindowsResponse, hermesActivityResponse] = await Promise.all([
       fetchUsageCurrent(),
       fetchUsageCalendar('current_cycle'),
-      fetchUsageFiveHourWindows(8),
+      fetchUsageFiveHourWindowDays(),
       fetchUsageHermesActivity('7d'),
     ])
     const usage = currentResponse.data
     const calendar = calendarResponse.data
-    const fiveHourWindows = fiveHourWindowsResponse.data
+    const fiveHourWindowDays = fiveHourWindowsResponse.data
     const hermesActivity = hermesActivityResponse.data
 
     const usageCoreStatus = currentResponse.status !== 'ready'
@@ -96,7 +97,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
       return {
         usage,
         calendar,
-        fiveHourWindows,
+        fiveHourWindowDays,
         hermesActivity,
         resourceStatus: usageCoreStatus,
         isSnapshotMode: usageCoreStatus === 'stale',
@@ -108,7 +109,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     return {
       usage,
       calendar,
-      fiveHourWindows,
+      fiveHourWindowDays,
       hermesActivity,
       resourceStatus: currentResponse.status,
       notice: null,
@@ -121,7 +122,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     return {
       usage: usageCurrentFixture,
       calendar: usageCalendarFixture,
-      fiveHourWindows: usageFiveHourWindowsFixture,
+      fiveHourWindowDays: usageFiveHourWindowDaysFixture,
       hermesActivity: usageHermesActivityFixture,
       resourceStatus: 'fallback',
       isSnapshotMode: true,
@@ -243,10 +244,16 @@ function formatTimestamp(value: string | null) {
     return 'Fecha no disponible'
   }
 
-  return new Intl.DateTimeFormat('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+  const formatted = new Intl.DateTimeFormat('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'Europe/Madrid',
   }).format(date)
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
 function formatNaturalDate(value: string) {
@@ -283,14 +290,6 @@ function calendarPartialCopy(reason: UsageCalendar['days'][number]['codex_segmen
   return 'Día completo dentro del ciclo semanal Codex'
 }
 
-function formatSamples(value: number) {
-  if (value === 1) {
-    return '1 muestra'
-  }
-
-  return `${value} muestras`
-}
-
 function formatPeakPrimary(value: number | null) {
   if (value === null) {
     return 'Sin pico 5h'
@@ -316,8 +315,13 @@ function formatResetAfter(seconds: number | null) {
     return 'Reset pendiente de refresco'
   }
 
-  const hours = Math.floor(seconds / 3600)
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
+
+  if (days > 0) {
+    return `${days} d ${hours} h ${minutes} min restantes`
+  }
 
   if (hours > 0) {
     return `${hours} h ${minutes} min restantes`
@@ -397,63 +401,10 @@ function WindowCard({
   )
 }
 
-function UsageWindowsPanel({ windows, isSnapshotMode }: { windows: UsageFiveHourWindows; isSnapshotMode: boolean }) {
-  const items = windows.windows.slice(0, 8)
-
+function UsageWindowsPanel({ windowDays, isSnapshotMode }: { windowDays: UsageFiveHourWindowDays; isSnapshotMode: boolean }) {
   return (
-    <SurfaceCard title="Ventanas 5h históricas" eyebrow="Últimas ventanas Codex · saneado" accent="sky" elevated>
-      <div style={{ display: 'grid', gap: '12px' }}>
-        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-          Lectura dedicada de ventanas 5h: pico, delta positivo intra-ventana y muestras agregadas desde la SQLite saneada. No incluye actividad Hermes ni atribución causal por perfil.
-        </p>
-        {isSnapshotMode ? (
-          <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
-            Ventanas mostradas desde snapshot/fallback saneado: sirven para validar composición visual, no para decidir consumo real.
-          </p>
-        ) : null}
-        <div className="usage-windows-list" role="list" aria-label="Últimas ventanas 5h de Usage">
-          {items.length > 0 ? (
-            items.map((window) => {
-              const status = windowStatusToBadge(window.status)
-              return (
-                <article className="usage-window-row" key={`${window.started_at}-${window.ended_at}`} role="listitem" aria-label={`Ventana 5h ${formatTimestamp(window.started_at)}: ${status.label}`}>
-                  <div className="usage-window-row__main">
-                    <div>
-                      <p style={{ margin: 0, color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ventana 5h</p>
-                      <h3 style={{ margin: '4px 0 0', fontSize: '18px' }}>{formatTimestamp(window.started_at)} → {formatTimestamp(window.ended_at)}</h3>
-                    </div>
-                    <StatusBadge status={status.appStatus} label={status.label} />
-                  </div>
-                  <dl className="usage-window-row__metrics">
-                    <div>
-                      <dt>Pico</dt>
-                      <dd>{formatPercent(window.peak_used_percent)}</dd>
-                    </div>
-                    <div>
-                      <dt>Delta intra-ventana</dt>
-                      <dd>{formatDeltaPercent(window.delta_percent)}</dd>
-                    </div>
-                    <div>
-                      <dt>Muestras</dt>
-                      <dd>{formatSamples(window.samples_count)}</dd>
-                    </div>
-                  </dl>
-                  <UsageProgressBar value={window.peak_used_percent} status={window.status} />
-                </article>
-              )
-            })
-          ) : (
-            <StatePanel
-              status="sin-datos"
-              title="Ventanas 5h sin datos"
-              description={windows.empty_reason === 'not_configured' ? 'La fuente de ventanas Usage aún no está configurada.' : 'No hay ventanas suficientes para componer el historial saneado.'}
-              eyebrow="Usage windows"
-              ariaRole="region"
-              ariaLabel="Ventanas 5h Usage sin datos"
-            />
-          )}
-        </div>
-      </div>
+    <SurfaceCard title="Ventanas 5h por día" eyebrow="Últimos 7 días · Europe/Madrid" accent="sky" elevated>
+      <UsageWindowDaysSelector windowDays={windowDays} isSnapshotMode={isSnapshotMode} />
     </SurfaceCard>
   )
 }
@@ -534,7 +485,7 @@ function formatProfileName(profile: string | null) {
 }
 
 function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activity: UsageHermesActivity; notice: HermesActivityNotice | null; isSnapshotMode: boolean }) {
-  const profiles = activity.profiles.slice(0, 8)
+  const profiles = activity.profiles
   const dominantProfile = formatProfileName(activity.totals.dominant_profile)
 
   return (
@@ -576,6 +527,14 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
             <dt>Tool calls</dt>
             <dd>{formatActivityCount(activity.totals.tool_calls_count)}</dd>
           </div>
+          <div>
+            <dt>Tokens 7 días</dt>
+            <dd>{formatActivityCount(activity.totals.weekly_tokens_count)}</dd>
+          </div>
+          <div>
+            <dt>Tokens totales</dt>
+            <dd>{formatActivityCount(activity.totals.total_tokens_count)}</dd>
+          </div>
         </dl>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
           <StatusBadge status={activity.totals.dominant_profile ? 'revision' : 'sin-datos'} label={`Perfil dominante: ${dominantProfile}`} />
@@ -607,9 +566,13 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
                       <dt>Tool calls</dt>
                       <dd>{formatActivityCount(profile.tool_calls_count)}</dd>
                     </div>
+                    <div>
+                      <dt>Tokens 7d</dt>
+                      <dd>{formatActivityCount(profile.tokens_count)}</dd>
+                    </div>
                   </dl>
                   <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>
-                    Primera/última señal agregada: {formatTimestamp(profile.first_activity_at)} → {formatTimestamp(profile.last_activity_at)}.
+                    Primera/última señal agregada: {formatTimestamp(profile.first_activity_at)} → {formatTimestamp(profile.last_activity_at)}. Tokens totales: {formatActivityCount(profile.total_tokens_count)}.
                   </p>
                 </article>
               )
@@ -631,7 +594,7 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
 }
 
 export default async function UsagePage() {
-  const { usage, calendar, fiveHourWindows, hermesActivity, notice, hermesActivityNotice, isSnapshotMode } = await getInitialUsageData()
+  const { usage, calendar, fiveHourWindowDays, hermesActivity, notice, hermesActivityNotice, isSnapshotMode } = await getInitialUsageData()
   const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
@@ -663,13 +626,8 @@ export default async function UsagePage() {
         </StatePanel>
       ) : null}
 
-      <SurfaceCard title="Ciclo semanal Codex" eyebrow="Metodología" accent="sky">
-        <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>{usage.methodology.cycle_copy}</p>
-      </SurfaceCard>
-
       <section className="layout-grid layout-grid--dashboard-metrics section-block" aria-label="Estado actual de Usage">
         <WindowCard title="Ventana 5h" window={usage.primary_window} />
-        <WindowCard title="Ciclo semanal Codex" window={usage.secondary_cycle} emphasis />
         <SurfaceCard title="Plan" eyebrow="Cuenta Codex" accent="sky">
           <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
             <div>
@@ -683,6 +641,18 @@ export default async function UsagePage() {
             <div>
               <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Límite alcanzado</dt>
               <dd style={{ margin: 0 }}>{formatBoolean(usage.plan.limit_reached)}</dd>
+            </div>
+          </dl>
+        </SurfaceCard>
+        <SurfaceCard title="Tokens Hermes" eyebrow="Última semana + total" accent="gold" elevated>
+          <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
+            <div>
+              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos 7 días</dt>
+              <dd style={{ margin: 0, fontSize: '26px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.weekly_tokens_count)}</dd>
+            </div>
+            <div>
+              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Hermes</dt>
+              <dd style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.total_tokens_count)}</dd>
             </div>
           </dl>
         </SurfaceCard>
@@ -700,32 +670,11 @@ export default async function UsagePage() {
       </section>
 
       <section className="section-block" aria-label="Ventanas 5h Usage">
-        <UsageWindowsPanel windows={fiveHourWindows} isSnapshotMode={isSnapshotMode} />
+        <UsageWindowsPanel windowDays={fiveHourWindowDays} isSnapshotMode={isSnapshotMode} />
       </section>
 
       <section className="section-block" aria-label="Actividad Hermes Usage">
         <UsageHermesActivityPanel activity={hermesActivity} notice={hermesActivityNotice} isSnapshotMode={isSnapshotMode} />
-      </section>
-
-      <section className="section-block layout-grid layout-grid--content-aside">
-        <SurfaceCard title="Qué entra en esta vista" eyebrow="Alcance Phase 17.4d" accent="gold">
-          <ul style={{ margin: 0, paddingLeft: '18px', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-            <li>Snapshot actual saneado de Codex usage.</li>
-            <li>Ventana 5h y ciclo semanal Codex con rangos calculados por reset.</li>
-            <li>Calendario por fecha natural Europe/Madrid con delta diario, ventanas 5h y pico diario saneados.</li>
-            <li>Ventanas 5h históricas dedicadas con pico, delta intra-ventana y muestras.</li>
-            <li>Actividad Hermes agregada por perfil y rango, tratada como correlación orientativa.</li>
-          </ul>
-        </SurfaceCard>
-        <SurfaceCard title="Seguridad de datos" eyebrow="Deny by default" accent="sky">
-          <p style={{ marginTop: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>{usage.methodology.privacy}</p>
-          <p style={{ margin: '10px 0 0', color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-            La actividad Hermes se muestra solo como agregados saneados. No se enseñan contenidos, identificadores privados, rutas internas, secretos, cabeceras, cookies, logs ni payloads crudos.
-          </p>
-          <p style={{ marginBottom: 0, color: appTheme.colors.textSecondary, lineHeight: 1.6 }}>
-            Fórmulas: {usage.methodology.primary_window_formula}; {usage.methodology.secondary_cycle_formula}.
-          </p>
-        </SurfaceCard>
       </section>
     </>
   )

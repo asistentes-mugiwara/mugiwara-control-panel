@@ -115,9 +115,8 @@ Campos esperados:
 - `methodology` con fórmulas de reset y privacidad
 
 Uso:
-- responder rápido si la ventana 5h o el ciclo semanal Codex están en zona normal/alta/crítica
-- mantener explícito que el ciclo semanal Codex no equivale a semana natural lunes-domingo
-- exponer solo métricas saneadas desde la fuente SQLite allowlisted, sin email, user/account IDs, tokens, prompts, headers, logs ni raw payload
+- responder rápido si la ventana 5h está en zona normal/alta/crítica
+- exponer solo métricas saneadas desde la fuente SQLite allowlisted, sin email, user/account IDs, prompts, headers, logs ni raw payload
 - degradar fuente ausente/ilegible a `not_configured`/`unknown` sin path runtime
 
 ### `usage.calendar`
@@ -145,21 +144,33 @@ Uso:
 - no incluir actividad Hermes, prompts, conversaciones, tokens, raw payload, rutas runtime ni causalidad por perfil
 - limitar la respuesta con `limit` validado (`1..24`) y degradar fuente ausente/ilegible a `not_configured` sin path runtime
 
+### `usage.five_hour_window_days`
+Campos esperados:
+- `days[]` con los últimos siete días naturales `Europe/Madrid`
+- cada día incluye `date`, `label`, `windows[]`, `total_delta_percent`, `peak_used_percent`, `windows_count`, `status` y `empty_reason`
+- cada ventana conserva `started_at`, `ended_at`, `peak_used_percent`, `delta_percent`, `samples_count` y `status`
+
+Uso:
+- simplificar `/usage`: mostrar un día seleccionable cada vez en vez de volcar todas las ventanas a la vez
+- asignar ventanas que cruzan medianoche al día local con mayor duración de solape
+- mantener histórico saneado desde la SQLite allowlisted, sin prompts, conversaciones, raw payload ni rutas runtime
+
 ### `usage.hermes_activity`
 Campos esperados:
 - `range` con rango allowlisted (`7d`, `30d`, `current_cycle`, `previous_cycle`) y timestamps de corte
-- `totals` con perfiles activos, sesiones, mensajes, tool calls y perfil dominante
-- `profiles[]` con `profile`, `sessions_count`, `messages_count`, `tool_calls_count`, primera/última actividad y `activity_level` (`low`, `medium`, `high`)
+- `totals` con perfiles allowlisted, sesiones, mensajes, tool calls, perfil dominante, `weekly_tokens_count` y `total_tokens_count`
+- `profiles[]` incluye todos los Mugiwara allowlisted; cada perfil devuelve agregados de rango, `tokens_count`, primera/última actividad y `activity_level` (`low`, `medium`, `high`)
 - `privacy` con modo agregado/read-only y correlación orientativa
-- `empty_reason` (`not_configured`, `unknown` o `null`)
+- `empty_reason` (`not_configured`, `unknown`, `no_activity` o `null`)
 
 Uso:
 - exponer actividad Hermes local solo como agregados por perfil/rango para orientar correlación con consumo Codex, sin afirmar causalidad exacta
-- `/usage` consume el rango inicial `7d` desde adapter server-only y renderiza la actividad como cards responsive, sin tabla ni scroll horizontal obligatorio
+- `/usage` consume el rango inicial `7d` desde adapter server-only y renderiza la actividad como ranking vertical scrollable: primero los más usados y solo cinco visibles aproximadamente antes de hacer scroll
 - leer únicamente perfiles Mugiwara allowlisted y abrir cada SQLite de perfil en `mode=ro`
 - usar `MUGIWARA_HERMES_PROFILES_ROOT` como configuración server-only; no serializar ni documentar el valor runtime, ruta de `state.db` ni paths host
-- no seleccionar ni devolver `user_id`, `model_config`, `system_prompt`, `title`, tokens, costes, billing URLs, contenidos, conversaciones, prompts, payloads de herramientas, chat IDs, targets, secretos, cabeceras, cookies ni logs
-- degradar raíz no configurada, perfiles ausentes o DB ilegible a `not_configured` sin ruta interna
+- los tokens se serializan solo como contadores agregados semanales/totales y por perfil agregado; no se devuelven tokens por sesión/conversación, costes, contenidos ni payloads
+- no seleccionar ni devolver `user_id`, `model_config`, `system_prompt`, `title`, costes, billing URLs, contenidos, conversaciones, prompts, payloads de herramientas, chat IDs, targets, secretos, cabeceras, cookies ni logs
+- degradar raíz no configurada a `not_configured`; si está configurada pero no hay sesiones en rango devolver `empty`/`no_activity` sin ruta interna
 
 ### `system.metrics`
 Campos esperados:

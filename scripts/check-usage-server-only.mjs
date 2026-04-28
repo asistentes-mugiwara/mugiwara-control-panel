@@ -6,6 +6,7 @@ import { join } from 'node:path'
 const repoRoot = process.cwd()
 const httpPath = join(repoRoot, 'apps/web/src/modules/usage/api/usage-http.ts')
 const pagePath = join(repoRoot, 'apps/web/src/app/usage/page.tsx')
+const usageWindowDaysSelectorPath = join(repoRoot, 'apps/web/src/modules/usage/UsageWindowDaysSelector.tsx')
 const navPath = join(repoRoot, 'apps/web/src/shared/ui/navigation/SidebarNav.tsx')
 const usageServicePath = join(repoRoot, 'apps/api/src/modules/usage/service.py')
 const usageRouterPath = join(repoRoot, 'apps/api/src/modules/usage/router.py')
@@ -13,6 +14,7 @@ const failures = []
 
 const http = readFileSync(httpPath, 'utf8')
 const page = readFileSync(pagePath, 'utf8')
+const usageWindowDaysSelector = readFileSync(usageWindowDaysSelectorPath, 'utf8')
 const nav = readFileSync(navPath, 'utf8')
 const usageService = readFileSync(usageServicePath, 'utf8')
 const usageRouter = readFileSync(usageRouterPath, 'utf8')
@@ -37,13 +39,16 @@ if (!http.includes('/api/v1/usage/calendar?range=')) {
   failures.push('usage adapter must call the fixed calendar endpoint with allowlisted range')
 }
 if (!http.includes('/api/v1/usage/five-hour-windows?limit=')) {
-  failures.push('usage adapter must call the fixed five-hour windows endpoint with allowlisted limit')
+  failures.push('usage adapter must preserve the fixed five-hour windows endpoint with allowlisted limit')
+}
+if (!http.includes('/api/v1/usage/five-hour-window-days')) {
+  failures.push('usage adapter must call the fixed five-hour window days endpoint')
 }
 if (!http.includes('/api/v1/usage/hermes-activity?range=')) {
   failures.push('usage adapter must call the fixed hermes activity endpoint with allowlisted range')
 }
-if (!http.includes('UsageCalendarRange') || !http.includes('UsageCalendarResponse') || !http.includes('UsageFiveHourWindowsResponse') || !http.includes('UsageHermesActivityResponse')) {
-  failures.push('usage adapter must type calendar, five-hour windows and Hermes activity responses via shared contracts')
+if (!http.includes('UsageCalendarRange') || !http.includes('UsageCalendarResponse') || !http.includes('UsageFiveHourWindowDaysResponse') || !http.includes('UsageFiveHourWindowsResponse') || !http.includes('UsageHermesActivityResponse')) {
+  failures.push('usage adapter must type calendar, five-hour windows, five-hour window days and Hermes activity responses via shared contracts')
 }
 if (!page.includes('Calendario por fecha natural') || !page.includes('Europe/Madrid')) {
   failures.push('usage page must render the natural-date calendar with timezone context')
@@ -51,11 +56,20 @@ if (!page.includes('Calendario por fecha natural') || !page.includes('Europe/Mad
 if (!page.includes('usage-calendar-grid') || !page.includes('primary_windows_count')) {
   failures.push('usage page must render a responsive calendar grid without generic table overflow')
 }
-if (!page.includes('Ventanas 5h históricas') || !page.includes('usage-windows-list') || !page.includes('delta_percent')) {
-  failures.push('usage page must render dedicated five-hour windows without generic table overflow')
+if (!page.includes('Ventanas 5h por día') || !usageWindowDaysSelector.includes('usage-window-day-selector') || !usageWindowDaysSelector.includes('role="tablist"') || !usageWindowDaysSelector.includes('delta_percent')) {
+  failures.push('usage page must render selectable five-hour window days without generic table overflow')
+}
+if (!usageWindowDaysSelector.includes('Europe/Madrid') || !usageWindowDaysSelector.includes('más duración')) {
+  failures.push('usage window day selector must explain local-day assignment')
 }
 if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-activity-list') || !page.includes('correlación orientativa')) {
   failures.push('usage page must render Hermes aggregated activity as orientative correlation without generic table overflow')
+}
+if (!page.includes('Tokens Hermes') || !page.includes('weekly_tokens_count') || !page.includes('total_tokens_count')) {
+  failures.push('usage page must render aggregate Hermes token counters without raw sessions')
+}
+if (page.includes('eyebrow="Metodología"') || page.includes('Alcance Phase 17.4d') || page.includes('Deny by default')) {
+  failures.push('usage page must remove heavy methodology/scope/security explainer containers')
 }
 if (!page.includes('const usageCoreStatus = currentResponse.status') || page.includes(': hermesActivityResponse.status')) {
   failures.push('usage page must not promote Hermes activity status to global Usage core status')
@@ -95,6 +109,9 @@ if (!page.includes('Ciclo semanal Codex') || !page.includes('ciclo semanal Codex
 if (!nav.includes("href: '/usage'") || !nav.includes("label: 'Uso'")) {
   failures.push('sidebar navigation must expose Uso /usage')
 }
+if (!usageRouter.includes("@router.get('/five-hour-window-days')") || !usageRouter.includes("resource='usage.five_hour_window_days'")) {
+  failures.push('usage backend must expose the fixed five-hour window days endpoint')
+}
 if (!usageRouter.includes("@router.get('/hermes-activity')") || !usageRouter.includes("resource='usage.hermes_activity'")) {
   failures.push('usage backend must expose the fixed hermes activity endpoint')
 }
@@ -113,7 +130,13 @@ if (!usageService.includes("file:{state_db}?mode=ro")) {
 if (!usageService.includes("'no_activity'") || !usageService.includes("return 'empty'")) {
   failures.push('usage hermes activity must distinguish configured empty activity from missing configuration')
 }
-for (const forbidden of ['SELECT *', 'system_prompt', 'model_config', 'user_id', 'token_count', 'input_tokens', 'output_tokens', 'reasoning_tokens', 'estimated_cost_usd', 'actual_cost_usd', 'billing_base_url', 'title']) {
+if (!usageService.includes('weekly_tokens_count') || !usageService.includes('total_tokens_count')) {
+  failures.push('usage hermes activity must expose only aggregate token counters')
+}
+if (!usageService.includes('def _assign_usage_window_date') || !usageService.includes('USAGE_CALENDAR_TIMEZONE')) {
+  failures.push('usage backend must assign five-hour windows to Europe/Madrid natural days')
+}
+for (const forbidden of ['SELECT *', 'system_prompt', 'model_config', 'user_id', 'token_count', 'estimated_cost_usd', 'actual_cost_usd', 'billing_base_url', 'title']) {
   if (activityLoader.includes(forbidden)) {
     failures.push(`usage hermes activity must not select or serialize sensitive session field: ${forbidden}`)
   }

@@ -3,7 +3,7 @@ import 'server-only'
 import http from 'node:http'
 import https from 'node:https'
 
-import type { UsageActivityRange, UsageCalendarRange, UsageCalendarResponse, UsageCurrentResponse, UsageFiveHourWindowsResponse, UsageHermesActivityResponse } from '@contracts/read-models'
+import type { UsageActivityRange, UsageCalendarRange, UsageCalendarResponse, UsageCurrentResponse, UsageFiveHourWindowDaysResponse, UsageFiveHourWindowsResponse, UsageHermesActivityResponse } from '@contracts/read-models'
 
 export const USAGE_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'
 
@@ -146,6 +146,16 @@ export async function fetchUsageFiveHourWindows(limit = 8): Promise<UsageFiveHou
 
   const safeLimit = Math.max(1, Math.min(24, Math.trunc(limit)))
   return requestUsageJson<UsageFiveHourWindowsResponse>(`${baseUrl}/api/v1/usage/five-hour-windows?limit=${safeLimit}`)
+}
+
+export async function fetchUsageFiveHourWindowDays(): Promise<UsageFiveHourWindowDaysResponse> {
+  const baseUrl = getUsageApiBaseUrl()
+
+  if (!baseUrl) {
+    throw new UsageApiError('not_configured', { status: 0, code: 'not_configured' })
+  }
+
+  return requestUsageJson<UsageFiveHourWindowDaysResponse>(`${baseUrl}/api/v1/usage/five-hour-window-days`)
 }
 
 export async function fetchUsageHermesActivity(range: UsageActivityRange = '7d'): Promise<UsageHermesActivityResponse> {

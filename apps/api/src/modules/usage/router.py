@@ -73,6 +73,26 @@ def get_usage_five_hour_windows(
     )
 
 
+@router.get('/five-hour-window-days')
+def get_usage_five_hour_window_days(service: UsageService = Depends(get_usage_service)) -> dict:
+    window_days = service.get_five_hour_window_days()
+    flat_windows = [window for day in window_days['days'] for window in day['windows']]
+    return resource_response(
+        resource='usage.five_hour_window_days',
+        status=service.five_hour_windows_status_for(
+            {'windows': flat_windows, 'empty_reason': window_days.get('empty_reason')}
+        ),
+        data=window_days,
+        meta={
+            'read_only': True,
+            'sanitized': True,
+            'source': 'codex-usage-snapshot-sqlite',
+            'range': '7d',
+            'timezone': 'Europe/Madrid',
+        },
+    )
+
+
 @router.get('/hermes-activity')
 def get_usage_hermes_activity(range: UsageActivityRange = '7d', service: UsageService = Depends(get_usage_service)) -> dict:
     activity = service.get_hermes_activity(range)
