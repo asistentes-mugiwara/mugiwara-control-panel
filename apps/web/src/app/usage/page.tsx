@@ -23,6 +23,13 @@ type UsageNotice = {
   sourceStateItems: Array<{ label: string; tone: 'connected' | 'fallback' | 'snapshot' | 'not-realtime' | 'not-configured' | 'degraded' }>
 }
 
+type HermesActivityNotice = {
+  status: AppStatus
+  title: string
+  description: string
+  detail: string
+}
+
 type UsagePageData = {
   usage: UsageCurrent
   calendar: UsageCalendar
@@ -30,6 +37,7 @@ type UsagePageData = {
   hermesActivity: UsageHermesActivity
   resourceStatus: ResourceStatus | 'fallback'
   notice: UsageNotice | null
+  hermesActivityNotice: HermesActivityNotice | null
   isSnapshotMode: boolean
 }
 
@@ -76,23 +84,24 @@ async function getInitialUsageData(): Promise<UsagePageData> {
     const fiveHourWindows = fiveHourWindowsResponse.data
     const hermesActivity = hermesActivityResponse.data
 
-    const responseStatus = currentResponse.status !== 'ready'
+    const usageCoreStatus = currentResponse.status !== 'ready'
       ? currentResponse.status
       : calendarResponse.status !== 'ready'
         ? calendarResponse.status
         : fiveHourWindowsResponse.status !== 'ready'
           ? fiveHourWindowsResponse.status
-          : hermesActivityResponse.status
+          : 'ready'
 
-    if (responseStatus !== 'ready') {
+    if (usageCoreStatus !== 'ready') {
       return {
         usage,
         calendar,
         fiveHourWindows,
         hermesActivity,
-        resourceStatus: responseStatus,
-        isSnapshotMode: responseStatus === 'stale',
-        notice: noticeFromResourceStatus(responseStatus),
+        resourceStatus: usageCoreStatus,
+        isSnapshotMode: usageCoreStatus === 'stale',
+        notice: noticeFromResourceStatus(usageCoreStatus),
+        hermesActivityNotice: noticeFromHermesActivityStatus(hermesActivityResponse.status),
       }
     }
 
@@ -103,6 +112,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
       hermesActivity,
       resourceStatus: currentResponse.status,
       notice: null,
+      hermesActivityNotice: noticeFromHermesActivityStatus(hermesActivityResponse.status),
       isSnapshotMode: false,
     }
   } catch (error) {
@@ -115,6 +125,7 @@ async function getInitialUsageData(): Promise<UsagePageData> {
       hermesActivity: usageHermesActivityFixture,
       resourceStatus: 'fallback',
       isSnapshotMode: true,
+      hermesActivityNotice: null,
       notice: {
         status: apiError?.code === 'not_configured' ? 'revision' : 'incidencia',
         title:
@@ -179,6 +190,37 @@ function noticeFromResourceStatus(status: ResourceStatus): UsageNotice | null {
       { label: 'Error/degradado', tone: 'degraded' },
       { label: 'No tiempo real', tone: 'not-realtime' },
     ],
+  }
+}
+
+function noticeFromHermesActivityStatus(status: ResourceStatus): HermesActivityNotice | null {
+  if (status === 'ready') {
+    return null
+  }
+
+  if (status === 'not_configured') {
+    return {
+      status: 'revision',
+      title: 'Actividad Hermes no configurada',
+      description: 'La fuente agregada de actividad Hermes no está disponible. Usage Codex sigue conectado si el snapshot principal, el calendario y las ventanas 5h están listos.',
+      detail: 'Estado técnico de hermes-activity: not_configured',
+    }
+  }
+
+  if (status === 'stale') {
+    return {
+      status: 'stale',
+      title: 'Actividad Hermes con datos antiguos',
+      description: 'La correlación Hermes puede estar desactualizada. La lectura Codex principal mantiene su propio estado independiente.',
+      detail: 'Estado técnico de hermes-activity: stale',
+    }
+  }
+
+  return {
+    status: 'revision',
+    title: 'Actividad Hermes degradada',
+    description: 'La sección Hermes no está lista. Se mantiene localizada para no ocultar el estado real de Usage Codex.',
+    detail: `Estado técnico de hermes-activity: ${status}`,
   }
 }
 
@@ -482,7 +524,7 @@ function formatProfileName(profile: string | null) {
   return profile.charAt(0).toUpperCase() + profile.slice(1)
 }
 
-function UsageHermesActivityPanel({ activity, isSnapshotMode }: { activity: UsageHermesActivity; isSnapshotMode: boolean }) {
+function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activity: UsageHermesActivity; notice: HermesActivityNotice | null; isSnapshotMode: boolean }) {
   const profiles = activity.profiles.slice(0, 8)
   const dominantProfile = formatProfileName(activity.totals.dominant_profile)
 
@@ -496,6 +538,17 @@ function UsageHermesActivityPanel({ activity, isSnapshotMode }: { activity: Usag
           <p style={{ margin: 0, color: appTheme.colors.brandGold400, lineHeight: 1.5 }}>
             Actividad mostrada desde fallback saneado: valida composición visual, no representa lectura real.
           </p>
+        ) : null}
+        {notice ? (
+          <StatePanel
+            status={notice.status}
+            title={notice.title}
+            description={notice.description}
+            detail={notice.detail}
+            eyebrow="Estado de actividad Hermes"
+            ariaRole="region"
+            ariaLabel="Estado localizado de actividad Hermes"
+          />
         ) : null}
         <dl className="usage-hermes-activity-summary" aria-label="Resumen agregado de actividad Hermes">
           <div>
@@ -569,7 +622,7 @@ function UsageHermesActivityPanel({ activity, isSnapshotMode }: { activity: Usag
 }
 
 export default async function UsagePage() {
-  const { usage, calendar, fiveHourWindows, hermesActivity, notice, isSnapshotMode } = await getInitialUsageData()
+  const { usage, calendar, fiveHourWindows, hermesActivity, notice, hermesActivityNotice, isSnapshotMode } = await getInitialUsageData()
   const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
@@ -642,7 +695,7 @@ export default async function UsagePage() {
       </section>
 
       <section className="section-block" aria-label="Actividad Hermes Usage">
-        <UsageHermesActivityPanel activity={hermesActivity} isSnapshotMode={isSnapshotMode} />
+        <UsageHermesActivityPanel activity={hermesActivity} notice={hermesActivityNotice} isSnapshotMode={isSnapshotMode} />
       </section>
 
       <section className="section-block layout-grid layout-grid--content-aside">
