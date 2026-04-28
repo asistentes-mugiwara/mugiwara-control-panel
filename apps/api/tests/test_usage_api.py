@@ -584,6 +584,12 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
             {'id': 'franky-session-1', 'started_at': '2026-04-24T10:00:00+00:00', 'message_count': 5, 'tool_call_count': 1},
         ],
     )
+    _create_hermes_state_db(
+        profiles_root / 'nami' / 'state.db',
+        [
+            {'id': 'nami-session-1', 'started_at': '2026-04-24T11:00:00+00:00', 'message_count': 9, 'tool_call_count': 1},
+        ],
+    )
     _override_usage_service(UsageService(db_path=tmp_path / 'missing-codex.sqlite', hermes_profiles_root=profiles_root, now=lambda: '2026-04-27T10:00:00+00:00'))
 
     response = TestClient(app).get('/api/v1/usage/hermes-activity?range=7d')
@@ -601,11 +607,11 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
     assert payload['data']['range']['name'] == '7d'
     assert payload['data']['totals'] == {
         'profiles_count': 10,
-        'sessions_count': 3,
-        'messages_count': 17,
-        'tool_calls_count': 5,
-        'weekly_tokens_count': 555,
-        'total_tokens_count': 740,
+        'sessions_count': 4,
+        'messages_count': 26,
+        'tool_calls_count': 6,
+        'weekly_tokens_count': 740,
+        'total_tokens_count': 925,
         'dominant_profile': 'zoro',
     }
     profiles = payload['data']['profiles']
@@ -618,11 +624,14 @@ def test_usage_hermes_activity_aggregates_profile_sessions_without_leaking_sensi
         'total_tokens_count': 555,
         'first_activity_at': '2026-04-25T12:00:00+00:00',
         'last_activity_at': '2026-04-26T09:00:00+00:00',
-        'activity_level': 'medium',
+        'activity_level': 'high',
     }
-    assert profiles[1]['profile'] == 'franky'
+    assert profiles[1]['profile'] == 'nami'
     assert profiles[1]['tokens_count'] == 185
-    assert profiles[1]['activity_level'] == 'low'
+    assert profiles[1]['activity_level'] == 'medium'
+    assert profiles[2]['profile'] == 'franky'
+    assert profiles[2]['tokens_count'] == 185
+    assert profiles[2]['activity_level'] == 'low'
     assert len(profiles) == 10
     assert profiles[-1]['sessions_count'] == 0
     assert profiles[-1]['first_activity_at'] is None

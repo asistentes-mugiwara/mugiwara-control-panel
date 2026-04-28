@@ -307,6 +307,7 @@ class UsageService:
             profile_summary = self._load_hermes_profile_activity(profile=profile, state_db=state_db, start_at=start_at, end_at=end_at)
             profiles.append(profile_summary if profile_summary is not None else self._empty_profile_activity(profile))
 
+        self._assign_relative_activity_levels(profiles)
         profiles.sort(key=lambda item: (-item['tokens_count'], -item['messages_count'], -item['tool_calls_count'], -item['sessions_count'], item['profile']))
         totals = self._activity_totals(profiles)
         return {
@@ -605,13 +606,34 @@ class UsageService:
         }
 
     @staticmethod
-    def _activity_level(messages_count: int, tool_calls_count: int) -> str:
-        score = messages_count + (tool_calls_count * 2)
-        if score >= 40:
-            return 'high'
-        if score >= 10:
-            return 'medium'
-        return 'low'
+    def _activity_score(profile: dict[str, Any]) -> int:
+        return int(profile['messages_count']) + (int(profile['tool_calls_count']) * 2) + (int(profile['sessions_count']) * 3)
+
+    @classmethod
+    def _assign_relative_activity_levels(cls, profiles: list[dict[str, Any]]) -> None:
+        active_profiles = [profile for profile in profiles if cls._activity_score(profile) > 0]
+        if not active_profiles:
+            for profile in profiles:
+                profile['activity_level'] = 'low'
+            return
+
+        ranked_profiles = sorted(
+            active_profiles,
+            key=lambda profile: (-cls._activity_score(profile), -int(profile['tokens_count']), profile['profile']),
+        )
+        denominator = max(len(ranked_profiles) - 1, 1)
+        for index, profile in enumerate(ranked_profiles):
+            percentile = index / denominator
+            if percentile <= 1 / 3:
+                profile['activity_level'] = 'high'
+            elif percentile <= 2 / 3:
+                profile['activity_level'] = 'medium'
+            else:
+                profile['activity_level'] = 'low'
+
+        for profile in profiles:
+            if cls._activity_score(profile) <= 0:
+                profile['activity_level'] = 'low'
 
     @staticmethod
     def _activity_totals(profiles: list[dict[str, Any]]) -> dict[str, Any]:
@@ -697,7 +719,7 @@ class UsageService:
             'total_tokens_count': total_tokens_count,
             'first_activity_at': datetime.fromtimestamp(first_epoch, timezone.utc).isoformat() if first_epoch is not None else None,
             'last_activity_at': datetime.fromtimestamp(last_epoch, timezone.utc).isoformat() if last_epoch is not None else None,
-            'activity_level': self._activity_level(messages_count, tool_calls_count),
+            'activity_level': 'low',
         }
 
     def _load_latest_snapshot(self) -> UsageSnapshot | None:
