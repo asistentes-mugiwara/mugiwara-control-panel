@@ -50,15 +50,6 @@ const windowStatusMap: Record<UsageWindowStatus, { appStatus: AppStatus; label: 
   unknown: { appStatus: 'sin-datos', label: 'Sin datos', accent: 'sky' },
 }
 
-const recommendationStatusMap: Record<UsageCurrent['recommendation']['state'], AppStatus> = {
-  normal: 'operativo',
-  alto: 'revision',
-  critico: 'incidencia',
-  limite_alcanzado: 'incidencia',
-  datos_antiguos: 'stale',
-  sin_datos: 'sin-datos',
-}
-
 const calendarStatusMap: Record<UsageCalendarDayStatus, { appStatus: AppStatus; label: string; accent: 'sky' | 'success' | 'warning' | 'danger' }> = {
   normal: { appStatus: 'operativo', label: 'Normal', accent: 'success' },
   high: { appStatus: 'revision', label: 'Alto', accent: 'warning' },
@@ -595,7 +586,6 @@ function UsageHermesActivityPanel({ activity, notice, isSnapshotMode }: { activi
 
 export default async function UsagePage() {
   const { usage, calendar, fiveHourWindowDays, hermesActivity, notice, hermesActivityNotice, isSnapshotMode } = await getInitialUsageData()
-  const recommendationStatus = recommendationStatusMap[usage.recommendation.state]
 
   return (
     <>
@@ -627,8 +617,21 @@ export default async function UsagePage() {
       ) : null}
 
       <section className="layout-grid layout-grid--dashboard-metrics section-block" aria-label="Estado actual de Usage">
+        <SurfaceCard title="Tokens Hermes" eyebrow="Última semana + total" accent="gold" elevated>
+          <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
+            <div>
+              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos 7 días</dt>
+              <dd style={{ margin: 0, fontSize: '26px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.weekly_tokens_count)}</dd>
+            </div>
+            <div>
+              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Hermes</dt>
+              <dd style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.total_tokens_count)}</dd>
+            </div>
+          </dl>
+        </SurfaceCard>
+        <WindowCard title="Ventana semanal" window={usage.secondary_cycle} emphasis />
         <WindowCard title="Ventana 5h" window={usage.primary_window} />
-        <SurfaceCard title="Plan" eyebrow="Cuenta Codex" accent="sky">
+        <SurfaceCard title="Cuenta Codex" eyebrow="Plan" accent="sky">
           <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
             <div>
               <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tipo</dt>
@@ -643,25 +646,6 @@ export default async function UsagePage() {
               <dd style={{ margin: 0 }}>{formatBoolean(usage.plan.limit_reached)}</dd>
             </div>
           </dl>
-        </SurfaceCard>
-        <SurfaceCard title="Tokens Hermes" eyebrow="Última semana + total" accent="gold" elevated>
-          <dl style={{ margin: 0, display: 'grid', gap: '10px' }}>
-            <div>
-              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos 7 días</dt>
-              <dd style={{ margin: 0, fontSize: '26px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.weekly_tokens_count)}</dd>
-            </div>
-            <div>
-              <dt style={{ color: appTheme.colors.textMuted, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Hermes</dt>
-              <dd style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>{formatActivityCount(hermesActivity.totals.total_tokens_count)}</dd>
-            </div>
-          </dl>
-        </SurfaceCard>
-        <SurfaceCard title="Recomendación actual" eyebrow="Prioridad" accent={recommendationStatus === 'incidencia' ? 'danger' : recommendationStatus === 'revision' ? 'warning' : 'success'} elevated>
-          <p style={{ margin: '0 0 10px', fontSize: '24px', fontWeight: 800 }}>{usage.recommendation.label}</p>
-          <p style={{ margin: 0, color: appTheme.colors.textSecondary, lineHeight: 1.5 }}>{usage.recommendation.message}</p>
-          <div style={{ marginTop: '12px' }}>
-            <StatusBadge status={recommendationStatus} />
-          </div>
         </SurfaceCard>
       </section>
 

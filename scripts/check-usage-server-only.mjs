@@ -68,6 +68,17 @@ if (!page.includes('Actividad Hermes agregada') || !page.includes('usage-hermes-
 if (!page.includes('Tokens Hermes') || !page.includes('weekly_tokens_count') || !page.includes('total_tokens_count')) {
   failures.push('usage page must render aggregate Hermes token counters without raw sessions')
 }
+const topCardsStart = page.indexOf('aria-label="Estado actual de Usage"')
+const topCardsEnd = page.indexOf('aria-label="Calendario Usage"')
+const topCards = topCardsStart >= 0 && topCardsEnd > topCardsStart ? page.slice(topCardsStart, topCardsEnd) : ''
+const expectedTopCards = ['Tokens Hermes', 'Ventana semanal', 'Ventana 5h', 'Cuenta Codex']
+const topCardPositions = expectedTopCards.map((label) => topCards.indexOf(label))
+if (topCardPositions.some((position) => position < 0) || topCardPositions.some((position, index) => index > 0 && position <= topCardPositions[index - 1])) {
+  failures.push('usage top cards must be ordered as Tokens Hermes, Ventana semanal, Ventana 5h and Cuenta Codex')
+}
+if (topCards.includes('Recomendación actual')) {
+  failures.push('usage top cards must not render the Recomendación actual card')
+}
 if (page.includes('eyebrow="Metodología"') || page.includes('Alcance Phase 17.4d') || page.includes('Deny by default')) {
   failures.push('usage page must remove heavy methodology/scope/security explainer containers')
 }
