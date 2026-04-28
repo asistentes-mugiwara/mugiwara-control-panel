@@ -45,6 +45,7 @@ export type MugiwaraCard = {
   slug: string
   name: string
   status: Severity
+  description: string
   skills: string[]
   memory_badge: string
   links: SafeLink[]

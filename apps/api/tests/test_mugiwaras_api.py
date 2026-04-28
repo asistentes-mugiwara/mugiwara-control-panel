@@ -31,6 +31,9 @@ def test_mugiwaras_catalog_returns_safe_cards_and_canonical_agents_document(tmp_
     assert payload['meta']['crew_rules_document'] == '/srv/crew-core/AGENTS.md'
     assert {item['slug'] for item in payload['data']['items']} >= {'luffy', 'zoro', 'usopp', 'chopper'}
     cards_by_slug = {item['slug']: item for item in payload['data']['items']}
+    assert cards_by_slug['luffy']['description'] == 'Coordina prioridades, reparte trabajo entre especialistas y cierra decisiones ejecutivas.'
+    assert cards_by_slug['zoro']['description'] == 'Diseña, implementa y valida software: arquitectura, PRs, testing y calidad técnica.'
+    assert cards_by_slug['franky']['description'] == 'Opera infraestructura, servicios, automatizaciones, backups y salud del runtime.'
     assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=franky'} in cards_by_slug['franky']['links']
     assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=zoro'} in cards_by_slug['zoro']['links']
     assert payload['data']['crew_rules_document'] == {

@@ -180,18 +180,6 @@ export function Topbar({ navId, menuButtonRef, isMobileNavOpen, systemMetrics, o
 
         <div className="topbar__status-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap', minWidth: 0 }}>
           <HeaderSystemMetricsStrip metrics={systemMetrics} />
-          <span
-            className="topbar__command-chip"
-            style={{
-              border: `1px solid ${appTheme.colors.borderSubtle}`,
-              borderRadius: appTheme.radius.md,
-              padding: '6px 10px',
-              color: appTheme.colors.textMuted,
-              fontSize: '12px',
-            }}
-          >
-            ⌘K command (soon)
-          </span>
           <StatusBadge status={statusForMetrics(systemMetrics.sourceState)} />
         </div>
       </div>
