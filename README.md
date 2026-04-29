@@ -36,25 +36,25 @@ Quiere sentirse como:
 
 La UI enseña estados y rutas de lectura. La seguridad vive detrás: backend, allowlists, saneado, server-only y deny-by-default.
 
-## 🖼️ Capturas públicas saneadas
+## 🖼️ Capturas del panel
 
-Las capturas siguientes muestran la línea visual y la estructura de páginas del panel. Están **saneadas a propósito**: preservan layout, navegación y sensación de producto, pero ocultan datos vivos, métricas privadas, logs, rutas internas y contenido operativo.
+Las capturas siguientes muestran la línea visual y la estructura real de páginas del panel en un corte concreto. No son mockups: enseñan el estado del producto con sus módulos, jerarquía y microcopy operativo, sin publicar secretos, credenciales ni configuración runtime.
 
 | Dashboard | Mugiwaras |
 |---|---|
-| ![Dashboard saneado del Mugiwara Control Panel](public-assets/screenshots/sanitized/control-panel-dashboard.png) | ![Página de Mugiwaras saneada](public-assets/screenshots/sanitized/control-panel-mugiwaras.png) |
+| ![Dashboard del Mugiwara Control Panel](public-assets/screenshots/control-panel-dashboard.png) | ![Página de Mugiwaras](public-assets/screenshots/control-panel-mugiwaras.png) |
 
 | Skills | Memory |
 |---|---|
-| ![Catálogo de skills saneado](public-assets/screenshots/sanitized/control-panel-skills.png) | ![Página de memoria saneada](public-assets/screenshots/sanitized/control-panel-memory.png) |
+| ![Catálogo de skills](public-assets/screenshots/control-panel-skills.png) | ![Página de memoria](public-assets/screenshots/control-panel-memory.png) |
 
 | Vault | Healthcheck |
 |---|---|
-| ![Navegador de vault saneado](public-assets/screenshots/sanitized/control-panel-vault.png) | ![Healthcheck saneado](public-assets/screenshots/sanitized/control-panel-healthcheck.png) |
+| ![Navegador de vault](public-assets/screenshots/control-panel-vault.png) | ![Healthcheck](public-assets/screenshots/control-panel-healthcheck.png) |
 
 | Repos Git | Uso |
 |---|---|
-| ![Repos Git saneado](public-assets/screenshots/sanitized/control-panel-git.png) | ![Uso saneado](public-assets/screenshots/sanitized/control-panel-usage.png) |
+| ![Repos Git](public-assets/screenshots/control-panel-git.png) | ![Uso](public-assets/screenshots/control-panel-usage.png) |
 
 ## 🧱 Arquitectura en corto
 
@@ -85,7 +85,7 @@ Este repositorio está pensado para exposición pública, así que la disciplina
 - no subir secretos, `.env`, credenciales, logs sensibles ni artefactos locales;
 - no publicar datos reales de healthchecks, memoria, uso, vault o runtime;
 - mantener `AGENTS.md`, `docs/` y README alineados con el estado real;
-- preferir capturas saneadas antes que screenshots crudos del entorno privado.
+- preferir capturas revisadas antes que screenshots improvisados del entorno privado.
 
 Regla de cubierta:
 
