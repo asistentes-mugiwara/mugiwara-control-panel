@@ -72,6 +72,7 @@ Debe mostrar:
 - estructura navegable allowlisted
 - metadata de índice
 - documento markdown ya autorizado
+- UI explorador + lector Markdown responsive, con móvil priorizando lectura y sin overflow horizontal de tablas/código/frontmatter
 
 No debe mostrar:
 - ficheros ocultos
@@ -132,7 +133,9 @@ Formas documentadas de esta fase:
 - `memory.agent_summary`
 - `memory.agent_detail`
 - `vault.index`
-- `vault.document`
+- `vault.explorer_tree`
+- `vault.markdown_document`
+- `vault.document` legacy/transición
 - `mugiwara.card`
 - `mugiwara.profile`
 
