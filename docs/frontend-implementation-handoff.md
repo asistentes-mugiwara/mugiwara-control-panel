@@ -591,11 +591,12 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 
 ## 9.6 Vault
 ### Entregar
-- layout índice / documento / metadatos
-- breadcrumbs
-- render markdown legible
-- callout o framing de `canon curado`
-- contraste visual suficiente frente a `memory`
+- layout de dos paneles: explorador de archivos + lector Markdown
+- explorador estilo VS Code/Obsidian con carpetas colapsables, indentación, activo resaltado y scroll independiente
+- lector Markdown legible con frontmatter, headings, listas, tablas, enlaces, blockquotes y código
+- adapter server-only sobre `GET /api/v1/vault/tree` y `GET /api/v1/vault/documents/{document_path:path}`
+- sin ficha externa de metadatos, sin TOC lateral obligatorio y sin callout editorial legacy
+- contraste visual suficiente frente a `memory` manteniendo read-only claro
 
 ## 9.7 Healthcheck
 ### Entregar

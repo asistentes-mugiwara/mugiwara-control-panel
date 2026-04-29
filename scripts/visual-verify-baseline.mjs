@@ -78,10 +78,10 @@ const routes = [
     path: '/vault',
     title: 'Vault',
     checks: [
-      'árbol, documento y metadatos colapsan sin forzar tres columnas en ancho medio',
-      'breadcrumbs, path y TOC no producen overflow horizontal',
-      'la lectura documental sigue siendo dominante frente a la ficha lateral',
-      'fallback documental local queda distinguido de lectura API real',
+      'explorador izquierdo y lector Markdown derecho se mantienen como dos columnas en desktop',
+      'árbol colapsable, documento activo y paths relativos no producen overflow horizontal',
+      'frontmatter, tablas, blockquotes, enlaces y code blocks se leen con comodidad',
+      'fallback documental local queda distinguido de lectura API real sin recuperar la UI editorial legacy',
     ],
   },
   {
