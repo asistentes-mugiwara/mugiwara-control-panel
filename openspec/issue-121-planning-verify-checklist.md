@@ -19,5 +19,5 @@
 ## Verify de planificación
 - [x] `git diff --check` pasa.
 - [x] Roadmap comentado en issue #121: https://github.com/asistentes-mugiwara/mugiwara-control-panel/issues/121#issuecomment-4343455527
-- [ ] Plan commiteado y pusheado.
-- [ ] Engram actualizado con decisión de microfases.
+- [x] Plan commiteado y pusheado en rama `zoro/issue-121-vault-redesign-plan`.
+- [x] Engram actualizado con decisión de microfases: `Issue 121 Vault redesign plan`.
