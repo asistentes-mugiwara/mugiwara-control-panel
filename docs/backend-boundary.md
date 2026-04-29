@@ -30,7 +30,7 @@ Todo recurso o acción cae en uno de estos estados:
 ## Allowlists de rutas
 ### Lectura permitida
 - `/srv/crew-core/skills-source/**`
-- `/srv/crew-core/vault/**`
+- `/srv/crew-core/vault/**`, solo mediante módulos backend read-only con root fijo, rutas relativas saneadas y exclusión de hidden/symlinks/oversized cuando se navega como árbol
 - `/home/agentops/.hermes/profiles/**/config.yaml`
 - `/home/agentops/.hermes/profiles/**/memories/*.md`
 - fuentes operativas resumidas/saneadas de healthcheck y cron que se definan como input del módulo `healthcheck`

@@ -22,7 +22,17 @@ def get_vault_index(service: VaultService = Depends(get_vault_service)) -> dict:
         resource='vault.workspace',
         status='ready',
         data=workspace,
-        meta={'safe_root': 'canonical_vault', 'read_only': True, 'allowlisted': True},
+        meta={'safe_root': 'canonical_vault', 'read_only': True, 'allowlisted': True, 'sanitized': True},
+    )
+
+
+@router.get('/tree')
+def get_vault_tree(service: VaultService = Depends(get_vault_service)) -> dict:
+    return resource_response(
+        resource='vault.explorer_tree',
+        status='ready',
+        data=service.get_explorer_tree(),
+        meta={'safe_root': 'canonical_vault', 'read_only': True, 'sanitized': True},
     )
 
 
