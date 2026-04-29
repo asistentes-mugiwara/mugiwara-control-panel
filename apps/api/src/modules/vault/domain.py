@@ -22,6 +22,26 @@ class VaultTreeEntry:
 
 
 @dataclass(frozen=True)
+class VaultExplorerNode:
+    id: str
+    name: str
+    relative_path: str
+    kind: str
+    depth: int
+    size_bytes: int | None = None
+    updated_at: str | None = None
+
+
+@dataclass(frozen=True)
+class VaultDocumentRef:
+    id: str
+    name: str
+    relative_path: str
+    size_bytes: int
+    updated_at: str
+
+
+@dataclass(frozen=True)
 class VaultDocumentSection:
     heading: str
     body: list[str]
