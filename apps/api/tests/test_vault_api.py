@@ -111,28 +111,52 @@ def test_vault_explorer_tree_enforces_depth_and_node_limits(tmp_path):
     assert capped_tree['limits']['nodes_truncated'] is True
 
 
-def test_vault_document_reads_markdown_only_allowlisted_path():
-    response = client.get('/api/v1/vault/documents/03-Projects/Project Summary - Mugiwara Control Panel.md')
+def test_vault_document_reads_raw_markdown_from_safe_relative_path(tmp_path):
+    docs = tmp_path / 'docs'
+    docs.mkdir()
+    document = docs / 'note.md'
+    markdown = '---\ntitle: Note\n---\n\n# Heading\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n```text\ncode block\n```\n'
+    document.write_text(markdown, encoding='utf-8')
+    service = VaultService(root=tmp_path)
+    app.dependency_overrides[get_vault_service] = lambda: service
+    try:
+        response = client.get('/api/v1/vault/documents/docs/note.md')
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
     assert payload['resource'] == 'vault.document'
-    assert payload['meta']['markdown_only'] is True
-    assert payload['meta']['allowlisted'] is True
-    assert payload['data']['id'] == 'mugiwara-control-panel-summary'
-    assert payload['data']['meta']['path'] == '03-Projects/Project Summary - Mugiwara Control Panel.md'
-    assert payload['data']['sections']
-    _assert_no_host_paths(payload)
+    assert payload['meta'] == {
+        'path': 'docs/note.md',
+        'markdown_only': True,
+        'read_only': True,
+        'sanitized': True,
+    }
+    assert payload['data']['relative_path'] == 'docs/note.md'
+    assert payload['data']['name'] == 'note.md'
+    assert payload['data']['markdown'] == markdown
+    assert payload['data']['read_only'] is True
+    assert payload['data']['size_bytes'] == len(markdown.encode('utf-8'))
+    assert payload['data']['updated_at']
+    assert 'sections' not in payload['data']
+    assert 'canon_callout' not in payload['data']
+    _assert_no_host_paths({k: v for k, v in payload.items() if k != 'data'})
 
 
 def test_vault_rejects_path_traversal_without_host_path_leak():
-    response = client.get('/api/v1/vault/documents/00-System/%2e%2e/Policy - Memory governance.md')
+    for url in (
+        '/api/v1/vault/documents/00-System/%2e%2e/Policy - Memory governance.md',
+        '/api/v1/vault/documents/00-System/%2E%2E/Policy - Memory governance.md',
+        '/api/v1/vault/documents/00-System/%252e%252e/Policy - Memory governance.md',
+    ):
+        response = client.get(url)
 
-    assert response.status_code == 400
-    detail = response.json()['detail']
-    assert detail['code'] == 'validation_error'
-    assert '/srv/' not in detail['message']
-    assert '/home/' not in detail['message']
+        assert response.status_code != 200
+        detail = response.json()['detail']
+        assert detail['code'] in {'validation_error', 'not_found'}
+        assert '/srv/' not in detail['message']
+        assert '/home/' not in detail['message']
 
 
 def test_vault_rejects_unknown_markdown_document():
@@ -142,6 +166,43 @@ def test_vault_rejects_unknown_markdown_document():
     detail = response.json()['detail']
     assert detail['code'] == 'not_found'
     assert '/srv/' not in detail['message']
+
+
+def test_vault_document_reader_rejects_hidden_symlink_oversized_and_absolute_paths(tmp_path):
+    docs = tmp_path / 'docs'
+    docs.mkdir()
+    (docs / 'allowed.md').write_text('# Allowed\n', encoding='utf-8')
+    (docs / '.hidden.md').write_text('# Hidden\n', encoding='utf-8')
+    (tmp_path / '.obsidian').mkdir()
+    (tmp_path / '.obsidian' / 'private.md').write_text('# Private\n', encoding='utf-8')
+    (docs / 'big.md').write_text('x' * 64, encoding='utf-8')
+    (docs / 'note.txt').write_text('text\n', encoding='utf-8')
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'outside.md').write_text('# Outside\n', encoding='utf-8')
+    (docs / 'link-parent').symlink_to(outside)
+    service = VaultService(root=tmp_path, max_document_bytes=32)
+    app.dependency_overrides[get_vault_service] = lambda: service
+    try:
+        cases = {
+            '/api/v1/vault/documents/docs/.hidden.md': (404, 'not_found'),
+            '/api/v1/vault/documents/.obsidian/private.md': (404, 'not_found'),
+            '/api/v1/vault/documents/docs/link-parent/outside.md': (503, 'source_unavailable'),
+            '/api/v1/vault/documents/docs/big.md': (413, 'payload_too_large'),
+            '/api/v1/vault/documents/docs/note.txt': (415, 'unsupported_media_type'),
+            '/api/v1/vault/documents/~/.ssh/config.md': (400, 'validation_error'),
+            '/api/v1/vault/documents//tmp/secret.md': (400, 'validation_error'),
+        }
+        for url, (expected_status, expected_code) in cases.items():
+            response = client.get(url)
+            assert response.status_code == expected_status, url
+            detail = response.json()['detail']
+            assert detail['code'] == expected_code
+            assert '/srv/' not in detail['message']
+            assert '/home/' not in detail['message']
+            assert str(tmp_path) not in detail['message']
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_vault_rejects_unsupported_extension():

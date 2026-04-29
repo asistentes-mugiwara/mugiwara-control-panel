@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
-
 from fastapi import APIRouter, Depends
 
 from ...shared.contracts import resource_response
@@ -42,6 +40,6 @@ def get_vault_document(document_path: str, service: VaultService = Depends(get_v
     return resource_response(
         resource='vault.document',
         status='ready',
-        data=asdict(document),
-        meta={'path': document.meta.path, 'markdown_only': True, 'read_only': True, 'allowlisted': True},
+        data=document,
+        meta={'path': document['relative_path'], 'markdown_only': True, 'read_only': True, 'sanitized': True},
     )
