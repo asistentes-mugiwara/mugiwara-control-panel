@@ -592,7 +592,8 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 ## 9.6 Vault
 ### Entregar
 - layout de dos paneles: explorador de archivos + lector Markdown
-- explorador estilo VS Code/Obsidian con carpetas colapsables, indentación, activo resaltado y scroll independiente
+- responsive 121.4: tablet apila explorador y lector a una columna completa; móvil prioriza el lector antes que el explorador y mantiene el árbol con altura acotada/scroll propio
+- explorador estilo VS Code/Obsidian con carpetas colapsables, indentación capada, activo resaltado y scroll independiente
 - lector Markdown legible con frontmatter, headings, listas, tablas, enlaces, blockquotes y código
 - adapter server-only sobre `GET /api/v1/vault/tree` y `GET /api/v1/vault/documents/{document_path:path}`
 - sin ficha externa de metadatos, sin TOC lateral obligatorio y sin callout editorial legacy

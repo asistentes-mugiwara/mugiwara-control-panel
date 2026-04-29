@@ -13,6 +13,7 @@ const vaultHttp = readFileSync(vaultHttpPath, 'utf8')
 const vaultPage = readFileSync(vaultPagePath, 'utf8')
 const vaultClient = readFileSync(vaultClientPath, 'utf8')
 const vaultFixture = readFileSync(vaultFixturePath, 'utf8')
+const globalCss = readFileSync(join(repoRoot, 'apps/web/src/app/globals.css'), 'utf8')
 const failures = []
 
 if (!vaultHttp.includes("import 'server-only'")) {
@@ -67,6 +68,18 @@ for (const retiredText of ['Canon curado', 'Índice allowlisted', 'Lectura edito
 }
 if (!vaultClient.includes('Vault · Solo lectura') || !vaultClient.includes('Explorador') || !vaultClient.includes('Documento seleccionado')) {
   failures.push('VaultClient must expose the new explorer + reader UI contract')
+}
+if (!vaultPage.includes('document.relative_path !== selectedPath')) {
+  failures.push('vault/page.tsx must assert returned document path matches selectedPath')
+}
+if (!vaultClient.includes('clamp(8px') || !globalCss.includes('@media (max-width: 1100px)')) {
+  failures.push('Vault responsive contract must cap deep indentation and stack earlier for tablet')
+}
+if (!globalCss.includes('.vault-reader-panel') || !globalCss.includes('order: 1') || !globalCss.includes('.vault-explorer-panel') || !globalCss.includes('order: 2') || !globalCss.includes('max-height: 30vh')) {
+  failures.push('Vault mobile contract must prioritize the reader and keep explorer height bounded')
+}
+if (!globalCss.includes('min-width: min(520px, 100%)') || !globalCss.includes('.vault-markdown-table-wrap td')) {
+  failures.push('Vault Markdown tables must keep overflow internal and avoid forcing mobile page width')
 }
 if (!vaultFixture.includes('---') || !vaultFixture.includes('| Superficie | Estado |') || !vaultFixture.includes('\\`\\`\\`text')) {
   failures.push('Vault fixture must exercise frontmatter, tables and fenced code')

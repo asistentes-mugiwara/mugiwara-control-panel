@@ -298,7 +298,7 @@ function VaultExplorer({ nodes, selectedPath }: { nodes: VaultExplorerNode[]; se
         const isDirectory = node.kind === 'directory'
         const isCollapsed = collapsedDirectories.has(node.relative_path)
         const isActive = node.relative_path === selectedPath
-        const indent = `${8 + node.depth * 18}px`
+        const indent = `clamp(8px, ${8 + node.depth * 18}px, 96px)`
 
         if (isDirectory) {
           return (

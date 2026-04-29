@@ -730,7 +730,10 @@ Subtítulo: Explorador de archivos del vault canónico y lector Markdown renderi
 ### Estilo
 - explorador izquierdo cercano a VS Code/Obsidian: indentación, carpetas colapsables, activo claro y scroll independiente
 - lector derecho con ancho cómodo, buena legibilidad y soporte para tablas/código sin overflow horizontal
-- en tablet/mobile los paneles apilan; se prioriza lectura y se limita la altura del explorador
+- en tablet/mobile los paneles apilan; tablet baja explorador y lector a una columna completa sin huecos intermedios
+- en móvil se prioriza lectura: el lector queda antes que el explorador, y el explorador mantiene altura acotada con scroll propio
+- tablas/código/frontmatter deben mantener overflow interno o wrap seguro sin forzar ancho horizontal de página
+- la indentación del árbol debe estar capada para que carpetas profundas no empujen el viewport
 
 ### Patrón recomendado
 - header mínimo con `Vault · Solo lectura`

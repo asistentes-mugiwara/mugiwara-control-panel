@@ -175,6 +175,9 @@ npm run verify:skills-server-only
 3. `/vault` declara `export const dynamic = 'force-dynamic'`.
 4. Si la API falta, falla o devuelve un payload inválido, la página mantiene fixture documental saneado y muestra aviso explícito de estado degradado.
 5. El aviso no expone URL backend, rutas host, stack traces ni cuerpo de respuesta.
+6. Desde 121.3/121.4, `/vault` ya no consume el workspace legacy `GET /api/v1/vault` para la UI principal: usa `GET /api/v1/vault/tree` y `GET /api/v1/vault/documents/{document_path:path}`.
+7. La selección del documento se valida contra `tree.documents` backend-owned y el documento devuelto debe coincidir con `selectedPath` antes de renderizar.
+8. `VaultClient` no lee env ni backend URL, no usa `dangerouslySetInnerHTML`, sanea enlaces Markdown y mantiene overflow interno para tablas/código/frontmatter en móvil.
 
 Antes de cerrar cambios que toquen Vault config o fallback, ejecutar:
 
