@@ -168,12 +168,48 @@ class VaultService:
             raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Documento no disponible en la allowlist del vault.')
         return self._read_document(document)
 
-    def get_document_by_path(self, requested_path: str) -> VaultDocument:
+    def get_document_by_path(self, requested_path: str) -> dict:
+        file_path, safe_path = self._resolve_reader_path(requested_path)
+        try:
+            text = file_path.read_text(encoding='utf-8')
+            stat = file_path.stat()
+        except UnicodeDecodeError:
+            raise self._reject(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type', 'Documento Markdown no legible como UTF-8.')
+        except OSError:
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
+        return {
+            'relative_path': safe_path,
+            'name': file_path.name,
+            'markdown': text,
+            'updated_at': datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+            'size_bytes': stat.st_size,
+            'read_only': True,
+        }
+
+    def _resolve_reader_path(self, requested_path: str) -> tuple[Path, str]:
         safe_path = self._normalize_requested_path(requested_path)
-        document = self._paths.get(safe_path)
-        if document is None:
-            raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Documento no disponible en la allowlist del vault.')
-        return self._read_document(document)
+        raw_candidate = self._root / safe_path
+        if self._is_hidden(raw_candidate):
+            raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Documento no disponible en el vault.')
+        try:
+            if raw_candidate.is_symlink() or self._has_symlink_parent(raw_candidate):
+                raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
+            candidate = raw_candidate.resolve()
+        except HTTPException:
+            raise
+        except OSError:
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
+        if self._root != candidate and self._root not in candidate.parents:
+            raise self._reject(status.HTTP_400_BAD_REQUEST, 'validation_error', 'Ruta de vault no permitida.')
+        if not candidate.exists() or not candidate.is_file():
+            raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Documento no disponible en el vault.')
+        try:
+            size_bytes = candidate.stat().st_size
+        except OSError:
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'Documento de vault no disponible.')
+        if size_bytes > self._max_document_bytes:
+            raise self._reject(status.HTTP_413_CONTENT_TOO_LARGE, 'payload_too_large', 'Documento de vault demasiado grande para lectura.')
+        return candidate, safe_path
 
     def _iter_safe_children(self, directory: Path) -> list[Path]:
         if directory.is_symlink() or not directory.exists() or not directory.is_dir():
@@ -313,8 +349,10 @@ class VaultService:
         if requested_path.startswith('/') or requested_path.startswith('~'):
             raise self._reject(status.HTTP_400_BAD_REQUEST, 'validation_error', 'Ruta de vault no permitida.')
         path = Path(requested_path)
-        if path.suffix != '.md':
-            raise self._reject(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type', 'Solo se permiten documentos Markdown allowlisted.')
+        if path.is_absolute():
+            raise self._reject(status.HTTP_400_BAD_REQUEST, 'validation_error', 'Ruta de vault no permitida.')
+        if path.suffix.lower() != '.md':
+            raise self._reject(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type', 'Solo se permiten documentos Markdown.')
         if any(part in {'..', ''} for part in path.parts):
             raise self._reject(status.HTTP_400_BAD_REQUEST, 'validation_error', 'Ruta de vault no permitida.')
         return path.as_posix()

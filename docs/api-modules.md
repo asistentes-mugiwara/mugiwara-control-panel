@@ -40,9 +40,9 @@
 ### `vault`
 - exponer `GET /api/v1/vault` como workspace documental read-only allowlisted; desde issue #121.1 añade `data.explorer` como árbol dinámico seguro para transición hacia explorador + lector Markdown
 - exponer `GET /api/v1/vault/tree` como contrato read-only de explorador del vault bajo root backend-owned fijo, serializando solo rutas relativas y metadata mínima segura
-- exponer `GET /api/v1/vault/documents/{document_path:path}` para lectura de documentos markdown permitidos
-- para el árbol dinámico, excluir hidden files/dirs (`.git`, `.obsidian`, `.env`, dotfiles), symlinks, no Markdown, documentos oversized y entradas fuera del root; aplicar límites de profundidad, nodos y tamaño de documento
-- normalizar paths y rechazar traversal, paths absolutos, symlinks, extensiones no soportadas y documentos fuera de allowlist
+- exponer `GET /api/v1/vault/documents/{document_path:path}` como reader raw Markdown dinámico bajo root backend-owned fijo; devuelve `relative_path`, `name`, `markdown`, `updated_at`, `size_bytes` y `read_only`, preservando frontmatter/tablas/código dentro del contenido
+- para el árbol y el reader dinámico, excluir hidden files/dirs (`.git`, `.obsidian`, `.env`, dotfiles), symlinks, no Markdown, documentos oversized y entradas fuera del root; aplicar límites de profundidad/nodos/tamaño cuando corresponda
+- normalizar paths y rechazar traversal, paths absolutos, `~`, symlinks, extensiones no soportadas y documentos fuera del root permitido
 - integrar `/vault` desde frontend mediante adapter server-only con fallback saneado visible
 - sin escritura en MVP
 

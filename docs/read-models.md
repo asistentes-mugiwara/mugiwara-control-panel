@@ -110,6 +110,21 @@ Phase 18.0 reconciles those explicit follow-ups into a dedicated Healthcheck pro
 
 Phase 18.3 adds `scripts/write-backup-health-status.py` and `npm run write:backup-health-status` as the producer for `/srv/crew-core/runtime/healthcheck/backup-health-status.json`; there is no unit/timer in Phase 18.3. The producer does not run backups, observes only the fixed local backup artifact directory, validates the latest checksum with `sha256sum -c`, and serializes only `status`, `result`, `updated_at`, optional `last_success_at`, `checksum_present` and `retention_count`. It never serializes archive names, paths, sizes, hashes, Drive targets, stdout/stderr, logs or raw output.
 
+### `vault.document`
+Campos esperados:
+- `relative_path`
+- `name`
+- `markdown`
+- `updated_at`
+- `size_bytes`
+- `read_only`
+
+Uso:
+- leer documentos Markdown del vault canónico desde backend, nunca desde navegador/filesystem directo
+- preservar frontmatter, headings, tablas, listas y bloques de código dentro de `markdown` para que la UI 121.3 los renderice sin panel externo de metadata
+- aceptar solo rutas relativas `.md` bajo root backend-owned; rechazar absolutas, `~`, traversal, hidden files/dirs, symlinks, no-md, oversized y fuera de root
+- devolver errores saneados sin paths host, tracebacks ni excepción cruda
+
 ### `usage.current`
 Campos esperados:
 - `current_snapshot` con `captured_at`, `source_label` y `freshness`
