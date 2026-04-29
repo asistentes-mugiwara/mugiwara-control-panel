@@ -1,11 +1,15 @@
 import 'server-only'
 
-import type { VaultWorkspace } from '@/modules/vault/view-models/vault-workspace.fixture'
+import type { VaultExplorerTree, VaultMarkdownDocument } from '@/modules/vault/view-models/vault-explorer.fixture'
 
 export const VAULT_API_BASE_URL_ENV = 'MUGIWARA_CONTROL_PANEL_API_URL'
 
-type VaultWorkspaceResponse = {
-  data: VaultWorkspace
+type VaultTreeResponse = {
+  data: VaultExplorerTree
+}
+
+type VaultDocumentResponse = {
+  data: VaultMarkdownDocument
 }
 
 export class VaultApiError extends Error {
@@ -41,14 +45,35 @@ export function getVaultApiBaseUrl() {
   return trimTrailingSlash(value)
 }
 
-export async function fetchVaultWorkspace(): Promise<VaultWorkspace> {
+function encodeVaultDocumentPath(relativePath: string) {
+  return relativePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+}
+
+function assertTreePayload(value: unknown): asserts value is VaultExplorerTree {
+  const data = value as Partial<VaultExplorerTree> | null
+  if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.documents) || data.read_only !== true || data.sanitized !== true) {
+    throw new VaultApiError('invalid_payload')
+  }
+}
+
+function assertDocumentPayload(value: unknown): asserts value is VaultMarkdownDocument {
+  const data = value as Partial<VaultMarkdownDocument> | null
+  if (!data || typeof data.relative_path !== 'string' || typeof data.markdown !== 'string' || data.read_only !== true) {
+    throw new VaultApiError('invalid_payload')
+  }
+}
+
+async function fetchJson<T>(path: string): Promise<T> {
   const baseUrl = getVaultApiBaseUrl()
 
   if (!baseUrl) {
     throw new VaultApiError('not_configured')
   }
 
-  const response = await fetch(`${baseUrl}/api/v1/vault`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     cache: 'no-store',
     headers: {
       Accept: 'application/json',
@@ -59,11 +84,17 @@ export async function fetchVaultWorkspace(): Promise<VaultWorkspace> {
     throw new VaultApiError(`http_${response.status}`)
   }
 
-  const payload = (await response.json()) as VaultWorkspaceResponse
+  return (await response.json()) as T
+}
 
-  if (!payload.data) {
-    throw new VaultApiError('invalid_payload')
-  }
+export async function fetchVaultTree(): Promise<VaultExplorerTree> {
+  const payload = await fetchJson<VaultTreeResponse>('/api/v1/vault/tree')
+  assertTreePayload(payload.data)
+  return payload.data
+}
 
+export async function fetchVaultDocument(relativePath: string): Promise<VaultMarkdownDocument> {
+  const payload = await fetchJson<VaultDocumentResponse>(`/api/v1/vault/documents/${encodeVaultDocumentPath(relativePath)}`)
+  assertDocumentPayload(payload.data)
   return payload.data
 }

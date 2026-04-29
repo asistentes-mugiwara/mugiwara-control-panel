@@ -700,43 +700,42 @@ Subtítulo: Built-in por Mugiwara y estado resumido de Honcho
 
 ## 5.6 Vault
 ### Objetivo
-Lector/navegador documental independiente.
+Explorador de archivos del vault canónico + lector Markdown independiente, simple y de solo lectura.
 
 ### Estructura
 ```text
 [PageHeader]
-Título: Vault
-Subtítulo: Navegación y lectura del canon curado
+Título: Vault · Solo lectura
+Subtítulo: Explorador de archivos del vault canónico y lector Markdown renderizado
 
-[Search + breadcrumbs]
-- búsqueda
-- ruta actual
-
-[Three-panel layout]
-┌──────────────────┬────────────────────────────────┬─────────────────────┐
-│ árbol / índice   │ documento                      │ metadatos / TOC     │
-│                  │                                │                     │
-│ secciones        │ markdown renderizado           │ path                │
-│ carpetas         │ headings                       │ updated at          │
-│ documentos       │ bloques                        │ índice interno      │
-└──────────────────┴────────────────────────────────┴─────────────────────┘
+[Two-panel layout]
+┌──────────────────┬────────────────────────────────┐
+│ Explorador       │ Lector Markdown                │
+│                  │                                │
+│ carpetas         │ frontmatter como contenido     │
+│ documentos .md   │ headings/listas/tablas/código  │
+│ activo resaltado │ enlaces saneados               │
+└──────────────────┴────────────────────────────────┘
 ```
 
 ### Reglas
-- experiencia editorial y documental
-- lectura cómoda y jerarquía clara
-- breadcrumbs obligatorios si hay navegación profunda
-- no reutilizar la misma UI que `memory`
-- rescatar de la landing la lógica de `canon curado`, pero con un framing más documental que heroico
+- no conservar la UI editorial legacy de cards, callouts, ficha externa de metadatos ni TOC lateral obligatorio
+- la UI consume solo `GET /api/v1/vault/tree` y `GET /api/v1/vault/documents/{document_path:path}` desde adapter server-only
+- el cliente no lee filesystem, backend URL ni variables de entorno
+- selección de documento solo desde `tree.documents` devuelto por backend
+- Markdown renderizado de forma conservadora, sin HTML raw ni `dangerouslySetInnerHTML`
+- enlaces Markdown saneados; HTML dentro del Markdown se trata como texto
+- frontmatter/metadatos permanecen dentro del propio contenido Markdown, no duplicados en panel externo
 
 ### Estilo
-- más calmado, más editorial
-- puede introducir acentos `brand-brown-700` y `brand-navy-900`
+- explorador izquierdo cercano a VS Code/Obsidian: indentación, carpetas colapsables, activo claro y scroll independiente
+- lector derecho con ancho cómodo, buena legibilidad y soporte para tablas/código sin overflow horizontal
+- en tablet/mobile los paneles apilan; se prioriza lectura y se limita la altura del explorador
 
 ### Patrón recomendado
-- subtítulo tipo `Canon curado y navegación documental`
-- callout opcional diferenciando `vault` vs `memory`
-- TOC o meta panel visibles para reforzar lectura estructurada
+- header mínimo con `Vault · Solo lectura`
+- badges de estado discretos: `Explorador`, `Markdown saneado`, `Read-only`
+- fallback local visible solo si falla la API, marcado como snapshot saneado/no tiempo real
 
 ---
 
