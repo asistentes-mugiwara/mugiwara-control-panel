@@ -76,6 +76,10 @@ async function loadVaultPage(searchParams: Record<string, string | string[] | un
 
     const document = selectedPath ? await fetchVaultDocument(selectedPath) : null
 
+    if (document && document.relative_path !== selectedPath) {
+      redirect('/vault')
+    }
+
     return {
       tree,
       document,

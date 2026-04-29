@@ -48,15 +48,6 @@ function formatBytes(value?: number | null) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function isUnsafeText(value: string) {
-  const lower = value.toLowerCase()
-  return lower.includes('/srv/') || lower.includes('/home/') || lower.includes('mugiwara_control_panel_api_url') || lower.includes('next_public')
-}
-
-function safeText(value: string) {
-  return isUnsafeText(value) ? 'Contenido saneado' : value
-}
-
 function getSafeHref(href: string): string | null {
   const trimmed = href.trim()
   if (!trimmed || /[\u0000-\u001f]/.test(trimmed)) return null
@@ -80,13 +71,13 @@ function renderInlineMarkdown(text: string): ReactNode[] {
   let match: RegExpExecArray | null
 
   while ((match = inlinePattern.exec(text)) !== null) {
-    if (match.index > cursor) nodes.push(safeText(text.slice(cursor, match.index)))
+    if (match.index > cursor) nodes.push(text.slice(cursor, match.index))
 
     const token = match[0]
     const linkMatch = /^\[([^\]]+)\]\(([^\s)]+)\)$/.exec(token)
     if (linkMatch) {
       const safeHref = getSafeHref(linkMatch[2])
-      const label = safeText(linkMatch[1])
+      const label = linkMatch[1]
       nodes.push(
         safeHref ? (
           <a key={`${match.index}-link`} href={safeHref} rel="noreferrer noopener" style={{ color: appTheme.colors.brandSky500, fontWeight: 800 }} target={safeHref.startsWith('http') ? '_blank' : undefined}>
@@ -97,15 +88,15 @@ function renderInlineMarkdown(text: string): ReactNode[] {
         ),
       )
     } else if (token.startsWith('**')) {
-      nodes.push(<strong key={`${match.index}-strong`}>{safeText(token.slice(2, -2))}</strong>)
+      nodes.push(<strong key={`${match.index}-strong`}>{token.slice(2, -2)}</strong>)
     } else if (token.startsWith('`')) {
-      nodes.push(<code key={`${match.index}-code`} className="vault-markdown-inline-code">{safeText(token.slice(1, -1))}</code>)
+      nodes.push(<code key={`${match.index}-code`} className="vault-markdown-inline-code">{token.slice(1, -1)}</code>)
     }
 
     cursor = match.index + token.length
   }
 
-  if (cursor < text.length) nodes.push(safeText(text.slice(cursor)))
+  if (cursor < text.length) nodes.push(text.slice(cursor))
   return nodes
 }
 
@@ -248,7 +239,7 @@ function MarkdownReader({ markdown }: { markdown: string }) {
     <article className="vault-markdown-reader" aria-label="Documento Markdown renderizado de forma saneada">
       {blocks.map((block, index) => {
         if (block.type === 'frontmatter') {
-          return <pre key={index} className="vault-markdown-code vault-markdown-frontmatter"><code>{safeText(block.text)}</code></pre>
+          return <pre key={index} className="vault-markdown-code vault-markdown-frontmatter"><code>{block.text}</code></pre>
         }
         if (block.type === 'heading') {
           const Heading = (`h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4')
@@ -265,7 +256,7 @@ function MarkdownReader({ markdown }: { markdown: string }) {
           return <List key={index}>{block.items.map((item, itemIndex) => <li key={`${index}-${itemIndex}`}>{renderInlineMarkdown(item)}</li>)}</List>
         }
         if (block.type === 'code') {
-          return <pre key={index} className="vault-markdown-code"><code>{safeText(block.text)}</code></pre>
+          return <pre key={index} className="vault-markdown-code"><code>{block.text}</code></pre>
         }
         if (block.type === 'rule') {
           return <hr key={index} />
