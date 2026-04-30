@@ -1034,6 +1034,102 @@ button {
   padding: 12px;
 }
 
+.git-repo-status-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.git-metric-list--repo-card {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.git-repo-status-card__section {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.git-repo-status-card__section h2 {
+  margin: 0;
+  color: #9aa7bd;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.git-branch-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.git-branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #d9e4f2;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.git-branch-chip--current {
+  border-color: rgba(129, 199, 132, 0.55);
+  background: rgba(129, 199, 132, 0.12);
+}
+
+.git-branch-chip strong {
+  color: #81c784;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.git-commit-message {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 12px;
+}
+
+.git-commit-message summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  color: #d9e4f2;
+  font-weight: 900;
+}
+
+.git-commit-message__body {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.git-commit-message__text {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.28);
+  color: #f8fafc;
+  padding: 12px;
+  font: inherit;
+  line-height: 1.55;
+}
+
 .git-commit-row--selected {
   border-color: rgba(232, 181, 106, 0.55);
   background: rgba(232, 181, 106, 0.08);
