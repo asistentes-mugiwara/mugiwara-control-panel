@@ -94,12 +94,23 @@ export type MemoryAgentSummary = {
   badges: string[]
 }
 
+export type MemoryDocument = {
+  status: 'available' | 'empty' | 'absent' | 'error'
+  display_path: string
+  read_only: true
+  markdown: string
+  updated_at: string | null
+  size_bytes: number | null
+  message: string
+}
+
 export type MemoryAgentDetail = {
   mugiwara_slug: string
   built_in_summary: string
   honcho_facts: string[]
   freshness: Freshness
   links: SafeLink[]
+  memory_document: MemoryDocument
 }
 
 export type VaultIndex = {
