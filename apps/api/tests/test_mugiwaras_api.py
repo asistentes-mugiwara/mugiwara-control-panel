@@ -13,7 +13,14 @@ def build_service(tmp_path: Path) -> MugiwaraService:
     crew_rules_path = tmp_path / 'crew-core' / 'AGENTS.md'
     crew_rules_path.parent.mkdir(parents=True)
     crew_rules_path.write_text('# AGENTS.md\n\nCanon Mugiwara saneado.\n', encoding='utf-8')
-    return MugiwaraService(crew_rules_path=crew_rules_path)
+
+    profiles_root = tmp_path / 'hermes-profiles'
+    for slug in {'luffy', 'zoro', 'franky', 'nami', 'robin', 'usopp', 'jinbe', 'sanji', 'chopper', 'brook'}:
+        soul_path = profiles_root / slug / 'SOUL.md'
+        soul_path.parent.mkdir(parents=True, exist_ok=True)
+        soul_path.write_text(f'# SOUL.md — {slug.title()}\n\nIdentidad operativa saneada de {slug}.\n', encoding='utf-8')
+
+    return MugiwaraService(crew_rules_path=crew_rules_path, profiles_root=profiles_root)
 
 
 def test_mugiwaras_catalog_returns_safe_cards_and_canonical_agents_document(tmp_path: Path) -> None:
@@ -36,6 +43,17 @@ def test_mugiwaras_catalog_returns_safe_cards_and_canonical_agents_document(tmp_
     assert cards_by_slug['franky']['description'] == 'Opera infraestructura, servicios, automatizaciones, backups y salud del runtime.'
     assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=franky'} in cards_by_slug['franky']['links']
     assert {'label': 'Ver Skills', 'href': '/skills?mugiwara=zoro'} in cards_by_slug['zoro']['links']
+    assert cards_by_slug['zoro']['soul_document'] == {
+        'document_id': 'zoro-soul',
+        'title': 'SOUL.md — Zoro',
+        'display_path': 'zoro/SOUL.md',
+        'source_label': 'Hermes profile SOUL.md allowlist',
+        'read_only': True,
+        'canonical': False,
+        'markdown': '# SOUL.md — Zoro\n\nIdentidad operativa saneada de zoro.\n',
+    }
+    assert 'hermes-profiles' not in response.text
+    assert str(tmp_path) not in response.text
     assert payload['data']['crew_rules_document'] == {
         'document_id': 'crew-core-agents',
         'title': 'AGENTS.md — reglas operativas Mugiwara',
@@ -75,6 +93,33 @@ def test_mugiwara_detail_returns_profile_and_rejects_unknown_slug(tmp_path: Path
     assert unknown.status_code == 404
     assert unknown.json()['detail']['code'] == 'not_found'
     assert '/srv/crew-core' not in unknown.text
+
+    app.dependency_overrides.clear()
+
+
+def test_mugiwara_soul_endpoint_returns_allowlisted_document_and_rejects_path_like_slug(tmp_path: Path) -> None:
+    service = build_service(tmp_path)
+    app.dependency_overrides[get_mugiwaras_service] = lambda: service
+    client = TestClient(app)
+
+    response = client.get('/api/v1/mugiwaras/zoro/soul')
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['resource'] == 'mugiwaras.soul_document'
+    assert payload['data']['display_path'] == 'zoro/SOUL.md'
+    assert payload['data']['markdown'].startswith('# SOUL.md — Zoro')
+    assert str(tmp_path) not in response.text
+    assert 'hermes-profiles' not in response.text
+
+    unknown = client.get('/api/v1/mugiwaras/unknown/soul')
+    assert unknown.status_code == 404
+    assert unknown.json()['detail']['code'] == 'not_found'
+    assert str(tmp_path) not in unknown.text
+
+    path_like = client.get('/api/v1/mugiwaras/..%2Fzoro/soul')
+    assert path_like.status_code == 404
+    assert str(tmp_path) not in path_like.text
 
     app.dependency_overrides.clear()
 

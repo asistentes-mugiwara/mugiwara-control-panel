@@ -5,10 +5,12 @@ from pathlib import Path
 
 from fastapi import HTTPException, status
 
-from .domain import CrewRulesDocument, MugiwaraCard, MugiwaraIdentity, MugiwaraProfile, SafeLink
+from .domain import CrewRulesDocument, MugiwaraCard, MugiwaraIdentity, MugiwaraProfile, SafeLink, SoulDocument
 
 MAX_CREW_RULES_BYTES = 200_000
+MAX_SOUL_BYTES = 120_000
 DEFAULT_CREW_RULES_PATH = Path('/srv/crew-core/AGENTS.md')
+DEFAULT_PROFILES_ROOT = Path('/home/agentops/.hermes/profiles')
 CANONICAL_CREW_RULES_DISPLAY_PATH = '/srv/crew-core/AGENTS.md'
 
 def _crew_links(slug: str) -> list[SafeLink]:
@@ -123,14 +125,15 @@ PROFILE_META: dict[str, dict[str, str]] = {
 
 
 class MugiwaraService:
-    def __init__(self, *, crew_rules_path: Path = DEFAULT_CREW_RULES_PATH) -> None:
+    def __init__(self, *, crew_rules_path: Path = DEFAULT_CREW_RULES_PATH, profiles_root: Path = DEFAULT_PROFILES_ROOT) -> None:
         self._crew_rules_path = crew_rules_path
+        self._profiles_root = profiles_root
         self._cards = {card.slug: card for card in CREW_CARDS}
 
     def list_catalog(self) -> dict:
         document = self.get_crew_rules_document()
         return {
-            'items': [asdict(card) for card in self._cards.values()],
+            'items': [asdict(card) | {'soul_document': asdict(self.get_soul_document(card.slug))} for card in self._cards.values()],
             'crew_rules_document': asdict(document),
         }
 
@@ -170,6 +173,22 @@ class MugiwaraService:
             markdown=content,
         )
 
+    def get_soul_document(self, slug: str) -> SoulDocument:
+        card = self._cards.get(slug)
+        if card is None:
+            raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Mugiwara no configurado en catálogo read-only.')
+
+        content = self._read_soul_document(slug)
+        return SoulDocument(
+            document_id=f'{slug}-soul',
+            title=f'SOUL.md — {card.name}',
+            display_path=f'{slug}/SOUL.md',
+            source_label='Hermes profile SOUL.md allowlist',
+            read_only=True,
+            canonical=False,
+            markdown=content,
+        )
+
     def _read_canonical_crew_rules(self) -> str:
         self._ensure_no_symlink_component(self._crew_rules_path)
 
@@ -180,6 +199,20 @@ class MugiwaraService:
         content = resolved.read_text(encoding='utf-8')
         if len(content.encode('utf-8')) > MAX_CREW_RULES_BYTES:
             raise self._reject(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 'validation_error', 'AGENTS.md supera el tamaño máximo permitido.')
+        return content
+
+    def _read_soul_document(self, slug: str) -> str:
+        soul_path = self._profiles_root / slug / 'SOUL.md'
+        self._ensure_no_symlink_component(soul_path)
+
+        resolved = soul_path.expanduser().resolve()
+        expected = (self._profiles_root / slug / 'SOUL.md').expanduser().absolute()
+        if resolved != expected or not resolved.exists() or not resolved.is_file():
+            raise self._reject(status.HTTP_503_SERVICE_UNAVAILABLE, 'source_unavailable', 'SOUL.md allowlisted no disponible.')
+
+        content = resolved.read_text(encoding='utf-8')
+        if len(content.encode('utf-8')) > MAX_SOUL_BYTES:
+            raise self._reject(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 'validation_error', 'SOUL.md supera el tamaño máximo permitido.')
         return content
 
     def _ensure_no_symlink_component(self, path: Path) -> None:

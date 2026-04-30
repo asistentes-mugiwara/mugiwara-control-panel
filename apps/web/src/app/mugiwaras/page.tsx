@@ -1,13 +1,10 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
 
-import type { CrewRulesDocument, MugiwaraCard, SafeLink } from '@contracts/read-models'
+import type { CrewRulesDocument, MugiwaraCard } from '@contracts/read-models'
 
-import { mapMugiwaraStatusToBadgeStatus } from '@/modules/mugiwaras/view-models/mugiwara-card.mappers'
 import { fetchMugiwarasCatalog, getMugiwarasApiBaseUrl, MugiwarasApiError } from '@/modules/mugiwaras/api/mugiwaras-http'
 import { mugiwaraCardFixture } from '@/modules/mugiwaras/view-models/mugiwara-card.fixture'
-import { getMugiwaraProfile, isMugiwaraSlug } from '@/shared/mugiwara/crest-map'
-import { MugiwaraCrest } from '@/shared/mugiwara/MugiwaraCrest'
+import { MugiwarasClient } from '@/app/mugiwaras/MugiwarasClient'
 import { PageHeader } from '@/shared/ui/app-shell/PageHeader'
 import { SurfaceCard } from '@/shared/ui/cards/SurfaceCard'
 import { StatePanel } from '@/shared/ui/state/StatePanel'
@@ -87,10 +84,6 @@ async function getMugiwarasViewModel(): Promise<MugiwarasViewModel> {
       },
     }
   }
-}
-
-function getSafeProfile(card: MugiwaraCard) {
-  return isMugiwaraSlug(card.slug) ? getMugiwaraProfile(card.slug) : null
 }
 
 function formatLineCount(markdown: string) {
@@ -314,30 +307,6 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
   )
 }
 
-function renderCrewLink(mugiwara: MugiwaraCard, link: SafeLink) {
-  return (
-    <Link
-      key={`${mugiwara.slug}-${link.href}`}
-      href={link.href}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: `1px solid ${appTheme.colors.borderSubtle}`,
-        borderRadius: '999px',
-        background: appTheme.colors.bgSurface1,
-        color: appTheme.colors.brandSky500,
-        padding: '8px 12px',
-        textDecoration: 'none',
-        fontSize: '13px',
-        fontWeight: 800,
-      }}
-    >
-      {link.label}
-    </Link>
-  )
-}
-
 export default async function MugiwarasPage() {
   const viewModel = await getMugiwarasViewModel()
   const isSnapshotMode = viewModel.state !== 'ready'
@@ -371,38 +340,39 @@ export default async function MugiwarasPage() {
         </section>
       ) : null}
 
-      <section className="section-block layout-grid layout-grid--cards-280">
-        {viewModel.cards.map((mugiwara) => {
-          const profile = getSafeProfile(mugiwara)
-
-          return (
-            <SurfaceCard key={mugiwara.slug} title={mugiwara.name} elevated eyebrow={profile?.role ?? 'Mugiwara'} accent="sky">
-              <div style={{ display: 'grid', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {profile ? <MugiwaraCrest slug={profile.slug} size="md" accent /> : null}
-                  </div>
-                  <StatusBadge
-                    status={mapMugiwaraStatusToBadgeStatus(mugiwara.status)}
-                    label={isSnapshotMode && mapMugiwaraStatusToBadgeStatus(mugiwara.status) === 'operativo' ? 'Operativo en último corte' : undefined}
-                  />
-                </div>
-
-                <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '15px', lineHeight: 1.6 }}>
-                  {mugiwara.description}
-                </p>
-
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', paddingTop: '2px' }}>
-                  {mugiwara.links.map((link) => renderCrewLink(mugiwara, link))}
-                </div>
-              </div>
-            </SurfaceCard>
-          )
-        })}
+      <section className="section-block">
+        <SurfaceCard title="Canon operativo" eyebrow="AGENTS.md" accent="gold" elevated>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '15px', lineHeight: 1.6 }}>
+              La tripulación usa las cards como índice rápido. El bloque AGENTS.md completo queda al final de la página para consulta read-only.
+            </p>
+            <a
+              href="#agents-md"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${appTheme.colors.borderSubtle}`,
+                borderRadius: '999px',
+                background: appTheme.colors.bgSurface1,
+                color: appTheme.colors.brandSky500,
+                padding: '9px 13px',
+                textDecoration: 'none',
+                fontSize: '13px',
+                fontWeight: 900,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Leer AGENTS.md
+            </a>
+          </div>
+        </SurfaceCard>
       </section>
 
+      <MugiwarasClient cards={viewModel.cards} isSnapshotMode={isSnapshotMode} />
+
       {viewModel.crewRulesDocument ? (
-        <section className="section-block">
+        <section id="agents-md" className="section-block">
           <SurfaceCard title={viewModel.crewRulesDocument.title} eyebrow="Canon operativo" accent="gold" elevated>
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>

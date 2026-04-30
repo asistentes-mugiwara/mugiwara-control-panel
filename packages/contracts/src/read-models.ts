@@ -41,6 +41,16 @@ export type DashboardSummary = {
   links: SafeLink[]
 }
 
+export type SoulDocument = {
+  document_id: string
+  title: string
+  display_path: string
+  source_label: string
+  read_only: true
+  canonical: false
+  markdown: string
+}
+
 export type MugiwaraCard = {
   slug: string
   name: string
@@ -49,6 +59,7 @@ export type MugiwaraCard = {
   skills: string[]
   memory_badge: string
   links: SafeLink[]
+  soul_document?: SoulDocument
 }
 
 export type CrewRulesDocument = {

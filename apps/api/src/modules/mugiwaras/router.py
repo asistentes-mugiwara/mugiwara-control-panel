@@ -31,6 +31,17 @@ def list_mugiwaras(service: MugiwaraService = Depends(get_mugiwaras_service)) ->
     )
 
 
+@router.get('/{slug}/soul')
+def get_mugiwara_soul_document(slug: str, service: MugiwaraService = Depends(get_mugiwaras_service)) -> dict:
+    document = service.get_soul_document(slug)
+    return resource_response(
+        resource='mugiwaras.soul_document',
+        status='ready',
+        data=asdict(document),
+        meta={'slug': slug, 'read_only': True},
+    )
+
+
 @router.get('/{slug}')
 def get_mugiwara_profile(slug: str, service: MugiwaraService = Depends(get_mugiwaras_service)) -> dict:
     profile = service.get_profile(slug)

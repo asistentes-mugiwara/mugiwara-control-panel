@@ -47,3 +47,14 @@ class CrewRulesDocument:
     read_only: bool
     canonical: bool
     markdown: str
+
+
+@dataclass(frozen=True)
+class SoulDocument:
+    document_id: str
+    title: str
+    display_path: str
+    source_label: str
+    read_only: bool
+    canonical: bool
+    markdown: str
