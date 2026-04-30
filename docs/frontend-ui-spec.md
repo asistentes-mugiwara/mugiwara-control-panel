@@ -940,9 +940,9 @@ Ese equilibrio debe mantenerse en todas las decisiones de frontend del MVP.
 
 ## Ruta `/git` — Repos Git
 - Navegación principal: `Repos Git` funciona como revisor de estado de repositorios Git locales allowlisteados.
-- Propósito actual: una card por repo con información operativa concreta: rama actual, ramas disponibles, conteo de cambios, conteo no trackeado y último commit con fecha/hora.
+- Propósito actual: una card por repo con información operativa concreta: rama actual, ramas disponibles, conteo de cambios, conteo sin trackear y último commit con fecha/hora.
 - El último commit se muestra como bloque desplegable (`details`) y el cuadro de texto renderiza solo el asunto saneado expuesto por backend; no se publica cuerpo libre de commit.
-- Copy obligatorio: dejar visible `Solo lectura`, `Estado local por repo`, `Último commit desplegable`, `Sin operaciones mutables`, `Sin rutas host`, `Sin texto libre de commits` y `Solo repos allowlisteados`.
+- Copy obligatorio: dejar visible `Solo lectura`, `Estado local por repo`, `Último commit`, `Sin operaciones mutables` y la métrica `Sin trackear`.
 - Restricciones UI: sin paths cliente, sin discovery arbitrario, sin refs/rangos/revspecs, sin acciones Git y sin working-tree diff.
 - Layout: cards responsive, métricas escaneables, ramas como chips con wrap y cuadro de mensaje con scroll interno/controlado para evitar overflow horizontal.
 - Estados: API real, fallback local saneado, fuente no configurada/degradada; nunca mostrar backend URL, rutas host, detalles internos de ejecución ni errores crudos.

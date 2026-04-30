@@ -257,7 +257,7 @@ Resumen de la decisión:
 - El cuerpo libre de commit no forma parte del contrato público; solo se lee internamente para trailers allowlisteados.
 
 ## Git control frontend / Repos Git
-La ruta frontend `/git` con etiqueta visible `Repos Git` es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`. La página se presenta como revisor de estado local: una card por repo allowlisteado con `Estado local por repo`, rama actual, ramas disponibles, cambios, no trackeado y `Último commit` desplegable.
+La ruta frontend `/git` con etiqueta visible `Repos Git` es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`. La página se presenta como revisor de estado local: una card por repo allowlisteado con `Estado local por repo`, rama actual, ramas disponibles, cambios, sin trackear y `Último commit`.
 
 Reglas de runtime:
 1. El navegador no recibe ni usa `MUGIWARA_CONTROL_PANEL_API_URL`, `NEXT_PUBLIC_*` ni backend URL absoluta.
