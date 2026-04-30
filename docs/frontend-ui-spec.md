@@ -327,6 +327,9 @@ Estructura:
 - rol
 - hasta 3 señales
 - CTA o affordance de apertura
+- acción local `SOUL.md` con `aria-expanded`/`aria-controls`, sin navegación fuera de la página, para desplegar un visor compacto Markdown read-only dentro de la card
+- links de navegación separados para Memory y Skills
+- en `/mugiwaras`, la referencia superior a `AGENTS.md` debe ser una píldora `Leer AGENTS.md` que apunte al ancla estable `#agents-md` del visor inferior ya renderizado
 
 ### `MugiwaraInlineChip`
 - calavera pequeña

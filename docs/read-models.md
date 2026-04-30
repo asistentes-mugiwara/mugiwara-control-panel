@@ -13,7 +13,7 @@ Todos los recursos usan la envoltura común:
 ## Modelos por recurso
 ### `mugiwaras.catalog`
 Campos esperados:
-- `items[]` con `slug`, `name`, `status`, `description`, `skills`, `memory_badge` y `links[]` allowlisted
+- `items[]` con `slug`, `name`, `status`, `description`, `skills`, `memory_badge`, `links[]` allowlisted y `soul_document` read-only por agente
 - `crew_rules_document` con el AGENTS canónico read-only servido desde la ruta backend-owned
 
 Uso:
@@ -346,6 +346,22 @@ Campos esperados:
 - `skills`
 - `memory_badge`
 - `links`
+- `soul_document` con el `SOUL.md` allowlisted del perfil Hermes activo, sin ruta interna serializada
+
+### `mugiwara.soul_document`
+Campos esperados:
+- `document_id`
+- `title`
+- `display_path` público con forma `<slug>/SOUL.md`
+- `source_label`
+- `read_only`
+- `canonical`
+- `markdown`
+
+Uso:
+- alimentar el desplegable compacto `SOUL.md` dentro de cada card de `/mugiwaras`
+- endpoint dedicado `GET /api/v1/mugiwaras/{slug}/soul` para lectura allowlisted del mismo documento
+- no aceptar paths desde cliente, no seguir symlinks en componentes del path y no serializar `/home/agentops/.hermes/profiles/...`
 
 ### `mugiwara.crew_rules_document`
 Campos esperados:

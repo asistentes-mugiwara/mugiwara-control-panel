@@ -52,6 +52,23 @@ if (mugiwarasPage.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL')) {
   failures.push('mugiwaras/page.tsx must not instruct operators to use the public env var')
 }
 
+if (
+  !mugiwarasPage.includes("href=\"#agents-md\"") ||
+  !mugiwarasPage.includes('Leer AGENTS.md') ||
+  !mugiwarasPage.includes('id="agents-md"') ||
+  !mugiwarasPage.includes('tabIndex={-1}')
+) {
+  failures.push('mugiwaras/page.tsx must expose a keyboard-focusable Leer AGENTS.md anchor target at #agents-md')
+}
+
+if (!mugiwarasPage.includes('MugiwarasClient')) {
+  failures.push('mugiwaras/page.tsx must delegate card rendering to an interactive MugiwarasClient for SOUL.md toggles')
+}
+
+if (!mugiwarasBackendService.includes('DEFAULT_PROFILES_ROOT') || !mugiwarasBackendService.includes('get_soul_document')) {
+  failures.push('backend Mugiwaras service must expose SOUL.md through an allowlisted profile reader')
+}
+
 const activeRoster = ['luffy', 'zoro', 'franky', 'nami', 'robin', 'usopp', 'jinbe', 'sanji', 'chopper', 'brook']
 
 for (const slug of activeRoster) {
