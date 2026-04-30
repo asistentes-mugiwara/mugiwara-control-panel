@@ -257,13 +257,13 @@ Resumen de la decisión:
 - El cuerpo libre de commit no forma parte del contrato público; solo se lee internamente para trailers allowlisteados.
 
 ## Git control frontend / Repos Git
-Issue #40.4 añade la ruta frontend `/git` con etiqueta visible `Repos Git`. La página es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`. Issue #40.5 añade `Selección controlada` repo/commit mediante enlaces server-side y validación estricta de `searchParams`.
+La ruta frontend `/git` con etiqueta visible `Repos Git` es una Server Component dinámica y consume el backend solo desde `apps/web/src/modules/git/api/git-http.ts` con `import 'server-only'` y `MUGIWARA_CONTROL_PANEL_API_URL`. La página se presenta como revisor de estado local: una card por repo allowlisteado con `Estado local por repo`, rama actual, ramas disponibles, cambios, no trackeado y `Último commit` desplegable.
 
 Reglas de runtime:
 1. El navegador no recibe ni usa `MUGIWARA_CONTROL_PANEL_API_URL`, `NEXT_PUBLIC_*` ni backend URL absoluta.
-2. La UI no acepta paths, URLs, remotes, refs, rangos, revspecs ni comandos Git desde cliente; usa solo `repo_id` y SHA completo devueltos por backend.
-3. `repo_id` solo se acepta si existe en `repoIndex.repos`, y `sha` solo si existe en `commits.commits` del repo seleccionado; query params inválidos se ignoran sin eco ni error crudo.
-4. La página muestra índice de repos, commits, ramas locales, detalle de commit y diff histórico saneado. No muestra working-tree diff en 40.4/40.5.
+2. La UI no acepta paths, URLs, remotes, refs, rangos, revspecs ni comandos Git desde cliente; solo consume repos, ramas y commits devueltos por backend allowlisteado.
+3. La página no usa inputs ni selectores arbitrarios: renderiza directamente el índice de repos y consulta ramas/último commit por cada `repo_id` backend-owned.
+4. La página muestra estado por repo, ramas locales y último commit. No muestra working-tree diff ni diff histórico en la UI actual.
 5. El fallback local está saneado y no renderiza rutas host, detalles internos de ejecución y errores crudos, errores crudos, tokens ni secretos.
 6. Antes de cerrar cambios sobre esta frontera ejecutar:
 
@@ -271,4 +271,4 @@ Reglas de runtime:
 npm run verify:git-server-only
 ```
 
-Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.
+Nota actual: el cuadro desplegable del último commit renderiza solo el asunto saneado incluido en el resumen de commits; el cuerpo libre del commit sigue fuera del contrato público para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

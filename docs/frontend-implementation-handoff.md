@@ -700,13 +700,13 @@ Regla del bloque:
 - no abrir nuevas superficies de escritura
 - si identidad y claridad compiten, gana claridad
 
-## Módulo frontend `git` — Issue #40.4 (`Repos Git`)
+## Módulo frontend `git` — `Repos Git`
 - Ruta: `apps/web/src/app/git/page.tsx`.
 - Adapter: `apps/web/src/modules/git/api/git-http.ts`, siempre `server-only`, con `MUGIWARA_CONTROL_PANEL_API_URL`, `cache: 'no-store'`, validación `http(s)` y errores codificados/saneados.
 - Fixture/fallback: `apps/web/src/modules/git/view-models/git-surface.fixture.ts`, sin rutas host, secretos, detalles internos de ejecución ni errores crudos.
-- CSS/responsive: clases `git-*` en `globals.css` para listas/cards/diff con `min-width: 0`, wrap y scroll interno del diff.
-- Seguridad de presentación: la página no lee `process.env`, no hace fetch browser, no conoce backend URL, no acepta input de paths/refs/revspecs y solo encadena `repo_id`/SHA que vienen de respuestas backend.
-- Selector 40.5: `Selección controlada` repo/commit mediante enlaces server-side; `searchParams.repo_id` se acepta solo si existe en `repoIndex.repos` y `searchParams.sha` solo si existe en `commits.commits` del repo seleccionado. No hay inputs, forms, búsqueda libre ni selector de refs/rangos.
+- CSS/responsive: clases `git-*` en `globals.css` para cards de estado, métricas, chips de ramas y cuadro desplegable del último commit con `min-width: 0`, wrap y scroll interno controlado.
+- Seguridad de presentación: la página no lee `process.env`, no hace fetch browser, no conoce backend URL, no acepta input de paths/refs/revspecs y solo consume `repo_id`, ramas y commits que vienen de respuestas backend.
+- Modelo UI actual: una card por repo con `Estado local por repo`, rama actual, ramas disponibles, cambios, no trackeado y `Último commit` desplegable. No hay inputs, forms, búsqueda libre ni selector de refs/rangos.
 - Verificación obligatoria: `npm run verify:git-server-only`, typecheck, build, `npm run verify:visual-baseline`, `git diff --check` y smoke HTML/DOM anti-leakage.
 
-Nota 40.4: el contenido de líneas del diff se omite en frontend; la UI muestra metadata, contadores y estados de redacción/truncado/omisión para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.
+Nota actual: el cuadro desplegable del último commit renderiza solo el asunto saneado del resumen de commits; el cuerpo libre del commit sigue fuera del contrato público para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

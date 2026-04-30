@@ -88,32 +88,23 @@ for (const forbidden of [
 
 for (const snippet of [
   "export const dynamic = 'force-dynamic'",
-  "type GitPageSearchParams = Promise<Record<string, string | string[] | undefined>>",
-  "getSingleSearchParam(searchParams, 'repo_id')",
-  "getSingleSearchParam(searchParams, 'sha')",
-  'repoIndex.repos.find((repo) => repo.repo_id === requestedRepoId)',
-  'commitsResponse.data.commits.find((commit) => commit.sha === requestedSha)',
-  'hasUnsupportedGitSearchParams(searchParams)',
-  'redirect(gitRepoHref(selectedRepo.repo_id))',
-  'redirect(gitCommitHref(selectedRepo.repo_id, selectedCommit.sha))',
   'fetchGitRepos()',
-  'fetchGitCommits(selectedRepo.repo_id)',
-  'fetchGitBranches(selectedRepo.repo_id)',
-  'fetchGitCommitDetail(selectedRepo.repo_id, selectedCommit.sha)',
-  'fetchGitCommitDiff(selectedRepo.repo_id, selectedCommit.sha)',
-  'href={gitRepoHref(repo.repo_id)}',
-  'href={gitCommitHref(repoId, commit.sha)}',
-  'Selección controlada',
-  'Solo repos allowlisteados',
-  'Solo SHAs listados por backend',
-  'Repos Git',
-  'Solo lectura',
-  'repo_id/SHA backend-owned',
-  'Diff redactado/truncado/omitido',
+  'Promise.all(repoIndex.repos.map(async (repo) =>',
+  'fetchGitCommits(repo.repo_id)',
+  'fetchGitBranches(repo.repo_id)',
+  'type GitRepoCardSnapshot',
+  'RepoStatusCard',
+  'Ramas disponibles',
+  'Último commit',
+  'Mensaje del commit',
+  '<details className="git-commit-message"',
   'Sin operaciones mutables',
   'Sin rutas host',
   'Sin texto libre de commits',
-  'Archivo omitido por seguridad',
+  'Repos Git',
+  'Solo lectura',
+  'Estado local por repo',
+  'Último commit desplegable',
 ]) mustInclude(page, snippet, 'git page')
 
 for (const forbidden of [
@@ -185,10 +176,16 @@ for (const doc of [runtimeConfig, frontendSpec, handoff, openspec, openspecSelec
   mustInclude(doc, 'server-only', 'Git docs/OpenSpec/Engram')
 }
 
-for (const doc of [runtimeConfig, frontendSpec, handoff, openspecSelector, engramSelector]) {
-  mustInclude(doc, 'Selección controlada', 'Git selector docs/OpenSpec/Engram')
-  mustInclude(doc, 'repo_id', 'Git selector docs/OpenSpec/Engram')
-  mustInclude(doc, 'SHA', 'Git selector docs/OpenSpec/Engram')
+for (const doc of [runtimeConfig, frontendSpec, handoff]) {
+  mustInclude(doc, 'Estado local por repo', 'Git status cards docs')
+  mustInclude(doc, 'Último commit', 'Git status cards docs')
+  mustInclude(doc, 'repo', 'Git status cards docs')
+}
+
+for (const doc of [openspecSelector, engramSelector]) {
+  mustInclude(doc, 'Selección controlada', 'Git historical selector docs/OpenSpec/Engram')
+  mustInclude(doc, 'repo_id', 'Git historical selector docs/OpenSpec/Engram')
+  mustInclude(doc, 'SHA', 'Git historical selector docs/OpenSpec/Engram')
 }
 
 if (failures.length > 0) {
