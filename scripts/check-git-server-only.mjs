@@ -99,8 +99,6 @@ for (const snippet of [
   'Mensaje del commit',
   '<details className="git-commit-message"',
   'Sin operaciones mutables',
-  'Sin rutas host',
-  'Sin texto libre de commits',
   'Repos Git',
   'Solo lectura',
   'Estado local por repo',
