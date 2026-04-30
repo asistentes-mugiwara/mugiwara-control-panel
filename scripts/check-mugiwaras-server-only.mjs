@@ -52,8 +52,13 @@ if (mugiwarasPage.includes('NEXT_PUBLIC_MUGIWARA_CONTROL_PANEL_API_URL')) {
   failures.push('mugiwaras/page.tsx must not instruct operators to use the public env var')
 }
 
-if (!mugiwarasPage.includes("href=\"#agents-md\"") || !mugiwarasPage.includes('Leer AGENTS.md') || !mugiwarasPage.includes('id="agents-md"')) {
-  failures.push('mugiwaras/page.tsx must expose a Leer AGENTS.md anchor targeting #agents-md')
+if (
+  !mugiwarasPage.includes("href=\"#agents-md\"") ||
+  !mugiwarasPage.includes('Leer AGENTS.md') ||
+  !mugiwarasPage.includes('id="agents-md"') ||
+  !mugiwarasPage.includes('tabIndex={-1}')
+) {
+  failures.push('mugiwaras/page.tsx must expose a keyboard-focusable Leer AGENTS.md anchor target at #agents-md')
 }
 
 if (!mugiwarasPage.includes('MugiwarasClient')) {

@@ -372,7 +372,7 @@ export default async function MugiwarasPage() {
       <MugiwarasClient cards={viewModel.cards} isSnapshotMode={isSnapshotMode} />
 
       {viewModel.crewRulesDocument ? (
-        <section id="agents-md" className="section-block">
+        <section id="agents-md" tabIndex={-1} className="section-block">
           <SurfaceCard title={viewModel.crewRulesDocument.title} eyebrow="Canon operativo" accent="gold" elevated>
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
