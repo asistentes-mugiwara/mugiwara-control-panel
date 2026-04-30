@@ -188,7 +188,23 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
           </SurfaceCard>
         </aside>
 
-        <main style={{ display: 'grid', gap: '14px' }}>
+        <section aria-labelledby="memory-document-heading" style={{ display: 'grid', gap: '14px' }}>
+          <h2
+            id="memory-document-heading"
+            style={{
+              position: 'absolute',
+              width: '1px',
+              height: '1px',
+              padding: 0,
+              margin: '-1px',
+              overflow: 'hidden',
+              clip: 'rect(0, 0, 0, 0)',
+              whiteSpace: 'nowrap',
+              border: 0,
+            }}
+          >
+            Documento MEMORY.md seleccionado
+          </h2>
           <SurfaceCard title="Estado del documento" elevated eyebrow="Read-only" accent="sky">
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -258,7 +274,7 @@ export function MemoryClient({ apiSummaries, apiDetails, apiState, apiNotice }: 
               />
             )}
           </SurfaceCard>
-        </main>
+        </section>
       </section>
     </>
   )
