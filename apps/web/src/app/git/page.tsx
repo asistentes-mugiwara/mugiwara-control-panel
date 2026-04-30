@@ -284,21 +284,6 @@ export default async function GitPage() {
         </StatePanel>
       ) : null}
 
-      <StatePanel
-        status="revision"
-        title="Frontera Git bloqueada en modo read-only"
-        description="La pantalla revisa estado local de repos allowlisteados sin operaciones mutables, sin selectores arbitrarios y sin publicar rutas del host. El mensaje desplegable usa solo el asunto saneado del último commit expuesto por backend."
-        eyebrow="Guardrail UI"
-      >
-        <SourceStatePills
-          items={[
-            { label: 'Sin operaciones mutables', tone: 'connected' },
-            { label: 'Sin rutas host', tone: 'connected' },
-            { label: 'Sin texto libre de commits', tone: 'connected' },
-            { label: 'Solo repos allowlisteados', tone: 'connected' },
-          ]}
-        />
-      </StatePanel>
 
       <section className="section-block layout-grid layout-grid--cards-280" aria-label="Cards de estado de repos Git locales">
         {cards.map((snapshot) => (
