@@ -240,7 +240,7 @@ function RepoStatusCard({ snapshot }: { snapshot: GitRepoCardSnapshot }) {
             <dd>{valueOrDash(repo.status.changed_files_count)}</dd>
           </div>
           <div>
-            <dt>No trackeado</dt>
+            <dt>Sin trackear</dt>
             <dd>{valueOrDash(repo.status.untracked_files_count)}</dd>
           </div>
         </dl>
@@ -251,7 +251,7 @@ function RepoStatusCard({ snapshot }: { snapshot: GitRepoCardSnapshot }) {
         </div>
 
         <div className="git-repo-status-card__section">
-          <h2>Último commit desplegable</h2>
+          <h2>Último commit</h2>
           <LatestCommit commit={latestCommit} />
         </div>
       </article>
@@ -268,8 +268,8 @@ export default async function GitPage() {
       <PageHeader
         eyebrow="Repos Git"
         title="Revisor de repos Git locales"
-        subtitle="Una card por repo allowlisteado con rama actual, ramas disponibles, cambios, no trackeado y último commit desplegable. Lectura server-only, sin acciones Git y sin rutas del host."
-        detailPills={['Solo lectura', 'Estado local por repo', 'Último commit desplegable', 'Sin operaciones mutables']}
+        subtitle="Una card por repo allowlisteado con rama actual, ramas disponibles, cambios, sin trackear y último commit. Lectura server-only, sin acciones Git y sin rutas del host."
+        detailPills={['Solo lectura', 'Estado local por repo', 'Último commit', 'Sin operaciones mutables']}
       />
 
       {notice ? (

@@ -706,7 +706,7 @@ Regla del bloque:
 - Fixture/fallback: `apps/web/src/modules/git/view-models/git-surface.fixture.ts`, sin rutas host, secretos, detalles internos de ejecución ni errores crudos.
 - CSS/responsive: clases `git-*` en `globals.css` para cards de estado, métricas, chips de ramas y cuadro desplegable del último commit con `min-width: 0`, wrap y scroll interno controlado.
 - Seguridad de presentación: la página no lee `process.env`, no hace fetch browser, no conoce backend URL, no acepta input de paths/refs/revspecs y solo consume `repo_id`, ramas y commits que vienen de respuestas backend.
-- Modelo UI actual: una card por repo con `Estado local por repo`, rama actual, ramas disponibles, cambios, no trackeado y `Último commit` desplegable. No hay inputs, forms, búsqueda libre ni selector de refs/rangos.
+- Modelo UI actual: una card por repo con `Estado local por repo`, rama actual, ramas disponibles, cambios, sin trackear y `Último commit`. No hay inputs, forms, búsqueda libre ni selector de refs/rangos.
 - Verificación obligatoria: `npm run verify:git-server-only`, typecheck, build, `npm run verify:visual-baseline`, `git diff --check` y smoke HTML/DOM anti-leakage.
 
 Nota actual: el cuadro desplegable del último commit renderiza solo el asunto saneado del resumen de commits; el cuerpo libre del commit sigue fuera del contrato público para evitar reintroducir canarios o secretos históricos en HTML/DOM. Guardrail: `npm run verify:git-server-only`.

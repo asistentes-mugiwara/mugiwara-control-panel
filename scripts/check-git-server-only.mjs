@@ -102,7 +102,7 @@ for (const snippet of [
   'Repos Git',
   'Solo lectura',
   'Estado local por repo',
-  'Último commit desplegable',
+  'Sin trackear',
 ]) mustInclude(page, snippet, 'git page')
 
 for (const forbidden of [
