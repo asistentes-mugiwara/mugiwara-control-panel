@@ -75,7 +75,7 @@ async function getInitialMemoryData(): Promise<InitialMemoryData> {
               : 'API Memory no disponible',
         description:
           apiError?.code === 'not_configured'
-            ? 'Mostrando snapshot local saneado. Estos resúmenes sostienen la navegación, pero no son lectura real ni tiempo real.'
+            ? 'Mostrando snapshot local saneado. Configura MUGIWARA_CONTROL_PANEL_API_URL en el runtime server-only para leer MEMORY.md real.'
             : 'La página mantiene el fallback saneado local. No se muestran dumps crudos ni detalles técnicos de memoria.',
         detail: apiError?.code ? `Estado técnico: ${apiError.code}` : undefined,
       },

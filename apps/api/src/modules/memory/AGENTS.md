@@ -4,8 +4,8 @@
 Módulo backend read-only para la superficie Memory.
 
 ## Reglas
-- Exponer solo resúmenes saneados, contadores, badges, frescura y links allowlisted.
-- No exponer dumps crudos de memoria, prompts, IDs internos, observaciones completas, sesiones ni secretos.
-- Mantener separadas las fuentes `built-in` y `honcho`; Engram no se mezcla silenciosamente en esta superficie.
-- No leer bases reales de memoria desde paths arbitrarios en esta microfase; usar catálogo seguro backend-owned hasta que exista conector auditado.
+- Exponer solo perfiles Mugiwara allowlisted y documentos `MEMORY.md` resueltos por el backend.
+- No aceptar rutas desde el frontend ni slugs path-like; el cliente pide slugs lógicos y el backend resuelve la ubicación.
+- No exponer prompts, IDs internos, observaciones completas, sesiones, secretos, rutas absolutas ni errores crudos.
+- Mantener separadas las fuentes: esta superficie muestra `MEMORY.md` builtin; no mezcla Honcho, Vault ni Engram.
 - Los errores deben ser semánticos y no filtrar rutas del host ni detalles internos.

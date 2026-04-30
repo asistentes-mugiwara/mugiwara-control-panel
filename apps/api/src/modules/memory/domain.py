@@ -26,12 +26,24 @@ class MemoryAgentSummary:
 
 
 @dataclass(frozen=True)
+class MemoryDocument:
+    status: str
+    display_path: str
+    read_only: bool
+    markdown: str
+    updated_at: str | None
+    size_bytes: int | None
+    message: str
+
+
+@dataclass(frozen=True)
 class MemoryAgentDetail:
     mugiwara_slug: str
     built_in_summary: str
     honcho_facts: list[str]
     freshness: Freshness
     links: list[SafeLink]
+    memory_document: MemoryDocument
 
 
 @dataclass(frozen=True)
