@@ -35,13 +35,13 @@ const viewports = [
 
 const routes = [
   {
-    path: '/dashboard',
-    title: 'Estado del barco',
+    path: '/',
+    title: 'Inicio',
     checks: [
-      'KPIs visibles sin truncados torpes',
-      'cards de severidad/frescura/módulos mantienen ritmo visual',
-      'accesos rápidos envuelven bien en tablet/mobile',
-      'si la API no está configurada, el aviso indica Modo fallback local, Snapshot saneado y No tiempo real',
+      'portada visible sin sidebar ni botón de navegación lateral',
+      'banner/header mantiene identidad Mugiwara sin parecer landing pública',
+      'cards de Mugiwaras, Skills, Memory, Vault, Healthcheck, Repos Git y Uso mantienen grid legible',
+      'no hay métricas duplicadas ni concepto visible de Dashboard',
     ],
   },
   {

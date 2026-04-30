@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 import { appTheme } from '@/shared/theme/tokens'
 
 const routes = [
-  { href: '/dashboard', label: 'Dashboard', icon: '◉' },
+  { href: '/', label: 'Inicio', icon: '✺' },
   { href: '/mugiwaras', label: 'Mugiwaras', icon: '⚓' },
   { href: '/skills', label: 'Skills', icon: '✦' },
   { href: '/memory', label: 'Memory', icon: '◎' },
@@ -58,7 +58,7 @@ export function SidebarNav({ navId, navRef, isDesktop = true, isMobileOpen = fal
       <nav>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '8px' }}>
           {routes.map((route) => {
-            const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(`${route.href}/`))
+            const isActive = pathname === route.href || (route.href !== '/' && pathname.startsWith(`${route.href}/`))
 
             return (
               <li key={route.href}>

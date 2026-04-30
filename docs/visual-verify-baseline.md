@@ -16,16 +16,21 @@ Este comando imprime la checklist canónica por **viewport** y por **ruta**.
 - **Mobile** — `390×844`
 
 ## Rutas obligatorias
-- `/dashboard`
+- `/` — Inicio
 - `/mugiwaras`
 - `/skills`
 - `/memory`
 - `/vault`
 - `/healthcheck`
+- `/git`
+- `/usage`
+
+`/dashboard` no es ruta visual canónica; queda como alias temporal hacia `/`.
 
 ## Qué revisar siempre
 ### Shell
-- sidebar/topbar estables según viewport
+- en `/`, portada Inicio visible sin sidebar ni botón de navegación lateral
+- en rutas internas, sidebar/topbar estables según viewport
 - foco y navegación utilizables
 - ausencia de overflow horizontal obvio
 

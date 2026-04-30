@@ -31,7 +31,8 @@ Cuando implementes frontend en `apps/web`:
 ## Fase 1 — foundation del shell
 Entregar primero:
 - `app/layout.tsx`
-- `dashboard/page.tsx`
+- `page.tsx` como portada Inicio
+- `dashboard/page.tsx` como alias temporal hacia `/`
 - navegación lateral
 - topbar
 - page header
@@ -58,9 +59,9 @@ Después:
 - extracción a `packages/ui` solo si ya hay masa crítica real
 
 ## Fase 5 — ideas rescatadas de la exploración landing
-Incorporar solo las ideas que mejoran el shell sin convertirlo en landing:
-- `Estado del barco` como heading editorial del dashboard
-- bloque de `Tripulación activa` como resumen navegable, no como póster
+Incorporar solo las ideas que mejoran el shell sin convertirlo en landing pública:
+- `Inicio` en `/` como portada privada visual y navegable
+- cards hacia Mugiwaras, Skills, Memory, Vault, Healthcheck, Repos Git y Uso
 - panel `Señales del sistema`
 - panel `Incidencias recientes`
 - franja opcional de principios de seguridad (`Código público. Operación privada`)
@@ -76,8 +77,8 @@ Regla: si una idea rescatada compite con claridad o con la taxonomía de 6 módu
 ```text
 apps/web/src/app/
   layout.tsx
-  page.tsx                  # redirige a /dashboard o actúa como alias limpio
-  dashboard/page.tsx
+  page.tsx                  # portada Inicio sin sidebar
+  dashboard/page.tsx        # alias temporal: redirect('/')
   mugiwaras/page.tsx
   mugiwaras/[slug]/page.tsx         # opcional si el detalle vive por ruta
   skills/page.tsx
@@ -257,7 +258,7 @@ Responsabilidades:
 - emblema visual general con `laya-mugiwara.jpg` mediante componente compartido de marca; no usar `MugiwaraCrest` ni `mugiwaraSlug` en cabeceras generales
 - `actions`
 - `breadcrumbs?`
-- puede usar un heading editorial visible distinto del nombre canónico de ruta si la spec lo permite (ej. `Dashboard` -> `Estado del barco`)
+- puede usar un heading editorial visible distinto del nombre canónico de ruta si la spec lo permite
 - en responsive, apilar bloque principal y acciones; pills y metadatos deben envolver sin cortar el contenido
 
 ## 5.2 Foundation
@@ -537,25 +538,19 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 
 # 9. Handoff por pantalla para implementar primero
 
-## 9.1 Dashboard
+## 9.1 Inicio
 ### Entregar
-- layout dashboard
-- 4 `MetricCard`
-- bloque `Tripulación activa`
-- accesos rápidos
-- lista de señales recientes
-- `SystemSignalsPanel`
-- `IncidentsPanel`
-- `SecurityPrinciplesStrip` opcional si no rompe densidad
+- portada privada en `/` sin sidebar ni botón móvil de navegación lateral
+- hero interno breve con identidad Mugiwara/Laya
+- grid de cards de navegación a Mugiwaras, Skills, Memory, Vault, Healthcheck, Repos Git y Uso
+- copy claro de producto privado/read-first, sin parecer landing pública
+- `/dashboard` como alias temporal con `redirect('/')`
 
 ### Componentes mínimos
-- `PageHeader`
-- `MetricCard`
-- `MugiwaraCard`
-- `QuickAccessCard`
-- `RecentSignalsList`
-- `SystemSignalsPanel`
-- `IncidentsPanel`
+- `LayaMugiwaraMark`
+- `SurfaceCard`
+- cards de navegación con `Link`
+- estilos responsive propios de Inicio
 
 ## 9.2 Mugiwaras
 ### Entregar
@@ -612,8 +607,10 @@ Los roles exactos pueden ajustarse al canon del proyecto, pero el slug + crest p
 
 # 10. Decisiones UX concretas a respetar
 
-## 10.1 Dashboard es la home
-No abrir con una landing extra. Si `/` existe como ruta separada, debe redirigir o comportarse como entrada al dashboard.
+## 10.1 Inicio es la entrada
+`/` renderiza la portada Inicio directamente. La portada orienta y enlaza a las páginas principales; no duplica Healthcheck, Usage, Git, Memory, Vault, Skills ni Mugiwaras.
+
+`/dashboard` queda como alias temporal mediante redirect a `/` para compatibilidad, pero el concepto visible de Dashboard deja de ser la entrada del producto.
 
 ## 10.2 `memory` no es `vault`
 Deben sentirse distintas:
