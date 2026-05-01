@@ -16,6 +16,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HealthcheckRecord,
 )
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
+from apps.api.src.modules.healthcheck.router import get_healthcheck_service
 from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, CronjobsManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
@@ -48,7 +49,7 @@ def _record_event(event_id, source, status, timestamp):
 
 
 def _assert_no_sensitive_host_output(value):
-    forbidden = ('/srv/', '/home/', '.env', 'token', 'secret', 'password', 'raw_output', 'stdout', 'stderr', 'command')
+    forbidden = ('/srv/', '/home/', '.env', 'token', 'secret', 'password', 'raw_output', 'stdout', 'stderr', 'command', 'pid', 'container_id', 'docker_id', 'mount', 'remote_url', 'prompt_body', 'chat_id', 'delivery_target')
     if isinstance(value, dict):
         for key, item in value.items():
             assert all(term not in str(key).lower() for term in forbidden)
@@ -747,6 +748,15 @@ def test_healthcheck_returns_sanitized_workspace():
     assert data['summary_bar']['warnings'] >= 0
     assert data['summary_bar']['incidents'] >= 0
     assert data['modules']
+    assert data['operational_checks']
+    assert [check['check_id'] for check in data['operational_checks']] == [
+        'gateways',
+        'honcho',
+        'docker_runtime',
+        'cronjobs',
+        'vault_sync',
+        'backup',
+    ]
     assert data['events']
     assert isinstance(data['signals'], list)
     assert {'Repo público', 'Deny by default', 'Sin shell remoto'}.issubset(set(data['principles']))
@@ -757,11 +767,30 @@ def test_healthcheck_empty_source_is_not_configured():
     service = HealthcheckService(records=())
 
     assert service.workspace_status() == 'not_configured'
-    assert service.get_workspace()['summary_bar']['checks_total'] == 0
-    assert service.get_workspace()['summary_bar']['current_cause'] is None
-    assert service.get_workspace()['modules'] == []
-    assert service.get_workspace()['events'] == []
-    assert service.get_workspace()['signals'] == []
+    workspace = service.get_workspace()
+    assert workspace['summary_bar']['checks_total'] == 0
+    assert workspace['summary_bar']['current_cause'] is None
+    assert workspace['modules'] == []
+    assert workspace['events'] == []
+    assert workspace['signals'] == []
+    assert [check['check_id'] for check in workspace['operational_checks']] == [
+        'gateways',
+        'honcho',
+        'docker_runtime',
+        'cronjobs',
+        'vault_sync',
+        'backup',
+    ]
+    assert all(check['status'] in {'not_configured', 'unknown'} for check in workspace['operational_checks'])
+
+
+def test_healthcheck_router_builds_live_service_per_request():
+    first = get_healthcheck_service()
+    second = get_healthcheck_service()
+
+    assert isinstance(first, HealthcheckService)
+    assert isinstance(second, HealthcheckService)
+    assert first is not second
 
 
 def test_healthcheck_current_cause_is_derived_from_current_records_not_historical_events():

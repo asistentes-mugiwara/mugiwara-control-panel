@@ -3,46 +3,78 @@ import { readFileSync } from 'node:fs'
 
 const checks = [
   {
-    file: 'apps/api/src/modules/healthcheck/service.py',
+    file: 'apps/api/src/modules/healthcheck/router.py',
     mustInclude: [
-      'HealthcheckCurrentCause',
-      "current_cause = self._current_cause(overall_record) if overall != 'pass' else None",
+      'return HealthcheckService()',
+      'fresh service per request',
+    ],
+    mustNotInclude: [
+      '_service = HealthcheckService()',
     ],
   },
   {
     file: 'apps/api/src/modules/healthcheck/domain.py',
     mustInclude: [
-      "kind: str = 'historical'",
-      'class HealthcheckCurrentCause',
+      'HEALTHCHECK_OPERATIONAL_CHECK_IDS',
+      "'gateways'",
+      "'honcho'",
+      "'docker_runtime'",
+      "'cronjobs'",
+      "'vault_sync'",
+      "'backup'",
+      'class HealthcheckOperationalCheck',
+    ],
+  },
+  {
+    file: 'apps/api/src/modules/healthcheck/service.py',
+    mustInclude: [
+      "'operational_checks'",
+      'def _operational_checks',
+      "'docker_runtime'",
+      'Docker runtime no expone detalles internos',
+      'Honcho no expone datos internos',
     ],
   },
   {
     file: 'apps/web/src/app/healthcheck/page.tsx',
     mustInclude: [
-      'Causa actual',
-      'Bitácora histórica',
-      'Eventos anteriores saneados. No representan necesariamente el estado activo',
-      'Incidencia histórica',
-      'No procede de la bitácora histórica',
+      'Panel operativo',
+      'Estado operativo actual',
+      'Operational check',
+      'Sin datos sensibles',
+      'operational_checks',
     ],
     mustNotInclude: [
+      'Bitácora histórica',
+      'Eventos anteriores saneados',
+      'Incidencia histórica',
+      'No procede de la bitácora histórica',
       'Eventos recientes',
     ],
   },
   {
     file: 'apps/api/tests/test_healthcheck_dashboard_api.py',
     mustInclude: [
-      'test_healthcheck_current_cause_is_derived_from_current_records_not_historical_events',
-      'test_healthcheck_pass_state_has_no_current_cause_even_with_historical_warning',
+      'test_healthcheck_router_builds_live_service_per_request',
+      'operational_checks',
+      'docker_runtime',
     ],
   },
-  {
-    file: 'docs/read-models.md',
-    mustInclude: [
-      'current_cause',
-      'eventos históricos',
-    ],
-  },
+]
+
+const sensitiveNeedles = [
+  'stdout',
+  'stderr',
+  'raw_output',
+  'command',
+  'pid',
+  'container_id',
+  'docker_id',
+  'mount',
+  'remote_url',
+  'prompt_body',
+  'chat_id',
+  'delivery_target',
 ]
 
 let failed = false
@@ -50,15 +82,23 @@ for (const check of checks) {
   const content = readFileSync(check.file, 'utf8')
   for (const needle of check.mustInclude ?? []) {
     if (!content.includes(needle)) {
-      console.error(`[healthcheck-review-clarity] ${check.file} must include: ${needle}`)
+      console.error(`[healthcheck-operational-panel] ${check.file} must include: ${needle}`)
       failed = true
     }
   }
   for (const needle of check.mustNotInclude ?? []) {
     if (content.includes(needle)) {
-      console.error(`[healthcheck-review-clarity] ${check.file} must not include stale copy: ${needle}`)
+      console.error(`[healthcheck-operational-panel] ${check.file} must not include stale copy: ${needle}`)
       failed = true
     }
+  }
+}
+
+const page = readFileSync('apps/web/src/app/healthcheck/page.tsx', 'utf8')
+for (const needle of sensitiveNeedles) {
+  if (page.toLowerCase().includes(needle)) {
+    console.error(`[healthcheck-operational-panel] page must not render sensitive marker: ${needle}`)
+    failed = true
   }
 }
 
@@ -66,4 +106,4 @@ if (failed) {
   process.exit(1)
 }
 
-console.log('Healthcheck review clarity guardrail passed')
+console.log('Healthcheck operational panel guardrail passed')

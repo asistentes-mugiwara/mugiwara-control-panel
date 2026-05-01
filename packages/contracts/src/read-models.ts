@@ -166,6 +166,16 @@ export type HealthcheckModuleCard = {
   summary: string
 }
 
+export type HealthcheckOperationalCheck = {
+  check_id: 'gateways' | 'honcho' | 'docker_runtime' | 'cronjobs' | 'vault_sync' | 'backup'
+  label: string
+  status: HealthcheckStatus
+  severity: OperationalSeverity | 'unknown'
+  updated_at: string | null
+  summary: string
+  freshness: HealthcheckFreshness
+}
+
 export type HealthcheckEvent = {
   event_id: string
   source: string
@@ -187,6 +197,7 @@ export type HealthcheckSummary = {
 
 export type HealthcheckWorkspace = {
   summary_bar: HealthcheckSummaryBar
+  operational_checks: HealthcheckOperationalCheck[]
   modules: HealthcheckModuleCard[]
   events: HealthcheckEvent[]
   principles: string[]

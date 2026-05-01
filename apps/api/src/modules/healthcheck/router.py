@@ -6,11 +6,12 @@ from ...shared.contracts import resource_response
 from .service import HealthcheckService
 
 router = APIRouter(prefix='/api/v1/healthcheck', tags=['healthcheck'])
-_service = HealthcheckService()
 
 
 def get_healthcheck_service() -> HealthcheckService:
-    return _service
+    # Build a fresh service per request so fixed manifests are re-read live and
+    # the API cannot keep stale snapshots from router import time.
+    return HealthcheckService()
 
 
 @router.get('')

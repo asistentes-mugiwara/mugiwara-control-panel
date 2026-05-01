@@ -35,6 +35,16 @@ export type HealthcheckModuleCard = {
   summary: string
 }
 
+export type HealthcheckOperationalCheck = {
+  check_id: 'gateways' | 'honcho' | 'docker_runtime' | 'cronjobs' | 'vault_sync' | 'backup' | string
+  label: string
+  status: HealthcheckStatus
+  severity: HealthcheckSeverity
+  updated_at: string | null
+  summary: string
+  freshness: HealthcheckFreshness
+}
+
 export type HealthcheckEvent = {
   event_id: string
   source: string
@@ -56,157 +66,114 @@ export type HealthcheckSummaryItem = {
 
 export type HealthcheckWorkspace = {
   summary_bar: HealthcheckSummaryBar
+  operational_checks: HealthcheckOperationalCheck[]
   modules: HealthcheckModuleCard[]
   events: HealthcheckEvent[]
   principles: string[]
   signals: HealthcheckSummaryItem[]
 }
 
+const operationalChecks: HealthcheckOperationalCheck[] = [
+  {
+    check_id: 'gateways',
+    label: 'Gateways',
+    status: 'warn',
+    severity: 'medium',
+    updated_at: '2026-04-24T07:44:00Z',
+    summary: 'Gateway con advertencia operativa saneada en el último corte disponible.',
+    freshness: { updated_at: '2026-04-24T07:44:00Z', label: 'Actualizado hace 2 min', state: 'stale' },
+  },
+  {
+    check_id: 'honcho',
+    label: 'Honcho',
+    status: 'unknown',
+    severity: 'unknown',
+    updated_at: null,
+    summary: 'Honcho no expone datos internos en Healthcheck; falta manifiesto operativo saneado.',
+    freshness: { updated_at: null, label: 'Frescura desconocida', state: 'unknown' },
+  },
+  {
+    check_id: 'docker_runtime',
+    label: 'Docker runtime',
+    status: 'unknown',
+    severity: 'unknown',
+    updated_at: null,
+    summary: 'Docker runtime no expone detalles internos; falta manifiesto operativo saneado.',
+    freshness: { updated_at: null, label: 'Frescura desconocida', state: 'unknown' },
+  },
+  {
+    check_id: 'cronjobs',
+    label: 'Cronjobs',
+    status: 'warn',
+    severity: 'medium',
+    updated_at: '2026-04-24T07:41:00Z',
+    summary: 'La revisión nocturna ejecutó, pero queda una advertencia operativa menor en skills del job.',
+    freshness: { updated_at: '2026-04-24T07:41:00Z', label: 'Actualizado hace 5 min', state: 'stale' },
+  },
+  {
+    check_id: 'vault_sync',
+    label: 'Vault sync',
+    status: 'stale',
+    severity: 'medium',
+    updated_at: '2026-04-24T07:22:00Z',
+    summary: 'Parte del estado documental está disponible, pero algunos resúmenes necesitan refresco.',
+    freshness: { updated_at: '2026-04-24T07:22:00Z', label: 'Actualizado hace 24 min', state: 'stale' },
+  },
+  {
+    check_id: 'backup',
+    label: 'Backup',
+    status: 'pass',
+    severity: 'low',
+    updated_at: '2026-04-24T07:35:00Z',
+    summary: 'Último backup local completado y checksum disponible.',
+    freshness: { updated_at: '2026-04-24T07:35:00Z', label: 'Actualizado hace 11 min', state: 'fresh' },
+  },
+]
+
 export const healthcheckWorkspaceFixture: HealthcheckWorkspace = {
   summary_bar: {
-    overall_status: 'fail',
+    overall_status: 'stale',
     checks_total: 6,
-    warnings: 2,
-    incidents: 1,
+    warnings: 4,
+    incidents: 0,
     updated_at: '2026-04-24T07:46:00Z',
     current_cause: {
-      source_id: 'system',
-      label: 'System',
-      status: 'fail',
-      severity: 'high',
-      summary: 'Se detectó una incidencia abierta de capacidad que requiere revisión prioritaria.',
+      source_id: 'vault-sync',
+      label: 'Vault sync',
+      status: 'stale',
+      severity: 'medium',
+      summary: 'Parte del estado documental está disponible, pero algunos resúmenes necesitan refresco.',
       warning_text: 'Causa principal del snapshot saneado; no representa lectura real.',
       freshness_state: 'stale',
     },
   },
-  modules: [
-    {
-      module_id: 'cronjobs',
-      label: 'Cronjobs',
-      status: 'warn',
-      severity: 'medium',
-      updated_at: '2026-04-24T07:41:00Z',
-      summary: 'La revisión nocturna ejecutó, pero queda una advertencia operativa menor en skills del job.',
-    },
-    {
-      module_id: 'backups',
-      label: 'Backups',
-      status: 'pass',
-      severity: 'low',
-      updated_at: '2026-04-24T07:35:00Z',
-      summary: 'Último backup local completado y checksum disponible.',
-    },
-    {
-      module_id: 'gateways',
-      label: 'Gateways',
-      status: 'warn',
-      severity: 'medium',
-      updated_at: '2026-04-24T07:44:00Z',
-      summary: 'Latencia por encima del umbral recomendado en la puerta principal.',
-    },
-    {
-      module_id: 'honcho',
-      label: 'Honcho',
-      status: 'stale',
-      severity: 'medium',
-      updated_at: '2026-04-24T07:22:00Z',
-      summary: 'Parte del contexto relacional está disponible, pero algunos resúmenes necesitan refresco.',
-    },
-    {
-      module_id: 'docker',
-      label: 'Docker',
-      status: 'pass',
-      severity: 'low',
-      updated_at: '2026-04-24T07:32:00Z',
-      summary: 'Servicios contenedorizados sin incidencias visibles en este corte.',
-    },
-    {
-      module_id: 'system',
-      label: 'System',
-      status: 'fail',
-      severity: 'high',
-      updated_at: '2026-04-24T07:39:00Z',
-      summary: 'Se detectó una incidencia abierta de capacidad que requiere revisión prioritaria.',
-    },
-  ],
-  events: [
-    {
-      event_id: 'evt-cron-nightly',
-      source: 'cronjobs',
-      status: 'warn',
-      timestamp: '2026-04-24T01:33:40+02:00',
-      detail: 'Ejecución nocturna completada con advertencia saneada pendiente de revisión.',
-      kind: 'historical',
-    },
-    {
-      event_id: 'evt-gateway-latency',
-      source: 'gateways',
-      status: 'warn',
-      timestamp: '2026-04-24T07:44:00Z',
-      detail: 'Latencia sostenida por encima del umbral objetivo durante una ventana de observación anterior.',
-      kind: 'historical',
-    },
-    {
-      event_id: 'evt-system-capacity',
-      source: 'system',
-      status: 'fail',
-      timestamp: '2026-04-24T07:39:00Z',
-      detail: 'Incidencia saneada registrada en una revisión anterior; no representa por sí sola el estado activo.',
-      kind: 'historical',
-    },
-    {
-      event_id: 'evt-backup-checksum',
-      source: 'backups',
-      status: 'pass',
-      timestamp: '2026-04-24T07:35:00Z',
-      detail: 'Backup validado en una revisión anterior sin desviaciones visibles.',
-      kind: 'historical',
-    },
-  ],
+  operational_checks: operationalChecks,
+  modules: operationalChecks.map((check) => ({
+    module_id: check.check_id,
+    label: check.label,
+    status: check.status,
+    severity: check.severity,
+    updated_at: check.updated_at ?? '',
+    summary: check.summary,
+  })),
+  events: [],
   principles: [
     'Repo público',
     'Deny by default',
     'Allowlists explícitas',
     'Sin acceso arbitrario al host',
   ],
-  signals: [
-    {
-      check_id: 'api-gateway-latency',
-      label: 'API gateway latency',
-      severity: 'medium',
-      status: 'warn',
-      freshness: {
-        updated_at: '2026-04-24T07:44:00Z',
-        label: 'Actualizado hace 2 min',
-      },
-      warning_text: 'Latencia por encima del umbral recomendado.',
-      source_label: 'Gateway monitor',
-    },
-    {
-      check_id: 'memory-sync-window',
-      label: 'Memory sync window',
-      severity: 'low',
-      status: 'pass',
-      freshness: {
-        updated_at: '2026-04-24T07:43:00Z',
-        label: 'Actualizado hace 3 min',
-      },
-      warning_text: 'Sin alerta activa.',
-      source_label: 'Memory coordinator',
-    },
-    {
-      check_id: 'vault-index-refresh',
-      label: 'Vault index refresh',
-      severity: 'medium',
-      status: 'stale',
-      freshness: {
-        updated_at: '2026-04-24T07:22:00Z',
-        label: 'Actualizado hace 24 min',
-      },
-      warning_text: 'Índice desactualizado, pendiente de ciclo regular.',
-      source_label: 'Vault index service',
-    },
-  ],
+  signals: operationalChecks
+    .filter((check) => check.status !== 'pass')
+    .map((check) => ({
+      check_id: check.check_id,
+      label: check.label,
+      severity: check.severity,
+      status: check.status,
+      freshness: check.freshness,
+      warning_text: check.summary,
+      source_label: 'Healthcheck fallback saneado',
+    })),
 }
 
 export const healthcheckSummaryFixture: HealthcheckSummaryItem[] = healthcheckWorkspaceFixture.signals

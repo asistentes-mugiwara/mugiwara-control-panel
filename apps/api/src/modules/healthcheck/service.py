@@ -9,6 +9,7 @@ from .domain import (
     HealthcheckEvent,
     HealthcheckFreshness,
     HealthcheckModuleCard,
+    HealthcheckOperationalCheck,
     HealthcheckRecord,
     HealthcheckSummaryBar,
     HealthcheckSummaryItem,
@@ -94,11 +95,113 @@ class HealthcheckService:
         events = self._events if self._records else ()
         return {
             'summary_bar': asdict(summary_bar),
+            'operational_checks': [asdict(check) for check in self._operational_checks()],
             'modules': [asdict(module) for module in modules],
             'events': [asdict(event) for event in events],
             'principles': list(SAFE_PRINCIPLES),
             'signals': [asdict(signal) for signal in signals],
         }
+
+
+    def _operational_checks(self) -> list[HealthcheckOperationalCheck]:
+        records_by_id = {record.module_id: record for record in self._records}
+        return [
+            self._aggregate_operational_check(
+                'gateways',
+                'Gateways',
+                [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')],
+                empty_summary='Gateways sin manifiesto operativo agregado.',
+            ),
+            self._static_operational_check(
+                'honcho',
+                'Honcho',
+                'unknown',
+                'unknown',
+                'Honcho no expone datos internos en Healthcheck; falta manifiesto operativo saneado.',
+            ),
+            self._static_operational_check(
+                'docker_runtime',
+                'Docker runtime',
+                'unknown',
+                'unknown',
+                'Docker runtime no expone detalles internos; falta manifiesto operativo saneado.',
+            ),
+            self._operational_check_from_record(
+                'cronjobs',
+                'Cronjobs',
+                records_by_id.get('cronjobs'),
+                empty_summary='Cronjobs sin registro operativo allowlisted.',
+            ),
+            self._operational_check_from_record(
+                'vault_sync',
+                'Vault sync',
+                records_by_id.get('vault-sync'),
+                empty_summary='Vault sync sin manifiesto operativo saneado.',
+            ),
+            self._operational_check_from_record(
+                'backup',
+                'Backup',
+                records_by_id.get('backup-health'),
+                empty_summary='Backup sin manifiesto operativo saneado.',
+            ),
+        ]
+
+    def _aggregate_operational_check(
+        self,
+        check_id: str,
+        label: str,
+        records: list[HealthcheckRecord],
+        *,
+        empty_summary: str,
+    ) -> HealthcheckOperationalCheck:
+        if not records:
+            return self._static_operational_check(check_id, label, 'not_configured', 'unknown', empty_summary)
+        record = max(records, key=lambda candidate: _STATUS_ORDER[candidate.status])
+        return self._operational_check_from_record(check_id, label, record, empty_summary=empty_summary)
+
+    def _operational_check_from_record(
+        self,
+        check_id: str,
+        label: str,
+        record: HealthcheckRecord | None,
+        *,
+        empty_summary: str,
+    ) -> HealthcheckOperationalCheck:
+        if record is None:
+            return self._static_operational_check(check_id, label, 'not_configured', 'unknown', empty_summary)
+        self._validate_record(record)
+        freshness_state = self._freshness_state_by_module.get(record.module_id, 'stale' if record.status == 'stale' else 'fresh')
+        validate_healthcheck_freshness_state(freshness_state)
+        return HealthcheckOperationalCheck(
+            check_id=check_id,
+            label=label,
+            status=record.status,
+            severity=record.severity,
+            updated_at=record.updated_at or None,
+            summary=record.summary,
+            freshness=HealthcheckFreshness(updated_at=record.updated_at or None, label=record.freshness_label, state=freshness_state),
+        )
+
+    def _static_operational_check(
+        self,
+        check_id: str,
+        label: str,
+        status: str,
+        severity: str,
+        summary: str,
+    ) -> HealthcheckOperationalCheck:
+        validate_healthcheck_status(status)
+        validate_healthcheck_severity(severity)
+        return HealthcheckOperationalCheck(
+            check_id=check_id,
+            label=label,
+            status=status,
+            severity=severity,
+            updated_at=None,
+            summary=summary,
+            freshness=HealthcheckFreshness(updated_at=None, label='Frescura desconocida', state='unknown'),
+        )
+
 
     def _summary_bar(self, modules: list[HealthcheckModuleCard]) -> HealthcheckSummaryBar:
         if not modules:
