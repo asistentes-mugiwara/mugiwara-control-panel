@@ -22,7 +22,7 @@ expectNotIncludes('apps/web/src/shared/ui/app-shell/PageHeader.tsx', 'MugiwaraCr
 expectNotIncludes('apps/web/src/shared/ui/app-shell/PageHeader.tsx', 'mugiwaraSlug', 'PageHeader must not expose per-agent crest prop for general page titles')
 
 for (const route of [
-  'apps/web/src/app/dashboard/page.tsx',
+  'apps/web/src/app/page.tsx',
   'apps/web/src/app/healthcheck/page.tsx',
   'apps/web/src/app/mugiwaras/page.tsx',
   'apps/web/src/app/skills/page.tsx',
@@ -34,7 +34,7 @@ for (const route of [
   expectNotIncludes(route, 'mugiwaraSlug=', 'general PageHeader calls must use the panel brand mark, not a per-agent crest')
 }
 
-expectIncludes('apps/web/src/app/mugiwaras/page.tsx', 'MugiwaraCrest', '/mugiwaras must keep per-agent crests in cards/contextual agent UI')
+expectIncludes('apps/web/src/app/mugiwaras/MugiwarasClient.tsx', 'MugiwaraCrest', '/mugiwaras must keep per-agent crests in cards/contextual agent UI')
 expectIncludes('docs/frontend-ui-spec.md', 'laya-mugiwara.jpg', 'frontend spec must document the PageHeader brand mark')
 expectIncludes('docs/frontend-implementation-handoff.md', 'laya-mugiwara.svg', 'implementation handoff must document the private favicon dependency')
 

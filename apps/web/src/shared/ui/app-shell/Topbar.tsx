@@ -10,6 +10,7 @@ type TopbarProps = {
   navId: string
   menuButtonRef: RefObject<HTMLButtonElement | null>
   isMobileNavOpen: boolean
+  showNavigation?: boolean
   systemMetrics: HeaderSystemMetrics
   onToggleNavigation: () => void
 }
@@ -128,7 +129,7 @@ function statusForMetrics(sourceState: HeaderSystemMetrics['sourceState']) {
   return 'sin-datos'
 }
 
-export function Topbar({ navId, menuButtonRef, isMobileNavOpen, systemMetrics, onToggleNavigation }: TopbarProps) {
+export function Topbar({ navId, menuButtonRef, isMobileNavOpen, showNavigation = true, systemMetrics, onToggleNavigation }: TopbarProps) {
   return (
     <header
       style={{
@@ -152,25 +153,27 @@ export function Topbar({ navId, menuButtonRef, isMobileNavOpen, systemMetrics, o
         }}
       >
         <div className="topbar__brand">
-          <button
-            type="button"
-            className="topbar__menu-button"
-            ref={menuButtonRef}
-            aria-label={isMobileNavOpen ? 'Cerrar navegación principal' : 'Abrir navegación principal'}
-            aria-expanded={isMobileNavOpen}
-            aria-controls={navId}
-            onClick={onToggleNavigation}
-            style={{
-              border: `1px solid ${appTheme.colors.borderSubtle}`,
-              borderRadius: appTheme.radius.md,
-              background: appTheme.colors.bgSurface1,
-              color: appTheme.colors.textPrimary,
-              padding: '8px 10px',
-              cursor: 'pointer',
-            }}
-          >
-            ☰
-          </button>
+          {showNavigation ? (
+            <button
+              type="button"
+              className="topbar__menu-button"
+              ref={menuButtonRef}
+              aria-label={isMobileNavOpen ? 'Cerrar navegación principal' : 'Abrir navegación principal'}
+              aria-expanded={isMobileNavOpen}
+              aria-controls={navId}
+              onClick={onToggleNavigation}
+              style={{
+                border: `1px solid ${appTheme.colors.borderSubtle}`,
+                borderRadius: appTheme.radius.md,
+                background: appTheme.colors.bgSurface1,
+                color: appTheme.colors.textPrimary,
+                padding: '8px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              ☰
+            </button>
+          ) : null}
 
           <div className="topbar__identity">
             <p style={{ margin: 0, color: appTheme.colors.textSecondary, fontSize: '12px' }}>Control plane privado</p>

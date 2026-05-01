@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
+import { usePathname } from 'next/navigation'
+
 import type { HeaderSystemMetrics } from './system-metrics'
 import { appTheme } from '@/shared/theme/tokens'
 import { SidebarNav } from '@/shared/ui/navigation/SidebarNav'
@@ -14,6 +16,8 @@ type AppShellProps = {
 }
 
 export function AppShell({ children, systemMetrics }: AppShellProps) {
+  const pathname = usePathname()
+  const isHomePage = pathname === '/'
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
   const navId = useId()
@@ -36,16 +40,22 @@ export function AppShell({ children, systemMetrics }: AppShellProps) {
   }, [])
 
   useEffect(() => {
-    if (isDesktop || !isMobileNavOpen) {
+    if (isHomePage) {
+      setIsMobileNavOpen(false)
+    }
+  }, [isHomePage])
+
+  useEffect(() => {
+    if (isDesktop || isHomePage || !isMobileNavOpen) {
       return
     }
 
     const firstFocusable = navRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])')
     firstFocusable?.focus()
-  }, [isDesktop, isMobileNavOpen])
+  }, [isDesktop, isHomePage, isMobileNavOpen])
 
   useEffect(() => {
-    if (isDesktop || !isMobileNavOpen) {
+    if (isDesktop || isHomePage || !isMobileNavOpen) {
       return
     }
 
@@ -58,32 +68,35 @@ export function AppShell({ children, systemMetrics }: AppShellProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isDesktop, isMobileNavOpen])
+  }, [isDesktop, isHomePage, isMobileNavOpen])
 
   return (
     <div
-      className="app-shell"
+      className={`app-shell${isHomePage ? ' app-shell--home' : ''}`}
       style={{
         minHeight: '100vh',
         background: appTheme.colors.bgApp,
         color: appTheme.colors.textPrimary,
       }}
     >
-      <SidebarNav
-        navId={navId}
-        navRef={navRef}
-        isDesktop={isDesktop}
-        isMobileOpen={isMobileNavOpen}
-        onNavigate={() => setIsMobileNavOpen(false)}
-      />
+      {!isHomePage ? (
+        <SidebarNav
+          navId={navId}
+          navRef={navRef}
+          isDesktop={isDesktop}
+          isMobileOpen={isMobileNavOpen}
+          onNavigate={() => setIsMobileNavOpen(false)}
+        />
+      ) : null}
 
-      {isMobileNavOpen ? <button className="app-shell__overlay" aria-label="Cerrar navegación" onClick={() => setIsMobileNavOpen(false)} /> : null}
+      {!isHomePage && isMobileNavOpen ? <button className="app-shell__overlay" aria-label="Cerrar navegación" onClick={() => setIsMobileNavOpen(false)} /> : null}
 
       <div className="app-shell__content" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Topbar
           menuButtonRef={menuButtonRef}
           navId={navId}
           isMobileNavOpen={isMobileNavOpen}
+          showNavigation={!isHomePage}
           systemMetrics={systemMetrics}
           onToggleNavigation={() => setIsMobileNavOpen((current) => !current)}
         />

@@ -10,12 +10,16 @@ Diseñar `apps/web` como shell de lectura y navegación del control plane.
 - La separación cliente/servidor debe reducir acoplamiento, no esconder lógica crítica.
 
 ## Navegación principal
-- `dashboard`
+- `inicio` (`/`)
 - `mugiwaras`
 - `skills`
 - `memory`
 - `vault`
 - `healthcheck`
+- `git`
+- `usage`
+
+`/dashboard` queda solo como alias temporal hacia `/`.
 
 ## Estructura de shell propuesta
 ### `apps/web/src/app`
@@ -25,12 +29,15 @@ Diseñar `apps/web` como shell de lectura y navegación del control plane.
 - composición de shell, no lógica profunda de dominio
 
 ### `apps/web/src/modules`
-- `dashboard`
 - `mugiwaras`
 - `skills`
 - `memory`
 - `vault`
 - `healthcheck`
+- `git`
+- `usage`
+
+El código legacy de `dashboard` puede existir mientras haya contrato/API histórico, pero no define la entrada visual del producto.
 
 ### `apps/web/src/shared`
 - componentes transversales
@@ -45,10 +52,10 @@ Diseñar `apps/web` como shell de lectura y navegación del control plane.
 - La UI puede modelar estados y navegación, pero no reglas de autorización.
 
 ## Módulos de lectura del MVP
-### Dashboard
-- estado general del servidor y del sistema
-- tarjetas de navegación
-- señales resumidas de salud operativa
+### Inicio
+- entrada privada visual en `/`
+- tarjetas de navegación a las superficies principales
+- orientación de producto sin duplicar métricas ni señales operativas de otros módulos
 
 ### Mugiwaras
 - tarjeta/lista por agente activo
