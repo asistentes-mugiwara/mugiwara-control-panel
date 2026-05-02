@@ -4,6 +4,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 import os
 from typing import TYPE_CHECKING, Mapping
+from urllib.parse import urlsplit, urlunsplit
 
 from .domain import (
     HealthcheckCurrentCause,
@@ -316,8 +317,18 @@ class HealthcheckService:
         if not value:
             return None
         candidate = value.strip()
-        if candidate.startswith('https://github.com/') or candidate.startswith('https://drive.google.com/'):
-            return candidate
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            return None
+        if parsed.scheme != 'https' or parsed.username or parsed.password:
+            return None
+        hostname = parsed.hostname or ''
+        path = parsed.path.rstrip('/')
+        if hostname == 'github.com' and path == '/asistentes-mugiwara/vault':
+            return urlunsplit((parsed.scheme, hostname, path, '', ''))
+        if hostname == 'drive.google.com' and (path.startswith('/drive/folders/') or path.startswith('/file/d/')):
+            return urlunsplit((parsed.scheme, hostname, path, '', ''))
         return None
 
     def _aggregate_operational_check(

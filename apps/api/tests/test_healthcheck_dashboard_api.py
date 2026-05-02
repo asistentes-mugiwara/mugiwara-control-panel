@@ -771,6 +771,45 @@ def test_healthcheck_returns_sanitized_workspace():
     _assert_no_sensitive_host_output(payload)
 
 
+def test_healthcheck_operational_links_strip_sensitive_url_parts(monkeypatch):
+    monkeypatch.setenv(
+        'MUGIWARA_HEALTHCHECK_VAULT_REPO_URL',
+        'https://github.com/asistentes-mugiwara/vault?access_token=secret-token#private-fragment',
+    )
+    monkeypatch.setenv(
+        'MUGIWARA_HEALTHCHECK_BACKUP_DRIVE_URL',
+        'https://drive.google.com/drive/folders/public-folder?password=secret#internal',
+    )
+
+    workspace = HealthcheckService().get_workspace()
+    vault_sync = next(check for check in workspace['operational_checks'] if check['check_id'] == 'vault_sync')
+    backup = next(check for check in workspace['operational_checks'] if check['check_id'] == 'backup')
+
+    assert list(vault_sync['links']) == [{'label': 'Repo vault', 'href': 'https://github.com/asistentes-mugiwara/vault'}]
+    assert list(backup['links']) == [{'label': 'Drive backup', 'href': 'https://drive.google.com/drive/folders/public-folder'}]
+    assert 'access_token' not in str(workspace)
+    assert 'secret-token' not in str(workspace)
+    assert 'private-fragment' not in str(workspace)
+    assert 'password=secret' not in str(workspace)
+    assert 'internal' not in str(workspace)
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_operational_links_reject_credentials_and_unexpected_hosts(monkeypatch):
+    monkeypatch.setenv('MUGIWARA_HEALTHCHECK_VAULT_REPO_URL', 'https://user:pass@github.com/asistentes-mugiwara/vault')
+    monkeypatch.setenv('MUGIWARA_HEALTHCHECK_BACKUP_DRIVE_URL', 'https://drive.google.com.evil.test/drive/folders/public-folder')
+
+    workspace = HealthcheckService().get_workspace()
+    vault_sync = next(check for check in workspace['operational_checks'] if check['check_id'] == 'vault_sync')
+    backup = next(check for check in workspace['operational_checks'] if check['check_id'] == 'backup')
+
+    assert list(vault_sync['links']) == [{'label': 'Repo vault', 'href': 'https://github.com/asistentes-mugiwara/vault'}]
+    assert list(backup['links']) == []
+    assert 'github.com.evil.test' not in str(workspace)
+    assert 'user:pass' not in str(workspace)
+    _assert_no_sensitive_host_output(workspace)
+
+
 def test_healthcheck_empty_source_is_not_configured():
     service = HealthcheckService(records=())
 
