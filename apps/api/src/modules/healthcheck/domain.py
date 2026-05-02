@@ -30,6 +30,15 @@ HEALTHCHECK_SOURCE_FAMILY_IDS: tuple[str, ...] = (
     'cronjobs',
 )
 
+HEALTHCHECK_OPERATIONAL_CHECK_IDS: tuple[str, ...] = (
+    'gateways',
+    'honcho',
+    'docker_runtime',
+    'cronjobs',
+    'vault_sync',
+    'backup',
+)
+
 HEALTHCHECK_CHECK_ID_BY_SOURCE_ID: dict[str, str] = {
     'vault-sync': 'vault-sync.last-sync',
     'project-health': 'project-health.workspace',
@@ -198,6 +207,17 @@ class HealthcheckModuleCard:
     severity: str
     updated_at: str
     summary: str
+
+
+@dataclass(frozen=True)
+class HealthcheckOperationalCheck:
+    check_id: str
+    label: str
+    status: str
+    severity: str
+    updated_at: str | None
+    summary: str
+    freshness: HealthcheckFreshness
 
 
 @dataclass(frozen=True)
