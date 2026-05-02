@@ -262,7 +262,7 @@ export default async function HealthcheckPage() {
         </div>
       </SurfaceCard>
 
-      <section className="section-block layout-grid layout-grid--cards-240" aria-label="Operational checks">
+      <section className="section-block layout-grid layout-grid--cards-240" aria-label="Checks operativos">
         {operationalChecks.map((check) => {
           const tone = getHealthcheckCardTone(check.status, check.severity)
           return (
@@ -275,13 +275,13 @@ export default async function HealthcheckPage() {
                 opacity: tone.opacity,
               }}
             >
-              <SurfaceCard title={check.label} elevated eyebrow="Operational check" accent={getHealthcheckAccent(check.status, check.severity)}>
+              <SurfaceCard title={check.label} elevated eyebrow="Check operativo" accent={getHealthcheckAccent(check.status, check.severity)}>
                 <div style={{ display: 'grid', gap: '10px' }}>
                   <HealthcheckStatusBadges status={check.status} severity={check.severity} isSnapshotMode={isSnapshotMode} />
                   <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
                     Estado: <strong>{getHealthcheckStatusLabel(check.status)}</strong>
                   </span>
-                  <span style={{ color: appTheme.colors.textMuted, fontSize: '13px' }}>
+                  <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px', fontWeight: 600 }}>
                     Última señal: {formatTimestamp(check.updated_at)} · {check.freshness.label}
                   </span>
                   <p style={{ margin: 0, color: check.status === 'pass' && check.severity === 'low' ? appTheme.colors.textMuted : appTheme.colors.textSecondary }}>{check.summary}</p>

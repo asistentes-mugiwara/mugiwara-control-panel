@@ -40,7 +40,7 @@ const checks = [
     mustInclude: [
       'Panel operativo',
       'Estado operativo actual',
-      'Operational check',
+      'Check operativo',
       'Sin datos sensibles',
       'operational_checks',
     ],
