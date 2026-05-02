@@ -62,6 +62,7 @@ SAFE_PRINCIPLES: tuple[str, ...] = (
 )
 
 _STATUS_ORDER = {'fail': 5, 'warn': 4, 'stale': 3, 'unknown': 2, 'not_configured': 2, 'pass': 1}
+_RUNTIME_MANIFEST_STALE_AFTER_SECONDS = 5 * 60
 
 
 class HealthcheckService:
@@ -194,19 +195,29 @@ class HealthcheckService:
         )
         ok_count = sum(1 for item in items if item['status'] == 'pass')
         failing = tuple(item for item in items if item['status'] != 'pass')
-        status = 'pass' if ok_count == len(items) else 'fail'
+        updated_at = str(manifest.get('updated_at') or '') or None
+        is_stale, freshness_label, freshness_state = self._runtime_manifest_freshness(updated_at)
+        status = 'stale' if is_stale else 'pass' if ok_count == len(items) else 'fail'
         check = self._static_operational_check(
             'honcho',
             'Honcho',
             status,
-            'low' if status == 'pass' else 'high',
-            'Honcho API/DB/Redis operativo según manifiesto saneado.' if status == 'pass' else 'Honcho API/DB/Redis requiere revisión según manifiesto saneado.',
-            updated_at=str(manifest.get('updated_at') or '') or None,
+            'medium' if is_stale else 'low' if status == 'pass' else 'high',
+            'Manifiesto Honcho antiguo; revisar timer productor.' if is_stale else 'Honcho API/DB/Redis operativo según manifiesto saneado.' if status == 'pass' else 'Honcho API/DB/Redis requiere revisión según manifiesto saneado.',
+            updated_at=updated_at,
+            freshness_label=freshness_label,
+            freshness_state=freshness_state,
         )
+        failing_labels = ', '.join(item['label'] for item in failing[:3])
+        display_text = f'{ok_count}/{len(items)} servicios Honcho operativos'
+        if failing:
+            display_text = f'{display_text} · fallo en {failing_labels}'
+        if is_stale:
+            display_text = f'Manifiesto antiguo · {display_text}'
         return self._copy_operational_check(
             check,
-            display_text=f'{ok_count}/{len(items)} servicios Honcho OK',
-            metric_label='Servicios Honcho OK',
+            display_text=display_text,
+            metric_label='Servicios Honcho operativos',
             metric_value=f'{ok_count}/{len(items)}',
             failing_items=failing,
             items=items,
@@ -243,19 +254,29 @@ class HealthcheckService:
         )
         ok_count = sum(1 for item in items if item['status'] == 'pass')
         failing = tuple(item for item in items if item['status'] != 'pass')
-        status = 'pass' if ok_count == len(items) else 'fail'
+        updated_at = str(manifest.get('updated_at') or '') or None
+        is_stale, freshness_label, freshness_state = self._runtime_manifest_freshness(updated_at)
+        status = 'stale' if is_stale else 'pass' if ok_count == len(items) else 'fail'
         check = self._static_operational_check(
             'docker_runtime',
             'Docker runtime',
             status,
-            'low' if status == 'pass' else 'high',
-            'Docker runtime crítico OK según manifiesto saneado.' if status == 'pass' else 'Docker runtime crítico requiere revisión según manifiesto saneado.',
-            updated_at=str(manifest.get('updated_at') or '') or None,
+            'medium' if is_stale else 'low' if status == 'pass' else 'high',
+            'Manifiesto Docker runtime antiguo; revisar timer productor.' if is_stale else 'Docker runtime crítico OK según manifiesto saneado.' if status == 'pass' else 'Docker runtime crítico requiere revisión según manifiesto saneado.',
+            updated_at=updated_at,
+            freshness_label=freshness_label,
+            freshness_state=freshness_state,
         )
+        failing_labels = ', '.join(item['label'] for item in failing[:3])
+        display_text = f'{ok_count}/{len(items)} contenedores críticos operativos'
+        if failing:
+            display_text = f'{display_text} · fallo en {failing_labels}'
+        if is_stale:
+            display_text = f'Manifiesto antiguo · {display_text}'
         return self._copy_operational_check(
             check,
-            display_text=f'{ok_count}/{len(items)} contenedores críticos OK',
-            metric_label='Contenedores críticos OK',
+            display_text=display_text,
+            metric_label='Contenedores críticos operativos',
             metric_value=f'{ok_count}/{len(items)}',
             failing_items=failing,
             items=items,
@@ -269,6 +290,17 @@ class HealthcheckService:
         if not isinstance(entry, Mapping) or entry.get('running') is not True:
             return False
         return entry.get('health') in {'healthy', 'none'}
+
+    def _runtime_manifest_freshness(self, updated_at: str | None) -> tuple[bool, str, str]:
+        if not updated_at:
+            return True, 'Frescura desconocida', 'unknown'
+        parsed = _parse_timestamp(updated_at)
+        if parsed is None:
+            return True, 'Timestamp inválido en manifiesto saneado', 'stale'
+        age_seconds = (_now_utc() - parsed).total_seconds()
+        if age_seconds > _RUNTIME_MANIFEST_STALE_AFTER_SECONDS:
+            return True, 'Manifiesto antiguo (>5 min)', 'stale'
+        return False, 'Actualizado por manifiesto saneado', 'fresh'
 
     def _cronjobs_operational_check(self, record: HealthcheckRecord | None) -> HealthcheckOperationalCheck:
         check = self._operational_check_from_record(
@@ -462,9 +494,13 @@ class HealthcheckService:
         display_text: str | None = None,
         facts: tuple[Mapping[str, str], ...] = (),
         updated_at: str | None = None,
+        freshness_label: str | None = None,
+        freshness_state: str | None = None,
     ) -> HealthcheckOperationalCheck:
         validate_healthcheck_status(status)
         validate_healthcheck_severity(severity)
+        resolved_freshness_state = freshness_state or ('fresh' if updated_at else 'unknown')
+        validate_healthcheck_freshness_state(resolved_freshness_state)
         return HealthcheckOperationalCheck(
             check_id=check_id,
             label=label,
@@ -472,7 +508,7 @@ class HealthcheckService:
             severity=severity,
             updated_at=updated_at,
             summary=summary,
-            freshness=HealthcheckFreshness(updated_at=updated_at, label='Actualizado por manifiesto saneado' if updated_at else 'Frescura desconocida', state='fresh' if updated_at else 'unknown'),
+            freshness=HealthcheckFreshness(updated_at=updated_at, label=freshness_label or ('Actualizado por manifiesto saneado' if updated_at else 'Frescura desconocida'), state=resolved_freshness_state),
             display_text=display_text or summary,
             facts=facts,
         )
@@ -545,3 +581,7 @@ def _parse_timestamp(value: str) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
