@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping
 
@@ -218,6 +218,13 @@ class HealthcheckOperationalCheck:
     updated_at: str | None
     summary: str
     freshness: HealthcheckFreshness
+    display_text: str
+    metric_label: str | None = None
+    metric_value: str | None = None
+    failing_items: tuple[Mapping[str, str], ...] = field(default_factory=tuple)
+    items: tuple[Mapping[str, str], ...] = field(default_factory=tuple)
+    links: tuple[Mapping[str, str], ...] = field(default_factory=tuple)
+    facts: tuple[Mapping[str, str], ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)

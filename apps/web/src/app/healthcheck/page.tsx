@@ -161,10 +161,10 @@ function HealthcheckStatusBadges({ status, severity, isSnapshotMode = false }: P
 }
 
 function getOperationalHeadline(workspace: HealthcheckWorkspace, checks: HealthcheckOperationalCheck[]) {
-  const priority = checks[0]
+  const degraded = checks.filter((check) => check.status !== 'pass')
   const isHealthy = workspace.summary_bar.incidents === 0 && workspace.summary_bar.warnings === 0
 
-  if (!priority || isHealthy) {
+  if (isHealthy || degraded.length === 0) {
     return {
       status: 'operativo' as const,
       title: 'Perímetro operativo sin degradación activa',
@@ -173,11 +173,12 @@ function getOperationalHeadline(workspace: HealthcheckWorkspace, checks: Healthc
     }
   }
 
+  const incidents = degraded.filter((check) => check.status === 'fail').length
   return {
-    status: priority.status === 'fail' ? ('incidencia' as const) : priority.status === 'stale' ? ('stale' as const) : ('revision' as const),
-    title: `Prioridad actual: ${priority.label}`,
-    description: priority.summary,
-    detail: `${getHealthcheckStatusLabel(priority.status)} · Severidad ${getHealthcheckSeverityLabel(priority.severity)} · ${priority.freshness.label}`,
+    status: incidents > 0 ? ('incidencia' as const) : ('revision' as const),
+    title: incidents > 0 ? 'Incidencias operativas detectadas' : 'Revisión operativa pendiente',
+    description: `${degraded.length} de ${checks.length} checks requieren atención. Revisa las cards saneadas para ver contadores, fallos y enlaces seguros disponibles.`,
+    detail: `${incidents} incidencias · ${Math.max(degraded.length - incidents, 0)} advertencias/revisiones`,
   }
 }
 
@@ -192,6 +193,7 @@ export default async function HealthcheckPage() {
     updated_at: module.updated_at,
     summary: module.summary,
     freshness: { updated_at: module.updated_at, label: formatTimestamp(module.updated_at), state: module.status === 'stale' ? 'stale' : 'fresh' },
+    display_text: module.summary,
   })))
   const headline = getOperationalHeadline(workspace, operationalChecks)
 
@@ -255,9 +257,9 @@ export default async function HealthcheckPage() {
             title={headline.title}
             description={headline.description}
             detail={headline.detail}
-            eyebrow="Prioridad actual"
+            eyebrow="Resumen operativo"
             ariaRole={headline.status === 'incidencia' ? 'alert' : 'region'}
-            ariaLabel="Prioridad operativa actual de Healthcheck"
+            ariaLabel="Resumen operativo actual de Healthcheck"
           />
         </div>
       </SurfaceCard>
@@ -278,13 +280,54 @@ export default async function HealthcheckPage() {
               <SurfaceCard title={check.label} elevated eyebrow="Check operativo" accent={getHealthcheckAccent(check.status, check.severity)}>
                 <div style={{ display: 'grid', gap: '10px' }}>
                   <HealthcheckStatusBadges status={check.status} severity={check.severity} isSnapshotMode={isSnapshotMode} />
+                  {check.metric_label && check.metric_value ? (
+                    <div style={{ display: 'grid', gap: '4px' }}>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>{check.metric_label}</span>
+                      <strong style={{ color: appTheme.colors.textPrimary, fontSize: '22px' }}>{check.metric_value}</strong>
+                    </div>
+                  ) : null}
                   <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px' }}>
                     Estado: <strong>{getHealthcheckStatusLabel(check.status)}</strong>
                   </span>
                   <span style={{ color: appTheme.colors.textSecondary, fontSize: '13px', fontWeight: 600 }}>
                     Última señal: {formatTimestamp(check.updated_at)} · {check.freshness.label}
                   </span>
-                  <p style={{ margin: 0, color: check.status === 'pass' && check.severity === 'low' ? appTheme.colors.textMuted : appTheme.colors.textSecondary }}>{check.summary}</p>
+                  <p style={{ margin: 0, color: check.status === 'pass' && check.severity === 'low' ? appTheme.colors.textMuted : appTheme.colors.textSecondary }}>{check.display_text ?? check.summary}</p>
+                  {check.failing_items?.length ? (
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      <span style={{ color: appTheme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>Fallo en</span>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {check.failing_items.map((item) => (
+                          <StatusBadge key={item.id} status={mapHealthcheckStatusToBadgeStatus(item.status)} label={item.label} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {check.items?.length ? (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {check.items.map((item) => (
+                        <StatusBadge key={item.id} status={mapHealthcheckStatusToBadgeStatus(item.status)} label={item.label} />
+                      ))}
+                    </div>
+                  ) : null}
+                  {check.facts?.length ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {check.facts.map((fact) => (
+                        <span key={`${fact.label}-${fact.value}`} style={{ color: appTheme.colors.textSecondary, fontSize: '12px', fontWeight: 700 }}>
+                          {fact.label}: {fact.value}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {check.links?.length ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {check.links.map((link) => (
+                        <a key={link.href} href={link.href} rel="noreferrer" target="_blank" style={{ color: appTheme.colors.brandSky500, fontSize: '13px', fontWeight: 700 }}>
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </SurfaceCard>
             </div>
