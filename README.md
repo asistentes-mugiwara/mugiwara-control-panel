@@ -14,7 +14,7 @@ Aquí mandan dos reglas: claridad de puente de mando y prudencia de bodega cerra
 
 ## ✨ Qué aporta
 
-- **Dashboard operativo** con estado general, módulos y accesos rápidos.
+- **Inicio navegable** como portada privada del producto, sin duplicar métricas ni estados propietarios.
 - **Fichas Mugiwara** para ver roles, responsabilidades y señales saneadas de la tripulación.
 - **Catálogo de skills** con lectura, auditoría y edición controlada solo donde toca.
 - **Memory** como lectura separada de memoria operativa, sin mezclarla con canon documental.
@@ -40,9 +40,9 @@ La UI enseña estados y rutas de lectura. La seguridad vive detrás: backend, al
 
 Las capturas siguientes muestran la línea visual y la estructura real de páginas del panel en un corte concreto. No son mockups: enseñan el estado del producto con sus módulos, jerarquía y microcopy operativo, sin publicar secretos, credenciales ni configuración runtime.
 
-| Dashboard | Mugiwaras |
+| Inicio | Mugiwaras |
 |---|---|
-| ![Dashboard del Mugiwara Control Panel](public-assets/screenshots/control-panel-dashboard.png) | ![Página de Mugiwaras](public-assets/screenshots/control-panel-mugiwaras.png) |
+| ![Inicio navegable del Mugiwara Control Panel](public-assets/screenshots/control-panel-home.png) | ![Página de Mugiwaras](public-assets/screenshots/control-panel-mugiwaras.png) |
 
 | Skills | Memory |
 |---|---|
@@ -112,7 +112,7 @@ Ver [`docs/runtime-config.md`](docs/runtime-config.md).
 
 Resumen actual:
 
-- `/memory`, `/mugiwaras`, `/skills`, `/vault`, `/dashboard`, `/healthcheck`, `/usage` y `/git` dependen de fuentes server-only o BFF seguro.
+- `/`, `/memory`, `/mugiwaras`, `/skills`, `/vault`, `/healthcheck`, `/usage` y `/git` dependen de fuentes server-only o BFF seguro donde aplica; `/dashboard` redirige a `/`.
 - `/skills` expone al navegador solo endpoints BFF same-origin bajo `/api/control-panel/skills/**`; la URL real del backend no entra en el bundle cliente.
 - Las pantallas con fallback lo declaran como fallback: nada de telemetría mágica, nada de fingir tiempo real.
 
