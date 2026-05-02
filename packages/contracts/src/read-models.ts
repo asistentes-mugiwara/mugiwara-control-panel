@@ -166,6 +166,17 @@ export type HealthcheckModuleCard = {
   summary: string
 }
 
+export type HealthcheckFact = {
+  label: string
+  value: string
+}
+
+export type HealthcheckOperationalItem = {
+  id: string
+  label: string
+  status: HealthcheckStatus
+}
+
 export type HealthcheckOperationalCheck = {
   check_id: 'gateways' | 'honcho' | 'docker_runtime' | 'cronjobs' | 'vault_sync' | 'backup'
   label: string
@@ -174,6 +185,13 @@ export type HealthcheckOperationalCheck = {
   updated_at: string | null
   summary: string
   freshness: HealthcheckFreshness
+  display_text?: string
+  metric_label?: string | null
+  metric_value?: string | null
+  failing_items?: HealthcheckOperationalItem[]
+  items?: HealthcheckOperationalItem[]
+  links?: SafeLink[]
+  facts?: HealthcheckFact[]
 }
 
 export type HealthcheckEvent = {

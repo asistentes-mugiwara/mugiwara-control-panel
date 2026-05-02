@@ -88,9 +88,10 @@ const routes = [
     path: '/healthcheck',
     title: 'Salud del sistema',
     checks: [
-      'resumen actual, causa actual, módulos, bitácora histórica y señales respetan wrap y stacking',
-      'la causa actual aparece antes del grid y antes de la bitácora histórica cuando hay incidencia o advertencia',
+      'resumen operativo, módulos y checks operativos respetan wrap y stacking',
+      'no reaparecen bloques visibles de prioridad actual ni bitácora histórica en la vista principal',
       'badges de estado/severidad no duplican el mismo significado visual',
+      'contadores operativos N/M y enlaces/facts saneados se leen sin parecer raw manifests',
       'checks sanos mantienen menor peso visual que incidencias o advertencias',
       'si la API no está configurada, queda claro que los checks son snapshot local saneado y no tiempo real',
       'principios de seguridad y badges semánticos siguen legibles en móvil',

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+import os
+from typing import TYPE_CHECKING, Mapping
+from urllib.parse import urlsplit, urlunsplit
 
 from .domain import (
     HealthcheckCurrentCause,
@@ -13,13 +15,22 @@ from .domain import (
     HealthcheckRecord,
     HealthcheckSummaryBar,
     HealthcheckSummaryItem,
+    MUGIWARA_GATEWAY_SOURCE_IDS,
     resolve_healthcheck_check_id,
     validate_healthcheck_freshness_state,
     validate_healthcheck_severity,
     validate_healthcheck_status,
 )
 
-from .source_adapters import BackupHealthManifestAdapter, CronjobsManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
+from .source_adapters import (
+    BACKUP_HEALTH_STATUS_MANIFEST,
+    CRONJOBS_STATUS_MANIFEST,
+    BackupHealthManifestAdapter,
+    CronjobsManifestAdapter,
+    GatewayStatusManifestAdapter,
+    ProjectHealthManifestAdapter,
+    VaultSyncManifestAdapter,
+)
 
 if TYPE_CHECKING:
     from .registry import HealthcheckSourceSnapshot
@@ -105,46 +116,220 @@ class HealthcheckService:
 
     def _operational_checks(self) -> list[HealthcheckOperationalCheck]:
         records_by_id = {record.module_id: record for record in self._records}
+        default_source_records = getattr(self, '_default_source_records', {})
+        if default_source_records:
+            gateway_records = [
+                record
+                for source_id, record in default_source_records.items()
+                if source_id == 'hermes-gateways' or source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+            ]
+        else:
+            gateway_records = [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')]
         return [
-            self._aggregate_operational_check(
-                'gateways',
-                'Gateways',
-                [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')],
-                empty_summary='Gateways sin manifiesto operativo agregado.',
-            ),
+            self._gateway_operational_check(gateway_records),
             self._static_operational_check(
                 'honcho',
                 'Honcho',
                 'unknown',
                 'unknown',
-                'Honcho no expone datos internos en Healthcheck; falta manifiesto operativo saneado.',
+                'Honcho sin manifiesto operativo saneado.',
+                display_text='Honcho pendiente de fuente segura · API/DB/Redis sin lectura saneada',
+                facts=(
+                    {'label': 'API', 'value': 'Sin manifiesto'},
+                    {'label': 'DB', 'value': 'Sin manifiesto'},
+                    {'label': 'Redis', 'value': 'Sin manifiesto'},
+                ),
             ),
             self._static_operational_check(
                 'docker_runtime',
                 'Docker runtime',
                 'unknown',
                 'unknown',
-                'Docker runtime no expone detalles internos; falta manifiesto operativo saneado.',
+                'Docker runtime crítico sin manifiesto operativo saneado.',
+                display_text='Docker runtime pendiente de fuente segura · contenedores críticos sin lectura saneada',
+                facts=(
+                    {'label': 'Críticos OK', 'value': 'Sin manifiesto'},
+                ),
             ),
-            self._operational_check_from_record(
-                'cronjobs',
-                'Cronjobs',
-                records_by_id.get('cronjobs'),
-                empty_summary='Cronjobs sin registro operativo allowlisted.',
-            ),
-            self._operational_check_from_record(
-                'vault_sync',
-                'Vault sync',
-                records_by_id.get('vault-sync'),
-                empty_summary='Vault sync sin manifiesto operativo saneado.',
-            ),
-            self._operational_check_from_record(
-                'backup',
-                'Backup',
-                records_by_id.get('backup-health'),
-                empty_summary='Backup sin manifiesto operativo saneado.',
-            ),
+            self._cronjobs_operational_check(records_by_id.get('cronjobs')),
+            self._vault_sync_operational_check(records_by_id.get('vault-sync')),
+            self._backup_operational_check(records_by_id.get('backup-health')),
         ]
+
+    def _gateway_operational_check(self, records: list[HealthcheckRecord]) -> HealthcheckOperationalCheck:
+        aggregate = self._aggregate_operational_check(
+            'gateways',
+            'Gateways',
+            records,
+            empty_summary='Gateways sin manifiesto operativo agregado.',
+        )
+        per_gateway = [record for record in records if record.module_id.startswith('gateway.')]
+        total = len(MUGIWARA_GATEWAY_SOURCE_IDS)
+        active = sum(1 for record in per_gateway if record.status == 'pass')
+        failing = tuple(
+            {
+                'id': record.module_id.removeprefix('gateway.'),
+                'label': record.label.replace(' gateway', ''),
+                'status': record.status,
+            }
+            for record in per_gateway
+            if record.status != 'pass'
+        )
+        display_text = f'{active}/{total} gateways activos'
+        if failing:
+            failed_labels = ', '.join(item['label'] for item in failing[:3])
+            display_text = f'{active}/{total} gateways activos — fallo en: {failed_labels}'
+        return self._copy_operational_check(
+            aggregate,
+            display_text=display_text,
+            metric_label='Gateways activos',
+            metric_value=f'{active}/{total}',
+            failing_items=failing,
+        )
+
+    def _cronjobs_operational_check(self, record: HealthcheckRecord | None) -> HealthcheckOperationalCheck:
+        check = self._operational_check_from_record(
+            'cronjobs',
+            'Cronjobs',
+            record,
+            empty_summary='Cronjobs sin registro operativo allowlisted.',
+        )
+        jobs = self._safe_cronjob_items() if record is not None else ()
+        total = len(jobs)
+        operational = sum(1 for item in jobs if item['status'] == 'pass')
+        failing = tuple(item for item in jobs if item['status'] != 'pass')
+        if total == 0:
+            display_text = 'Cronjobs sin registro operativo saneado'
+            metric_value = '0/0'
+        elif failing:
+            failed_labels = ', '.join(item['label'] for item in failing[:3])
+            display_text = f'{operational}/{total} cronjobs operativos — fallo en: {failed_labels}'
+            metric_value = f'{operational}/{total}'
+        else:
+            display_text = f'{operational}/{total} cronjobs operativos'
+            metric_value = f'{operational}/{total}'
+        return self._copy_operational_check(
+            check,
+            display_text=display_text,
+            metric_label='Cronjobs operativos',
+            metric_value=metric_value,
+            failing_items=failing,
+            items=jobs,
+        )
+
+    def _vault_sync_operational_check(self, record: HealthcheckRecord | None) -> HealthcheckOperationalCheck:
+        check = self._operational_check_from_record(
+            'vault_sync',
+            'Vault sync',
+            record,
+            empty_summary='Vault sync sin manifiesto operativo saneado.',
+        )
+        repo_url = self._safe_url(os.environ.get('MUGIWARA_HEALTHCHECK_VAULT_REPO_URL')) or 'https://github.com/asistentes-mugiwara/vault'
+        links = ({'label': 'Repo vault', 'href': repo_url},)
+        return self._copy_operational_check(
+            check,
+            display_text=f'Último correcto: {check.freshness.updated_at or "sin timestamp"} · repo',
+            metric_label='Último sync correcto',
+            metric_value=check.freshness.updated_at or 'Sin actualización',
+            links=links,
+        )
+
+    def _backup_operational_check(self, record: HealthcheckRecord | None) -> HealthcheckOperationalCheck:
+        check = self._operational_check_from_record(
+            'backup',
+            'Backup',
+            record,
+            empty_summary='Backup sin manifiesto operativo saneado.',
+        )
+        manifest = self._read_safe_manifest(BACKUP_HEALTH_STATUS_MANIFEST)
+        retention = manifest.get('retention_count') if isinstance(manifest, Mapping) else None
+        checksum = manifest.get('checksum_present') if isinstance(manifest, Mapping) else None
+        facts: list[Mapping[str, str]] = []
+        if isinstance(retention, int):
+            facts.append({'label': 'Retención', 'value': f'{retention}/4'})
+        if isinstance(checksum, bool):
+            facts.append({'label': 'Checksum', 'value': 'presente' if checksum else 'ausente'})
+        drive_url = self._safe_url(os.environ.get('MUGIWARA_HEALTHCHECK_BACKUP_DRIVE_URL'))
+        links = ({'label': 'Drive backup', 'href': drive_url},) if drive_url else ()
+        suffix = ' · Drive' if drive_url else ' · Drive no configurado'
+        return self._copy_operational_check(
+            check,
+            display_text=f'Último correcto: {check.freshness.updated_at or "sin timestamp"}{suffix}',
+            metric_label='Último backup válido',
+            metric_value=check.freshness.updated_at or 'Sin actualización',
+            links=links,
+            facts=tuple(facts),
+        )
+
+    def _copy_operational_check(
+        self,
+        check: HealthcheckOperationalCheck,
+        *,
+        display_text: str,
+        metric_label: str | None = None,
+        metric_value: str | None = None,
+        failing_items: tuple[Mapping[str, str], ...] = (),
+        items: tuple[Mapping[str, str], ...] = (),
+        links: tuple[Mapping[str, str], ...] = (),
+        facts: tuple[Mapping[str, str], ...] = (),
+    ) -> HealthcheckOperationalCheck:
+        return HealthcheckOperationalCheck(
+            check_id=check.check_id,
+            label=check.label,
+            status=check.status,
+            severity=check.severity,
+            updated_at=check.updated_at,
+            summary=check.summary,
+            freshness=check.freshness,
+            display_text=display_text,
+            metric_label=metric_label,
+            metric_value=metric_value,
+            failing_items=failing_items,
+            items=items,
+            links=links,
+            facts=facts,
+        )
+
+    def _safe_cronjob_items(self) -> tuple[Mapping[str, str], ...]:
+        manifest = self._read_safe_manifest(CRONJOBS_STATUS_MANIFEST)
+        jobs = manifest.get('jobs') if isinstance(manifest, Mapping) else None
+        if not isinstance(jobs, list):
+            return ()
+        items: list[Mapping[str, str]] = []
+        for index, job in enumerate(jobs, start=1):
+            if not isinstance(job, Mapping):
+                continue
+            raw_status = job.get('last_status') or job.get('status') or job.get('result')
+            status = 'pass' if raw_status in {'success', 'ok', 'pass'} else 'fail' if raw_status in {'error', 'failed', 'fail'} else 'warn'
+            items.append({'id': f'cronjob-{index}', 'label': f'Cronjob {index}', 'status': status})
+        return tuple(items)
+
+    def _read_safe_manifest(self, path) -> Mapping[object, object]:
+        try:
+            import json
+
+            loaded = json.loads(path.read_text(encoding='utf-8'))
+        except Exception:
+            return {}
+        return loaded if isinstance(loaded, Mapping) else {}
+
+    def _safe_url(self, value: str | None) -> str | None:
+        if not value:
+            return None
+        candidate = value.strip()
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            return None
+        if parsed.scheme != 'https' or parsed.username or parsed.password:
+            return None
+        hostname = parsed.hostname or ''
+        path = parsed.path.rstrip('/')
+        if hostname == 'github.com' and path == '/asistentes-mugiwara/vault':
+            return urlunsplit((parsed.scheme, hostname, path, '', ''))
+        if hostname == 'drive.google.com' and (path.startswith('/drive/folders/') or path.startswith('/file/d/')):
+            return urlunsplit((parsed.scheme, hostname, path, '', ''))
+        return None
 
     def _aggregate_operational_check(
         self,
@@ -180,6 +365,7 @@ class HealthcheckService:
             updated_at=record.updated_at or None,
             summary=record.summary,
             freshness=HealthcheckFreshness(updated_at=record.updated_at or None, label=record.freshness_label, state=freshness_state),
+            display_text=record.summary,
         )
 
     def _static_operational_check(
@@ -189,6 +375,9 @@ class HealthcheckService:
         status: str,
         severity: str,
         summary: str,
+        *,
+        display_text: str | None = None,
+        facts: tuple[Mapping[str, str], ...] = (),
     ) -> HealthcheckOperationalCheck:
         validate_healthcheck_status(status)
         validate_healthcheck_severity(severity)
@@ -200,6 +389,8 @@ class HealthcheckService:
             updated_at=None,
             summary=summary,
             freshness=HealthcheckFreshness(updated_at=None, label='Frescura desconocida', state='unknown'),
+            display_text=display_text or summary,
+            facts=facts,
         )
 
 

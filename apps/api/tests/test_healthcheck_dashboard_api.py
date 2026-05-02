@@ -12,6 +12,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_SOURCE_LABELS,
     HEALTHCHECK_SOURCE_MANIFEST_POLICIES,
     HEALTHCHECK_STATUS_VALUES,
+    MUGIWARA_GATEWAY_SOURCE_IDS,
     HealthcheckEvent,
     HealthcheckRecord,
 )
@@ -759,8 +760,54 @@ def test_healthcheck_returns_sanitized_workspace():
     ]
     assert data['events']
     assert isinstance(data['signals'], list)
+    gateways = next(check for check in data['operational_checks'] if check['check_id'] == 'gateways')
+    assert gateways['metric_label'] == 'Gateways activos'
+    assert '/' in gateways['metric_value']
+    assert 'gateways activos' in gateways['display_text']
+    vault_sync = next(check for check in data['operational_checks'] if check['check_id'] == 'vault_sync')
+    assert vault_sync['links'] == [{'label': 'Repo vault', 'href': 'https://github.com/asistentes-mugiwara/vault'}]
+    assert 'Último correcto' in vault_sync['display_text']
     assert {'Repo público', 'Deny by default', 'Sin shell remoto'}.issubset(set(data['principles']))
     _assert_no_sensitive_host_output(payload)
+
+
+def test_healthcheck_operational_links_strip_sensitive_url_parts(monkeypatch):
+    monkeypatch.setenv(
+        'MUGIWARA_HEALTHCHECK_VAULT_REPO_URL',
+        'https://github.com/asistentes-mugiwara/vault?access_token=secret-token#private-fragment',
+    )
+    monkeypatch.setenv(
+        'MUGIWARA_HEALTHCHECK_BACKUP_DRIVE_URL',
+        'https://drive.google.com/drive/folders/public-folder?password=secret#internal',
+    )
+
+    workspace = HealthcheckService().get_workspace()
+    vault_sync = next(check for check in workspace['operational_checks'] if check['check_id'] == 'vault_sync')
+    backup = next(check for check in workspace['operational_checks'] if check['check_id'] == 'backup')
+
+    assert list(vault_sync['links']) == [{'label': 'Repo vault', 'href': 'https://github.com/asistentes-mugiwara/vault'}]
+    assert list(backup['links']) == [{'label': 'Drive backup', 'href': 'https://drive.google.com/drive/folders/public-folder'}]
+    assert 'access_token' not in str(workspace)
+    assert 'secret-token' not in str(workspace)
+    assert 'private-fragment' not in str(workspace)
+    assert 'password=secret' not in str(workspace)
+    assert 'internal' not in str(workspace)
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_operational_links_reject_credentials_and_unexpected_hosts(monkeypatch):
+    monkeypatch.setenv('MUGIWARA_HEALTHCHECK_VAULT_REPO_URL', 'https://user:pass@github.com/asistentes-mugiwara/vault')
+    monkeypatch.setenv('MUGIWARA_HEALTHCHECK_BACKUP_DRIVE_URL', 'https://drive.google.com.evil.test/drive/folders/public-folder')
+
+    workspace = HealthcheckService().get_workspace()
+    vault_sync = next(check for check in workspace['operational_checks'] if check['check_id'] == 'vault_sync')
+    backup = next(check for check in workspace['operational_checks'] if check['check_id'] == 'backup')
+
+    assert list(vault_sync['links']) == [{'label': 'Repo vault', 'href': 'https://github.com/asistentes-mugiwara/vault'}]
+    assert list(backup['links']) == []
+    assert 'github.com.evil.test' not in str(workspace)
+    assert 'user:pass' not in str(workspace)
+    _assert_no_sensitive_host_output(workspace)
 
 
 def test_healthcheck_empty_source_is_not_configured():
@@ -782,6 +829,59 @@ def test_healthcheck_empty_source_is_not_configured():
         'backup',
     ]
     assert all(check['status'] in {'not_configured', 'unknown'} for check in workspace['operational_checks'])
+    assert all(check['display_text'] for check in workspace['operational_checks'])
+    assert next(check for check in workspace['operational_checks'] if check['check_id'] == 'cronjobs')['metric_value'] == '0/0'
+    assert list(next(check for check in workspace['operational_checks'] if check['check_id'] == 'honcho')['facts']) == [
+        {'label': 'API', 'value': 'Sin manifiesto'},
+        {'label': 'DB', 'value': 'Sin manifiesto'},
+        {'label': 'Redis', 'value': 'Sin manifiesto'},
+    ]
+
+
+def test_healthcheck_operational_check_contract_exposes_safe_counters_and_failures():
+    service = HealthcheckService(
+        records=(
+            _record('gateway.luffy', 'Luffy gateway', 'pass', 'low', '2026-04-24T07:45:00Z'),
+            _record('gateway.zoro', 'Zoro gateway', 'fail', 'high', '2026-04-24T07:44:00Z'),
+            _record('cronjobs', 'Cronjobs', 'warn', 'medium', '2026-04-24T07:41:00Z'),
+            _record('vault-sync', 'Vault sync', 'pass', 'low', '2026-04-24T07:40:00Z'),
+            _record('backup-health', 'Backup', 'pass', 'low', '2026-04-24T07:35:00Z'),
+        )
+    )
+
+    workspace = service.get_workspace()
+    gateways = next(check for check in workspace['operational_checks'] if check['check_id'] == 'gateways')
+    assert gateways['metric_value'].endswith('/10')
+    assert 'fallo en: Zoro' in gateways['display_text']
+    assert list(gateways['failing_items']) == [{'id': 'zoro', 'label': 'Zoro', 'status': 'fail'}]
+
+    backup = next(check for check in workspace['operational_checks'] if check['check_id'] == 'backup')
+    assert backup['metric_label'] == 'Último backup válido'
+    assert backup['metric_value'] == '2026-04-24T07:35:00Z'
+    assert 'Drive' in backup['display_text']
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_default_gateway_records_use_complete_manifest_snapshot():
+    service = HealthcheckService(
+        records=(
+            _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+            _record('gateway.zoro', 'Zoro gateway', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        )
+    )
+    service._default_source_records = {
+        'hermes-gateways': _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        **{
+            source_id: _record(source_id, f'{source_id.removeprefix("gateway.").title()} gateway', 'pass', 'low', '2026-04-24T07:45:00Z')
+            for source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+        },
+    }
+
+    gateways = next(check for check in service.get_workspace()['operational_checks'] if check['check_id'] == 'gateways')
+
+    assert gateways['metric_value'] == '10/10'
+    assert gateways['display_text'] == '10/10 gateways activos'
+    assert list(gateways['failing_items']) == []
 
 
 def test_healthcheck_router_builds_live_service_per_request():

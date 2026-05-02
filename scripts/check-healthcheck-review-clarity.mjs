@@ -31,8 +31,11 @@ const checks = [
       "'operational_checks'",
       'def _operational_checks',
       "'docker_runtime'",
-      'Docker runtime no expone detalles internos',
-      'Honcho no expone datos internos',
+      'Docker runtime crítico sin manifiesto operativo saneado',
+      'Honcho sin manifiesto operativo saneado',
+      'display_text',
+      'metric_value',
+      'failing_items',
     ],
   },
   {
