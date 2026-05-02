@@ -24,6 +24,14 @@ const paths = {
   backupHealthStatusProducer: join(repoRoot, 'scripts/write-backup-health-status.py'),
   backupHealthStatusProducerGuardrail: join(repoRoot, 'scripts/check-backup-health-status-producer.mjs'),
   backupHealthStatusRunner: join(repoRoot, 'scripts/check-backup-health-status-runner.mjs'),
+  dockerRuntimeStatusProducer: join(repoRoot, 'scripts/write-docker-runtime-status.py'),
+  dockerRuntimeStatusProducerGuardrail: join(repoRoot, 'scripts/check-docker-runtime-status-producer.mjs'),
+  honchoStatusProducer: join(repoRoot, 'scripts/write-honcho-status.py'),
+  honchoStatusProducerGuardrail: join(repoRoot, 'scripts/check-honcho-status-producer.mjs'),
+  honchoDockerStatusRunnerGuardrail: join(repoRoot, 'scripts/check-honcho-docker-status-runner.mjs'),
+  honchoDockerStatusInstaller: join(repoRoot, 'scripts/install-honcho-docker-status-user-timer.sh'),
+  honchoDockerStatusService: join(repoRoot, 'ops/systemd/user/mugiwara-honcho-docker-status.service'),
+  honchoDockerStatusTimer: join(repoRoot, 'ops/systemd/user/mugiwara-honcho-docker-status.timer'),
 }
 
 const failures = []
@@ -73,6 +81,14 @@ const vaultSyncStatusRunner = read(paths.vaultSyncStatusRunner, 'vault-sync stat
 const backupHealthStatusProducer = read(paths.backupHealthStatusProducer, 'backup-health status manifest producer')
 const backupHealthStatusProducerGuardrail = read(paths.backupHealthStatusProducerGuardrail, 'backup-health status producer guardrail')
 const backupHealthStatusRunner = read(paths.backupHealthStatusRunner, 'backup-health status runner guardrail')
+const dockerRuntimeStatusProducer = read(paths.dockerRuntimeStatusProducer, 'docker-runtime status manifest producer')
+const dockerRuntimeStatusProducerGuardrail = read(paths.dockerRuntimeStatusProducerGuardrail, 'docker-runtime status producer guardrail')
+const honchoStatusProducer = read(paths.honchoStatusProducer, 'honcho status manifest producer')
+const honchoStatusProducerGuardrail = read(paths.honchoStatusProducerGuardrail, 'honcho status producer guardrail')
+const honchoDockerStatusRunnerGuardrail = read(paths.honchoDockerStatusRunnerGuardrail, 'honcho/docker status runner guardrail')
+const honchoDockerStatusInstaller = read(paths.honchoDockerStatusInstaller, 'honcho/docker status timer installer')
+const honchoDockerStatusService = read(paths.honchoDockerStatusService, 'honcho/docker status service')
+const honchoDockerStatusTimer = read(paths.honchoDockerStatusTimer, 'honcho/docker status timer')
 
 let packageJson
 try {
@@ -127,6 +143,26 @@ if (packageJson && packageJson.scripts?.['verify:backup-health-status-runner'] !
 
 if (packageJson && packageJson.scripts?.['verify:cronjobs-status-runner'] !== 'node scripts/check-cronjobs-status-runner.mjs') {
   failures.push('package.json must expose verify:cronjobs-status-runner')
+}
+
+if (packageJson && packageJson.scripts?.['write:docker-runtime-status'] !== 'python3 scripts/write-docker-runtime-status.py') {
+  failures.push('package.json must expose write:docker-runtime-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:docker-runtime-status-producer'] !== 'node scripts/check-docker-runtime-status-producer.mjs') {
+  failures.push('package.json must expose verify:docker-runtime-status-producer')
+}
+
+if (packageJson && packageJson.scripts?.['write:honcho-status'] !== 'python3 scripts/write-honcho-status.py') {
+  failures.push('package.json must expose write:honcho-status with python3')
+}
+
+if (packageJson && packageJson.scripts?.['verify:honcho-status-producer'] !== 'node scripts/check-honcho-status-producer.mjs') {
+  failures.push('package.json must expose verify:honcho-status-producer')
+}
+
+if (packageJson && packageJson.scripts?.['verify:honcho-docker-status-runner'] !== 'node scripts/check-honcho-docker-status-runner.mjs') {
+  failures.push('package.json must expose verify:honcho-docker-status-runner')
 }
 
 const forbiddenHostConsolePatterns = [
@@ -284,6 +320,47 @@ for (const snippet of requiredBackupHealthStatusProducerSnippets) {
 mustInclude(backupHealthStatusProducerGuardrail, 'no unit/timer in Phase 18.3', 'backup-health status producer guardrail')
 mustInclude(backupHealthStatusProducerGuardrail, 'npm run write:backup-health-status', 'backup-health status producer guardrail')
 
+const requiredDockerRuntimeStatusProducerSnippets = [
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/docker-runtime-status.json')",
+  "CRITICAL_CONTAINER_NAMES: tuple[str, ...]",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'containers')",
+  "SAFE_CONTAINER_ENTRY_KEYS = ('running', 'health')",
+  "['docker', 'ps', '-a', '--format', '{{json .}}']",
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+  '_fsync_directory(output.parent)',
+]
+
+for (const snippet of requiredDockerRuntimeStatusProducerSnippets) {
+  mustInclude(dockerRuntimeStatusProducer, snippet, 'docker-runtime status manifest producer')
+}
+
+const requiredHonchoStatusProducerSnippets = [
+  "DEFAULT_DOCKER_RUNTIME_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/docker-runtime-status.json')",
+  "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/honcho-status.json')",
+  "HONCHO_HEALTH_URL = 'http://127.0.0.1:8000/health'",
+  "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'api', 'db', 'redis')",
+  "SAFE_SERVICE_ENTRY_KEYS = ('ok',)",
+  'urlopen(HONCHO_HEALTH_URL, timeout=5)',
+  "os.replace(temp_path, output)",
+  "os.chmod(output, 0o640)",
+  "os.chmod(output.parent, 0o750)",
+  '_fsync_directory(output.parent)',
+]
+
+for (const snippet of requiredHonchoStatusProducerSnippets) {
+  mustInclude(honchoStatusProducer, snippet, 'honcho status manifest producer')
+}
+
+mustInclude(dockerRuntimeStatusProducerGuardrail, 'Docker runtime status producer check passed', 'docker-runtime status producer guardrail')
+mustInclude(honchoStatusProducerGuardrail, 'Honcho status producer check passed', 'honcho status producer guardrail')
+mustInclude(honchoDockerStatusRunnerGuardrail, 'Honcho/Docker status runner check passed', 'honcho/docker status runner guardrail')
+mustInclude(honchoDockerStatusInstaller, 'systemctl --user enable --now "$timer_name"', 'honcho/docker status timer installer')
+mustInclude(honchoDockerStatusService, 'ExecStart=/usr/bin/env npm run write:docker-runtime-status', 'honcho/docker status service')
+mustInclude(honchoDockerStatusService, 'ExecStart=/usr/bin/env npm run write:honcho-status', 'honcho/docker status service')
+mustInclude(honchoDockerStatusTimer, 'OnUnitActiveSec=2min', 'honcho/docker status timer')
+
 const requiredBackupHealthStatusRunnerSnippets = [
   'mugiwara-backup-health-status.service',
   'mugiwara-backup-health-status.timer',
@@ -367,6 +444,14 @@ const requiredDocSnippets = [
   'no unit/timer in Phase 18.3',
   'does not run backups',
   'does not serialize archive names, paths, sizes, hashes, Drive targets, stdout/stderr, logs or raw output',
+  'Phase 18.6 adds `scripts/write-docker-runtime-status.py` and `scripts/write-honcho-status.py`',
+  'fixed allowlist of critical containers (`honcho-api`, `honcho-database`, `honcho-redis`)',
+  'serializes only API/DB/Redis `ok` booleans plus timestamp/result',
+  'npm run verify:docker-runtime-status-producer',
+  'npm run verify:honcho-status-producer',
+  'mugiwara-honcho-docker-status.timer',
+  'scripts/install-honcho-docker-status-user-timer.sh',
+  'npm run verify:honcho-docker-status-runner',
   'mugiwara-backup-health-status.timer',
   'scripts/install-backup-health-status-user-timer.sh',
   'runs `npm run write:backup-health-status`',
