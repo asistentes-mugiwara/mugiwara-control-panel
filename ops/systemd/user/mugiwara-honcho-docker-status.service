@@ -1,0 +1,23 @@
+[Unit]
+Description=Mugiwara Control Panel Honcho/Docker status manifest producers
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
+ExecStart=/usr/bin/env npm run write:docker-runtime-status
+ExecStart=/usr/bin/env npm run write:honcho-status
+TimeoutStartSec=60s
+
+# Fixed safe producers only. The Docker step reads only allowlisted container
+# state through docker ps and writes docker-runtime-status.json. The Honcho step
+# reads that sanitized manifest plus the fixed local /health endpoint and writes
+# API/DB/Redis booleans. No alternate output paths, compose env files, Docker
+# inspect/logs, raw payloads, credentials or host details are serialized.
+
+# Basic hardening for a user service. Do not make /srv read-only: the producers
+# update fixed runtime manifest paths under /srv/crew-core/runtime/healthcheck.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only

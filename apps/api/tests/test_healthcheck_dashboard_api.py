@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi.testclient import TestClient
 
 from apps.api.src.main import app
@@ -19,6 +21,7 @@ from apps.api.src.modules.healthcheck.domain import (
 from apps.api.src.modules.healthcheck.registry import HealthcheckSourceRegistry
 from apps.api.src.modules.healthcheck.router import get_healthcheck_service
 from apps.api.src.modules.healthcheck.source_adapters import BackupHealthManifestAdapter, CronjobsManifestAdapter, GatewayStatusManifestAdapter, ProjectHealthManifestAdapter, VaultSyncManifestAdapter
+from apps.api.src.modules.healthcheck import service as healthcheck_service_module
 from apps.api.src.modules.healthcheck.service import HealthcheckService
 from apps.api.src.modules.dashboard.service import DashboardService
 
@@ -810,7 +813,9 @@ def test_healthcheck_operational_links_reject_credentials_and_unexpected_hosts(m
     _assert_no_sensitive_host_output(workspace)
 
 
-def test_healthcheck_empty_source_is_not_configured():
+def test_healthcheck_empty_source_is_not_configured(tmp_path, monkeypatch):
+    monkeypatch.setattr(healthcheck_service_module, 'DOCKER_RUNTIME_STATUS_MANIFEST', tmp_path / 'missing-docker-runtime-status.json')
+    monkeypatch.setattr(healthcheck_service_module, 'HONCHO_STATUS_MANIFEST', tmp_path / 'missing-honcho-status.json')
     service = HealthcheckService(records=())
 
     assert service.workspace_status() == 'not_configured'
@@ -859,6 +864,100 @@ def test_healthcheck_operational_check_contract_exposes_safe_counters_and_failur
     assert backup['metric_label'] == 'Último backup válido'
     assert backup['metric_value'] == '2026-04-24T07:35:00Z'
     assert 'Drive' in backup['display_text']
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_operational_checks_consume_safe_honcho_and_docker_manifests(tmp_path, monkeypatch):
+    docker_manifest = tmp_path / 'docker-runtime-status.json'
+    honcho_manifest = tmp_path / 'honcho-status.json'
+    docker_manifest.write_text(
+        '{"status":"success","result":"success","updated_at":"2026-05-02T10:40:00Z","containers":{"honcho-api":{"running":true,"health":"none"},"honcho-database":{"running":true,"health":"healthy"},"honcho-redis":{"running":true,"health":"healthy"},"ignored":{"running":true,"health":"healthy","env":"TOKEN /srv/crew-core/.env"}}}',
+        encoding='utf-8',
+    )
+    honcho_manifest.write_text(
+        '{"status":"success","result":"success","updated_at":"2026-05-02T10:41:00Z","api":{"ok":true},"db":{"ok":true},"redis":{"ok":true},"raw_output":"secret"}',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(healthcheck_service_module, 'DOCKER_RUNTIME_STATUS_MANIFEST', docker_manifest)
+    monkeypatch.setattr(healthcheck_service_module, 'HONCHO_STATUS_MANIFEST', honcho_manifest)
+    monkeypatch.setattr(healthcheck_service_module, '_now_utc', lambda: datetime(2026, 5, 2, 10, 43, tzinfo=timezone.utc))
+
+    workspace = HealthcheckService(records=()).get_workspace()
+    honcho = next(check for check in workspace['operational_checks'] if check['check_id'] == 'honcho')
+    docker_runtime = next(check for check in workspace['operational_checks'] if check['check_id'] == 'docker_runtime')
+
+    assert honcho['status'] == 'pass'
+    assert honcho['metric_value'] == '3/3'
+    assert honcho['display_text'] == '3/3 servicios Honcho operativos'
+    assert list(honcho['facts']) == [{'label': 'API', 'value': 'OK'}, {'label': 'DB', 'value': 'OK'}, {'label': 'Redis', 'value': 'OK'}]
+    assert docker_runtime['status'] == 'pass'
+    assert docker_runtime['metric_value'] == '3/3'
+    assert docker_runtime['display_text'] == '3/3 contenedores críticos operativos'
+    assert list(docker_runtime['items']) == [
+        {'id': 'api', 'label': 'Honcho API', 'status': 'pass'},
+        {'id': 'database', 'label': 'Honcho DB', 'status': 'pass'},
+        {'id': 'redis', 'label': 'Honcho Redis', 'status': 'pass'},
+    ]
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_operational_checks_fail_closed_for_degraded_honcho_and_docker_manifests(tmp_path, monkeypatch):
+    docker_manifest = tmp_path / 'docker-runtime-status.json'
+    honcho_manifest = tmp_path / 'honcho-status.json'
+    docker_manifest.write_text(
+        '{"status":"failed","result":"failed","updated_at":"2026-05-02T10:45:00Z","containers":{"honcho-api":{"running":true,"health":"none"},"honcho-database":{"running":false,"health":"unhealthy"},"honcho-redis":{"running":true,"health":"healthy"}}}',
+        encoding='utf-8',
+    )
+    honcho_manifest.write_text(
+        '{"status":"failed","result":"failed","updated_at":"2026-05-02T10:46:00Z","api":{"ok":false},"db":{"ok":false},"redis":{"ok":true}}',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(healthcheck_service_module, 'DOCKER_RUNTIME_STATUS_MANIFEST', docker_manifest)
+    monkeypatch.setattr(healthcheck_service_module, 'HONCHO_STATUS_MANIFEST', honcho_manifest)
+    monkeypatch.setattr(healthcheck_service_module, '_now_utc', lambda: datetime(2026, 5, 2, 10, 48, tzinfo=timezone.utc))
+
+    workspace = HealthcheckService(records=()).get_workspace()
+    honcho = next(check for check in workspace['operational_checks'] if check['check_id'] == 'honcho')
+    docker_runtime = next(check for check in workspace['operational_checks'] if check['check_id'] == 'docker_runtime')
+
+    assert honcho['status'] == 'fail'
+    assert honcho['metric_value'] == '1/3'
+    assert list(honcho['failing_items']) == [{'id': 'api', 'label': 'API', 'status': 'fail'}, {'id': 'db', 'label': 'DB', 'status': 'fail'}]
+    assert honcho['display_text'] == '1/3 servicios Honcho operativos · fallo en API, DB'
+    assert docker_runtime['status'] == 'fail'
+    assert docker_runtime['metric_value'] == '2/3'
+    assert list(docker_runtime['failing_items']) == [{'id': 'database', 'label': 'Honcho DB', 'status': 'fail'}]
+    assert docker_runtime['display_text'] == '2/3 contenedores críticos operativos · fallo en Honcho DB'
+    _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_operational_checks_mark_old_runtime_manifests_stale(tmp_path, monkeypatch):
+    docker_manifest = tmp_path / 'docker-runtime-status.json'
+    honcho_manifest = tmp_path / 'honcho-status.json'
+    docker_manifest.write_text(
+        '{"status":"success","result":"success","updated_at":"2026-05-02T10:40:00Z","containers":{"honcho-api":{"running":true,"health":"none"},"honcho-database":{"running":true,"health":"healthy"},"honcho-redis":{"running":true,"health":"healthy"}}}',
+        encoding='utf-8',
+    )
+    honcho_manifest.write_text(
+        '{"status":"success","result":"success","updated_at":"2026-05-02T10:41:00Z","api":{"ok":true},"db":{"ok":true},"redis":{"ok":true}}',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(healthcheck_service_module, 'DOCKER_RUNTIME_STATUS_MANIFEST', docker_manifest)
+    monkeypatch.setattr(healthcheck_service_module, 'HONCHO_STATUS_MANIFEST', honcho_manifest)
+    monkeypatch.setattr(healthcheck_service_module, '_now_utc', lambda: datetime(2026, 5, 2, 10, 48, tzinfo=timezone.utc))
+
+    workspace = HealthcheckService(records=()).get_workspace()
+    honcho = next(check for check in workspace['operational_checks'] if check['check_id'] == 'honcho')
+    docker_runtime = next(check for check in workspace['operational_checks'] if check['check_id'] == 'docker_runtime')
+
+    assert honcho['status'] == 'stale'
+    assert honcho['severity'] == 'medium'
+    assert honcho['freshness']['state'] == 'stale'
+    assert honcho['display_text'] == 'Manifiesto antiguo · 3/3 servicios Honcho operativos'
+    assert docker_runtime['status'] == 'stale'
+    assert docker_runtime['severity'] == 'medium'
+    assert docker_runtime['freshness']['state'] == 'stale'
+    assert docker_runtime['display_text'] == 'Manifiesto antiguo · 3/3 contenedores críticos operativos'
     _assert_no_sensitive_host_output(workspace)
 
 

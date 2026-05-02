@@ -13,6 +13,8 @@ BACKUP_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/backup-
 PROJECT_HEALTH_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/project-health-status.json')
 GATEWAY_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')
 CRONJOBS_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/cronjobs-status.json')
+DOCKER_RUNTIME_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/docker-runtime-status.json')
+HONCHO_STATUS_MANIFEST = Path('/srv/crew-core/runtime/healthcheck/honcho-status.json')
 
 
 class VaultSyncManifestAdapter:

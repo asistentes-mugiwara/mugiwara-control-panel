@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh Mugiwara Control Panel Honcho/Docker status manifests
+Documentation=https://github.com/asistentes-mugiwara/mugiwara-control-panel
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=2min
+RandomizedDelaySec=20s
+Persistent=true
+Unit=mugiwara-honcho-docker-status.service
+
+[Install]
+WantedBy=timers.target

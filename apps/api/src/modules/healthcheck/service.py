@@ -25,6 +25,8 @@ from .domain import (
 from .source_adapters import (
     BACKUP_HEALTH_STATUS_MANIFEST,
     CRONJOBS_STATUS_MANIFEST,
+    DOCKER_RUNTIME_STATUS_MANIFEST,
+    HONCHO_STATUS_MANIFEST,
     BackupHealthManifestAdapter,
     CronjobsManifestAdapter,
     GatewayStatusManifestAdapter,
@@ -60,6 +62,7 @@ SAFE_PRINCIPLES: tuple[str, ...] = (
 )
 
 _STATUS_ORDER = {'fail': 5, 'warn': 4, 'stale': 3, 'unknown': 2, 'not_configured': 2, 'pass': 1}
+_RUNTIME_MANIFEST_STALE_AFTER_SECONDS = 5 * 60
 
 
 class HealthcheckService:
@@ -127,30 +130,8 @@ class HealthcheckService:
             gateway_records = [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')]
         return [
             self._gateway_operational_check(gateway_records),
-            self._static_operational_check(
-                'honcho',
-                'Honcho',
-                'unknown',
-                'unknown',
-                'Honcho sin manifiesto operativo saneado.',
-                display_text='Honcho pendiente de fuente segura · API/DB/Redis sin lectura saneada',
-                facts=(
-                    {'label': 'API', 'value': 'Sin manifiesto'},
-                    {'label': 'DB', 'value': 'Sin manifiesto'},
-                    {'label': 'Redis', 'value': 'Sin manifiesto'},
-                ),
-            ),
-            self._static_operational_check(
-                'docker_runtime',
-                'Docker runtime',
-                'unknown',
-                'unknown',
-                'Docker runtime crítico sin manifiesto operativo saneado.',
-                display_text='Docker runtime pendiente de fuente segura · contenedores críticos sin lectura saneada',
-                facts=(
-                    {'label': 'Críticos OK', 'value': 'Sin manifiesto'},
-                ),
-            ),
+            self._honcho_operational_check(),
+            self._docker_runtime_operational_check(),
             self._cronjobs_operational_check(records_by_id.get('cronjobs')),
             self._vault_sync_operational_check(records_by_id.get('vault-sync')),
             self._backup_operational_check(records_by_id.get('backup-health')),
@@ -186,6 +167,140 @@ class HealthcheckService:
             metric_value=f'{active}/{total}',
             failing_items=failing,
         )
+
+    def _honcho_operational_check(self) -> HealthcheckOperationalCheck:
+        manifest = self._read_safe_manifest(HONCHO_STATUS_MANIFEST)
+        if not manifest:
+            return self._static_operational_check(
+                'honcho',
+                'Honcho',
+                'unknown',
+                'unknown',
+                'Honcho sin manifiesto operativo saneado.',
+                display_text='Honcho pendiente de fuente segura · API/DB/Redis sin lectura saneada',
+                facts=(
+                    {'label': 'API', 'value': 'Sin manifiesto'},
+                    {'label': 'DB', 'value': 'Sin manifiesto'},
+                    {'label': 'Redis', 'value': 'Sin manifiesto'},
+                ),
+            )
+        services = (
+            ('api', 'API'),
+            ('db', 'DB'),
+            ('redis', 'Redis'),
+        )
+        items = tuple(
+            {'id': key, 'label': label, 'status': 'pass' if self._safe_manifest_ok(manifest.get(key)) else 'fail'}
+            for key, label in services
+        )
+        ok_count = sum(1 for item in items if item['status'] == 'pass')
+        failing = tuple(item for item in items if item['status'] != 'pass')
+        updated_at = str(manifest.get('updated_at') or '') or None
+        is_stale, freshness_label, freshness_state = self._runtime_manifest_freshness(updated_at)
+        status = 'stale' if is_stale else 'pass' if ok_count == len(items) else 'fail'
+        check = self._static_operational_check(
+            'honcho',
+            'Honcho',
+            status,
+            'medium' if is_stale else 'low' if status == 'pass' else 'high',
+            'Manifiesto Honcho antiguo; revisar timer productor.' if is_stale else 'Honcho API/DB/Redis operativo según manifiesto saneado.' if status == 'pass' else 'Honcho API/DB/Redis requiere revisión según manifiesto saneado.',
+            updated_at=updated_at,
+            freshness_label=freshness_label,
+            freshness_state=freshness_state,
+        )
+        failing_labels = ', '.join(item['label'] for item in failing[:3])
+        display_text = f'{ok_count}/{len(items)} servicios Honcho operativos'
+        if failing:
+            display_text = f'{display_text} · fallo en {failing_labels}'
+        if is_stale:
+            display_text = f'Manifiesto antiguo · {display_text}'
+        return self._copy_operational_check(
+            check,
+            display_text=display_text,
+            metric_label='Servicios Honcho operativos',
+            metric_value=f'{ok_count}/{len(items)}',
+            failing_items=failing,
+            items=items,
+            facts=tuple({'label': item['label'], 'value': 'OK' if item['status'] == 'pass' else 'Fallo'} for item in items),
+        )
+
+    def _docker_runtime_operational_check(self) -> HealthcheckOperationalCheck:
+        manifest = self._read_safe_manifest(DOCKER_RUNTIME_STATUS_MANIFEST)
+        containers = manifest.get('containers') if isinstance(manifest, Mapping) else None
+        if not isinstance(containers, Mapping):
+            return self._static_operational_check(
+                'docker_runtime',
+                'Docker runtime',
+                'unknown',
+                'unknown',
+                'Docker runtime crítico sin manifiesto operativo saneado.',
+                display_text='Docker runtime pendiente de fuente segura · contenedores críticos sin lectura saneada',
+                facts=(
+                    {'label': 'Críticos OK', 'value': 'Sin manifiesto'},
+                ),
+            )
+        labels = {
+            'honcho-api': 'Honcho API',
+            'honcho-database': 'Honcho DB',
+            'honcho-redis': 'Honcho Redis',
+        }
+        items = tuple(
+            {
+                'id': name.replace('honcho-', ''),
+                'label': labels[name],
+                'status': 'pass' if self._safe_container_ok(containers.get(name)) else 'fail',
+            }
+            for name in labels
+        )
+        ok_count = sum(1 for item in items if item['status'] == 'pass')
+        failing = tuple(item for item in items if item['status'] != 'pass')
+        updated_at = str(manifest.get('updated_at') or '') or None
+        is_stale, freshness_label, freshness_state = self._runtime_manifest_freshness(updated_at)
+        status = 'stale' if is_stale else 'pass' if ok_count == len(items) else 'fail'
+        check = self._static_operational_check(
+            'docker_runtime',
+            'Docker runtime',
+            status,
+            'medium' if is_stale else 'low' if status == 'pass' else 'high',
+            'Manifiesto Docker runtime antiguo; revisar timer productor.' if is_stale else 'Docker runtime crítico OK según manifiesto saneado.' if status == 'pass' else 'Docker runtime crítico requiere revisión según manifiesto saneado.',
+            updated_at=updated_at,
+            freshness_label=freshness_label,
+            freshness_state=freshness_state,
+        )
+        failing_labels = ', '.join(item['label'] for item in failing[:3])
+        display_text = f'{ok_count}/{len(items)} contenedores críticos operativos'
+        if failing:
+            display_text = f'{display_text} · fallo en {failing_labels}'
+        if is_stale:
+            display_text = f'Manifiesto antiguo · {display_text}'
+        return self._copy_operational_check(
+            check,
+            display_text=display_text,
+            metric_label='Contenedores críticos operativos',
+            metric_value=f'{ok_count}/{len(items)}',
+            failing_items=failing,
+            items=items,
+            facts=({'label': 'Críticos OK', 'value': f'{ok_count}/{len(items)}'},),
+        )
+
+    def _safe_manifest_ok(self, entry: object) -> bool:
+        return isinstance(entry, Mapping) and entry.get('ok') is True
+
+    def _safe_container_ok(self, entry: object) -> bool:
+        if not isinstance(entry, Mapping) or entry.get('running') is not True:
+            return False
+        return entry.get('health') in {'healthy', 'none'}
+
+    def _runtime_manifest_freshness(self, updated_at: str | None) -> tuple[bool, str, str]:
+        if not updated_at:
+            return True, 'Frescura desconocida', 'unknown'
+        parsed = _parse_timestamp(updated_at)
+        if parsed is None:
+            return True, 'Timestamp inválido en manifiesto saneado', 'stale'
+        age_seconds = (_now_utc() - parsed).total_seconds()
+        if age_seconds > _RUNTIME_MANIFEST_STALE_AFTER_SECONDS:
+            return True, 'Manifiesto antiguo (>5 min)', 'stale'
+        return False, 'Actualizado por manifiesto saneado', 'fresh'
 
     def _cronjobs_operational_check(self, record: HealthcheckRecord | None) -> HealthcheckOperationalCheck:
         check = self._operational_check_from_record(
@@ -378,17 +493,22 @@ class HealthcheckService:
         *,
         display_text: str | None = None,
         facts: tuple[Mapping[str, str], ...] = (),
+        updated_at: str | None = None,
+        freshness_label: str | None = None,
+        freshness_state: str | None = None,
     ) -> HealthcheckOperationalCheck:
         validate_healthcheck_status(status)
         validate_healthcheck_severity(severity)
+        resolved_freshness_state = freshness_state or ('fresh' if updated_at else 'unknown')
+        validate_healthcheck_freshness_state(resolved_freshness_state)
         return HealthcheckOperationalCheck(
             check_id=check_id,
             label=label,
             status=status,
             severity=severity,
-            updated_at=None,
+            updated_at=updated_at,
             summary=summary,
-            freshness=HealthcheckFreshness(updated_at=None, label='Frescura desconocida', state='unknown'),
+            freshness=HealthcheckFreshness(updated_at=updated_at, label=freshness_label or ('Actualizado por manifiesto saneado' if updated_at else 'Frescura desconocida'), state=resolved_freshness_state),
             display_text=display_text or summary,
             facts=facts,
         )
@@ -461,3 +581,7 @@ def _parse_timestamp(value: str) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)

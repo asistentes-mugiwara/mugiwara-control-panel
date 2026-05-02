@@ -164,7 +164,7 @@ function getOperationalHeadline(workspace: HealthcheckWorkspace, checks: Healthc
   const degraded = checks.filter((check) => check.status !== 'pass')
   const isHealthy = workspace.summary_bar.incidents === 0 && workspace.summary_bar.warnings === 0
 
-  if (isHealthy || degraded.length === 0) {
+  if (isHealthy && degraded.length === 0) {
     return {
       status: 'operativo' as const,
       title: 'Perímetro operativo sin degradación activa',
