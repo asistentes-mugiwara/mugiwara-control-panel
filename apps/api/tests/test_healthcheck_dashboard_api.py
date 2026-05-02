@@ -12,6 +12,7 @@ from apps.api.src.modules.healthcheck.domain import (
     HEALTHCHECK_SOURCE_LABELS,
     HEALTHCHECK_SOURCE_MANIFEST_POLICIES,
     HEALTHCHECK_STATUS_VALUES,
+    MUGIWARA_GATEWAY_SOURCE_IDS,
     HealthcheckEvent,
     HealthcheckRecord,
 )
@@ -820,6 +821,28 @@ def test_healthcheck_operational_check_contract_exposes_safe_counters_and_failur
     assert backup['metric_value'] == '2026-04-24T07:35:00Z'
     assert 'Drive' in backup['display_text']
     _assert_no_sensitive_host_output(workspace)
+
+
+def test_healthcheck_default_gateway_records_use_complete_manifest_snapshot():
+    service = HealthcheckService(
+        records=(
+            _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+            _record('gateway.zoro', 'Zoro gateway', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        )
+    )
+    service._default_source_records = {
+        'hermes-gateways': _record('hermes-gateways', 'Gateways', 'pass', 'low', '2026-04-24T07:45:00Z'),
+        **{
+            source_id: _record(source_id, f'{source_id.removeprefix("gateway.").title()} gateway', 'pass', 'low', '2026-04-24T07:45:00Z')
+            for source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+        },
+    }
+
+    gateways = next(check for check in service.get_workspace()['operational_checks'] if check['check_id'] == 'gateways')
+
+    assert gateways['metric_value'] == '10/10'
+    assert gateways['display_text'] == '10/10 gateways activos'
+    assert list(gateways['failing_items']) == []
 
 
 def test_healthcheck_router_builds_live_service_per_request():

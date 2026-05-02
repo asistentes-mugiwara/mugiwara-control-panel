@@ -39,7 +39,7 @@ Este comando imprime la checklist canónica por **viewport** y por **ruta**.
 - cards con ritmo visual consistente
 - estados vacíos/error/stale sin colapsar el layout
 - cuando haya fallback visible, las pills `Modo fallback local`, `Snapshot saneado` y/o `No tiempo real` deben aclarar que el contenido no es API real
-- en `/healthcheck`, la causa actual debe verse antes del grid y antes de la bitácora histórica; los checks sanos no deben competir visualmente con incidencias o advertencias
+- en `/healthcheck`, el resumen operativo y los checks operativos deben verse sin recuperar bloques visibles de `Prioridad actual` ni bitácora histórica; los contadores `N/M`, enlaces y facts saneados deben leerse sin parecer raw manifests
 
 ### Responsive fino
 - grids apilan paneles con dignidad

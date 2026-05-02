@@ -115,7 +115,15 @@ class HealthcheckService:
 
     def _operational_checks(self) -> list[HealthcheckOperationalCheck]:
         records_by_id = {record.module_id: record for record in self._records}
-        gateway_records = [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')]
+        default_source_records = getattr(self, '_default_source_records', {})
+        if default_source_records:
+            gateway_records = [
+                record
+                for source_id, record in default_source_records.items()
+                if source_id == 'hermes-gateways' or source_id in MUGIWARA_GATEWAY_SOURCE_IDS
+            ]
+        else:
+            gateway_records = [record for record in self._records if record.module_id == 'hermes-gateways' or record.module_id.startswith('gateway.')]
         return [
             self._gateway_operational_check(gateway_records),
             self._static_operational_check(
