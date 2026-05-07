@@ -125,6 +125,51 @@ description: demo
     assert 'agent-unknown-agent-private-scratch' not in by_id
 
 
+def test_catalog_omits_allowlisted_entries_missing_on_disk(tmp_path: Path) -> None:
+    allowed_root = tmp_path / 'skills-source'
+    live_skill = allowed_root / 'global' / 'live-skill' / 'SKILL.md'
+    live_skill.parent.mkdir(parents=True)
+    live_skill.write_text("""---
+name: live-skill
+description: live
+---
+""", encoding='utf-8')
+    missing_skill = allowed_root / 'global' / 'missing-skill' / 'SKILL.md'
+
+    service = SkillService(
+        registry=(
+            SkillRegistryEntry(
+                skill_id='global-live-skill',
+                display_name='Live skill',
+                owner_scope='shared',
+                owner_slug='global',
+                owner_label='Global',
+                public_repo_risk='low',
+                repo_path=str(live_skill),
+                path=live_skill,
+                editable=True,
+            ),
+            SkillRegistryEntry(
+                skill_id='global-missing-skill',
+                display_name='Missing skill',
+                owner_scope='shared',
+                owner_slug='global',
+                owner_label='Global',
+                public_repo_risk='low',
+                repo_path=str(missing_skill),
+                path=missing_skill,
+                editable=True,
+            ),
+        ),
+        allowed_root=allowed_root,
+        audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl',
+    )
+
+    catalog_ids = {item.skill_id for item in service.list_catalog()}
+
+    assert catalog_ids == {'global-live-skill'}
+
+
 def test_rejects_path_like_or_invalid_skill_ids(tmp_path: Path) -> None:
     service, _ = build_service(tmp_path)
     app.dependency_overrides[get_skill_service] = lambda: service

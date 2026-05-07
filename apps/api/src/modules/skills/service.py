@@ -173,6 +173,7 @@ class SkillService:
                 repo_path=entry.repo_path,
             )
             for entry in self._registry.values()
+            if entry.path.exists()
         ]
 
     def get_detail(self, skill_id: str) -> SkillDetail:
