@@ -125,6 +125,41 @@ description: demo
     assert 'agent-unknown-agent-private-scratch' not in by_id
 
 
+def test_default_registry_refreshes_added_and_removed_skills_without_restart(tmp_path: Path) -> None:
+    allowed_root = tmp_path / 'skills-source'
+    initial_skill = allowed_root / 'agents' / 'zoro' / 'initial-skill' / 'SKILL.md'
+    initial_skill.parent.mkdir(parents=True)
+    initial_skill.write_text("""---
+name: initial-skill
+description: initial
+---
+""", encoding='utf-8')
+
+    service = SkillService(
+        allowed_root=allowed_root,
+        runtime_root=tmp_path / '.config' / 'opencode' / 'skills',
+        audit_log_path=tmp_path / 'runtime' / 'skills-audit.jsonl',
+        registry_ttl_seconds=0,
+    )
+    assert {item.skill_id for item in service.list_catalog()} == {'agent-zoro-initial-skill'}
+
+    added_skill = allowed_root / 'agents' / 'zoro' / 'added-skill' / 'SKILL.md'
+    added_skill.parent.mkdir(parents=True)
+    added_skill.write_text("""---
+name: added-skill
+description: added
+---
+""", encoding='utf-8')
+
+    catalog_ids = {item.skill_id for item in service.list_catalog()}
+    assert catalog_ids == {'agent-zoro-initial-skill', 'agent-zoro-added-skill'}
+    assert service.get_detail('agent-zoro-added-skill').display_name == 'added-skill'
+
+    added_skill.unlink()
+
+    assert {item.skill_id for item in service.list_catalog()} == {'agent-zoro-initial-skill'}
+
+
 def test_catalog_omits_allowlisted_entries_missing_on_disk(tmp_path: Path) -> None:
     allowed_root = tmp_path / 'skills-source'
     live_skill = allowed_root / 'global' / 'live-skill' / 'SKILL.md'

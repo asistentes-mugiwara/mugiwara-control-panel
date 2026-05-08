@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from difflib import unified_diff
@@ -24,6 +25,7 @@ MAX_SKILL_BYTES = 200_000
 DEFAULT_ALLOWED_ROOT = Path('/srv/crew-core/skills-source').resolve()
 DEFAULT_RUNTIME_ROOT = Path('~/.config/opencode/skills').expanduser().resolve()
 DEFAULT_AUDIT_PATH = Path('/srv/crew-core/projects/mugiwara-control-panel/runtime/skills-audit.jsonl')
+DEFAULT_REGISTRY_TTL_SECONDS = 15.0
 SKILL_ID_PATTERN = re.compile(r'^[a-z0-9][a-z0-9_-]{0,139}$')
 
 MUGIWARA_LABELS: dict[str, str] = {
@@ -153,14 +155,18 @@ class SkillService:
         allowed_root: Path = DEFAULT_ALLOWED_ROOT,
         runtime_root: Path = DEFAULT_RUNTIME_ROOT,
         audit_log_path: Path = DEFAULT_AUDIT_PATH,
+        registry_ttl_seconds: float = DEFAULT_REGISTRY_TTL_SECONDS,
     ) -> None:
         self._allowed_root = allowed_root.resolve()
         self._runtime_root = runtime_root.expanduser().resolve()
-        entries = tuple(replace(entry, editable=True) for entry in (registry or build_default_skill_registry(self._allowed_root)))
-        self._registry = {entry.skill_id: entry for entry in entries}
+        self._registry_ttl_seconds = max(0.0, registry_ttl_seconds)
+        self._registry_auto_refresh = registry is None
+        self._registry_loaded_at = 0.0
+        self._registry = self._build_registry(registry)
         self._audit_log_path = audit_log_path
 
     def list_catalog(self) -> list[SkillCatalogItem]:
+        self._refresh_registry_if_stale()
         return [
             SkillCatalogItem(
                 skill_id=entry.skill_id,
@@ -173,7 +179,7 @@ class SkillService:
                 repo_path=entry.repo_path,
             )
             for entry in self._registry.values()
-            if entry.path.exists()
+            if self._catalog_entry_available(entry)
         ]
 
     def get_detail(self, skill_id: str) -> SkillDetail:
@@ -279,7 +285,27 @@ class SkillService:
         lines = self._audit_log_path.read_text(encoding='utf-8').splitlines()[-limit:]
         return [json.loads(line) for line in reversed(lines) if line.strip()]
 
+    def _build_registry(self, registry: Iterable[SkillRegistryEntry] | None = None) -> dict[str, SkillRegistryEntry]:
+        entries = tuple(replace(entry, editable=True) for entry in (registry or build_default_skill_registry(self._allowed_root)))
+        self._registry_loaded_at = time.monotonic()
+        return {entry.skill_id: entry for entry in entries}
+
+    def _refresh_registry_if_stale(self) -> None:
+        if not self._registry_auto_refresh:
+            return
+        age = time.monotonic() - self._registry_loaded_at
+        if age >= self._registry_ttl_seconds:
+            self._registry = self._build_registry()
+
+    def _catalog_entry_available(self, entry: SkillRegistryEntry) -> bool:
+        try:
+            self._validate_entry_path(entry)
+        except HTTPException:
+            return False
+        return entry.path.exists()
+
     def _get_entry(self, skill_id: str) -> SkillRegistryEntry:
+        self._refresh_registry_if_stale()
         if not SKILL_ID_PATTERN.fullmatch(skill_id):
             raise self._reject(status.HTTP_404_NOT_FOUND, 'not_found', 'Skill no configurada en allowlist.')
         entry = self._registry.get(skill_id)
