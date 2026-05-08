@@ -159,7 +159,8 @@ npm run verify:mugiwaras-server-only
 6. Las rutas write-capable (`POST` preview y `PUT` update) exigen `MUGIWARA_CONTROL_PANEL_TRUSTED_ORIGINS` y rechazan `Origin` ausente o no confiable antes de procesar el cuerpo.
 7. Los errores devueltos al navegador están saneados y no incluyen backend URL, stack traces, bodies, diffs ni secretos.
 8. FastAPI sigue siendo fuente de verdad para allowlist, path safety, stale hash, edición y auditoría.
-9. Los endpoints `/api/control-panel/skills/**`, especialmente `PUT`, pertenecen al control plane privado: no deben exponerse fuera de Tailscale/perímetro autenticado sin añadir auth/autorización server-side y rate limiting.
+9. El catálogo backend de skills tiene frescura server-side por TTL corto: `SkillService` reconstruye su registry snapshot en el siguiente request cuando pasan 15 segundos desde la carga anterior. No existe endpoint de refresh, watcher ni timer en background; la política evita reinicios manuales para altas/bajas de `SKILL.md` bajo raíces allowlisteadas sin ampliar la superficie de cliente.
+10. Los endpoints `/api/control-panel/skills/**`, especialmente `PUT`, pertenecen al control plane privado: no deben exponerse fuera de Tailscale/perímetro autenticado sin añadir auth/autorización server-side y rate limiting.
 
 Antes de cerrar cambios que toquen Skills config o BFF, ejecutar:
 
