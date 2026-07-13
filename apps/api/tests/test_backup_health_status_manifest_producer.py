@@ -65,7 +65,8 @@ def test_backup_health_status_producer_degrades_when_latest_checksum_is_absent_o
     backups_dir = tmp_path / 'backups'
     backups_dir.mkdir()
     for idx in range(3):
-        _write_backup_pair(backups_dir, f'mugiwara-backup-old-{idx}.tar.zst', b'ok')
+        old_archive = _write_backup_pair(backups_dir, f'mugiwara-backup-old-{idx}.tar.zst', b'ok')
+        os.utime(old_archive, (1_700_000_000 + idx, 1_700_000_000 + idx))
     latest = _write_backup_pair(backups_dir, 'mugiwara-backup-latest.tar.zst', b'latest', checksum=False)
     os.utime(latest, (1_777_777_100, 1_777_777_100))
     output = tmp_path / 'status.json'

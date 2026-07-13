@@ -23,6 +23,9 @@ DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/backup-health-sta
 SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at', 'checksum_present', 'retention_count')
 DEGRADED_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'checksum_present', 'retention_count')
 EXPECTED_RETENTION_COUNT = 4
+# Backups are currently ~14 GiB. On a busy host, validating SHA-256 can exceed
+# one minute even when the archive and checksum are healthy.
+CHECKSUM_VALIDATION_TIMEOUT_SECONDS = 300
 
 
 class BackupHealthStatusProducerError(RuntimeError):
@@ -98,7 +101,7 @@ def _checksum_is_present_and_valid(archive: Path) -> bool:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            timeout=60,
+            timeout=CHECKSUM_VALIDATION_TIMEOUT_SECONDS,
         )
     except (OSError, subprocess.TimeoutExpired):
         return False
