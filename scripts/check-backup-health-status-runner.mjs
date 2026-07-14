@@ -101,6 +101,7 @@ mustInclude(producer, "DEFAULT_BACKUPS_DIR = Path('/srv/crew-core/backups')", 'b
 mustInclude(producer, "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')", 'backup-health status producer')
 mustInclude(producer, "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at', 'checksum_present', 'retention_count')", 'backup-health status producer')
 mustInclude(producer, 'EXPECTED_RETENTION_COUNT = 4', 'backup-health status producer')
+mustInclude(producer, 'CHECKSUM_VALIDATION_TIMEOUT_SECONDS = 300', 'backup-health status producer')
 mustInclude(producer, "['sha256sum', '-c', str(checksum_path)]", 'backup-health status producer')
 mustInclude(producer, 'stdout=subprocess.DEVNULL', 'backup-health status producer')
 mustInclude(producer, 'stderr=subprocess.DEVNULL', 'backup-health status producer')
@@ -113,7 +114,7 @@ mustNotInclude(producer, /system-backup\.sh|BACKUP_DRY_RUN|tar\s|zstd|drive-back
 mustInclude(service, 'Type=oneshot', 'backup-health status systemd service')
 mustInclude(service, 'WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel', 'backup-health status systemd service')
 mustInclude(service, 'ExecStart=/usr/bin/env npm run write:backup-health-status', 'backup-health status systemd service')
-mustInclude(service, 'TimeoutStartSec=120s', 'backup-health status systemd service')
+mustInclude(service, 'TimeoutStartSec=360s', 'backup-health status systemd service')
 mustInclude(service, '/srv/crew-core/runtime/healthcheck/backup-health-status.json', 'backup-health status systemd service')
 mustInclude(service, 'NoNewPrivileges=yes', 'backup-health status systemd service')
 mustInclude(service, 'PrivateTmp=yes', 'backup-health status systemd service')
@@ -121,6 +122,14 @@ mustInclude(service, 'ProtectSystem=full', 'backup-health status systemd service
 mustInclude(service, 'ProtectHome=read-only', 'backup-health status systemd service')
 mustNotInclude(activeService, /--output\b|--backups-dir\b/, 'backup-health status systemd service', 'producer CLI overrides')
 mustNotInclude(activeService, /system-backup\.sh|\btar\b|\bzstd\b|drive[-_ ]?upload|rclone|journalctl|stdout|stderr|raw_output|traceback|archive|checksum\s*[=:]|hash|drive\s+target|token|credential|\.env/i, 'backup-health status systemd service', 'backup execution or raw/sensitive leakage language')
+
+const checksumTimeoutMatch = producer.match(/^CHECKSUM_VALIDATION_TIMEOUT_SECONDS = (\d+)$/m)
+const serviceTimeoutMatch = service.match(/^TimeoutStartSec=(\d+)s$/m)
+if (!checksumTimeoutMatch || !serviceTimeoutMatch) {
+  failures.push('backup-health timeout contract must declare numeric producer and service timeouts')
+} else if (Number(checksumTimeoutMatch[1]) > Number(serviceTimeoutMatch[1]) - 60) {
+  failures.push('backup-health checksum timeout must preserve a 60-second service margin')
+}
 
 mustInclude(timer, 'OnBootSec=10min', 'backup-health status systemd timer')
 mustInclude(timer, 'OnUnitActiveSec=8h', 'backup-health status systemd timer')
@@ -145,7 +154,7 @@ for (const [text, label] of [
   mustInclude(text, 'scripts/install-backup-health-status-user-timer.sh', label)
   mustInclude(text, 'runs `npm run write:backup-health-status`', label)
   mustInclude(text, 'does not pass `--output` or `--backups-dir`', label)
-  mustInclude(text, 'TimeoutStartSec=120s', label)
+  mustInclude(text, 'TimeoutStartSec=360s', label)
   mustInclude(text, 'does not run backups', label)
 }
 

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import stat
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +30,19 @@ def _write_backup_pair(backups_dir: Path, name: str, content: bytes = b'backup',
 
 def _serialized(path: Path) -> str:
     return path.read_text(encoding='utf-8')
+
+
+def test_checksum_timeout_stays_within_service_timeout_with_60_second_margin():
+    producer = _load_producer_module()
+    service_path = Path(__file__).resolve().parents[3] / 'ops' / 'systemd' / 'user' / 'mugiwara-backup-health-status.service'
+    service_text = service_path.read_text(encoding='utf-8')
+    timeout_match = re.search(r'^TimeoutStartSec=(\d+)s$', service_text, flags=re.MULTILINE)
+
+    assert timeout_match is not None
+    service_timeout_seconds = int(timeout_match.group(1))
+    assert producer.CHECKSUM_VALIDATION_TIMEOUT_SECONDS == 300
+    assert service_timeout_seconds == 360
+    assert producer.CHECKSUM_VALIDATION_TIMEOUT_SECONDS <= service_timeout_seconds - 60
 
 
 def test_backup_health_status_producer_writes_success_for_recent_backup_with_checksum_and_retention(tmp_path):

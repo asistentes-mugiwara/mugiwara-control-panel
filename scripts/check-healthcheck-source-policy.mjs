@@ -304,6 +304,7 @@ const requiredBackupHealthStatusProducerSnippets = [
   "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at', 'checksum_present', 'retention_count')",
   "DEGRADED_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'checksum_present', 'retention_count')",
   'EXPECTED_RETENTION_COUNT = 4',
+  'CHECKSUM_VALIDATION_TIMEOUT_SECONDS = 300',
   "['sha256sum', '-c', str(checksum_path)]",
   'stdout=subprocess.DEVNULL',
   'stderr=subprocess.DEVNULL',
@@ -366,7 +367,7 @@ const requiredBackupHealthStatusRunnerSnippets = [
   'mugiwara-backup-health-status.timer',
   'scripts/install-backup-health-status-user-timer.sh',
   'ExecStart=/usr/bin/env npm run write:backup-health-status',
-  'TimeoutStartSec=120s',
+  'TimeoutStartSec=360s',
   'OnUnitActiveSec=8h',
   '--output',
   '--backups-dir',
@@ -456,7 +457,7 @@ const requiredDocSnippets = [
   'scripts/install-backup-health-status-user-timer.sh',
   'runs `npm run write:backup-health-status`',
   'does not pass `--output` or `--backups-dir`',
-  'TimeoutStartSec=120s',
+  'TimeoutStartSec=360s',
   'do not include `stdout`, `stderr`, `raw_output`, `command`, `traceback`, `pid`, `unit_content`, `journal`, absolute host paths, `backup_path`, `included_path`, `prompt_body`, `chat_id`, delivery targets, tokens, cookies, credentials, `.env`, Git diffs, untracked file lists or internal remotes',
 ]
 

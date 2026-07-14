@@ -28,7 +28,7 @@ La unit de producción debe ejecutar exactamente:
 ```ini
 WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel
 ExecStart=/usr/bin/env npm run write:backup-health-status
-TimeoutStartSec=120s
+TimeoutStartSec=360s
 ```
 
 Hardening esperado:
@@ -54,7 +54,7 @@ La unit y el installer:
 - `WorkingDirectory=/srv/crew-core/projects/mugiwara-control-panel`.
 - ausencia de overrides `--output`, `--backups-dir` en unit/installer activos.
 - ausencia de ejecución de backups o tooling de empaquetado/subida.
-- `TimeoutStartSec=120s`.
+- `TimeoutStartSec=360s`, preserving a 60-second margin above the producer's 300-second checksum-validation timeout.
 - hardening systemd esperado.
 - timer `OnUnitActiveSec=8h`, `RandomizedDelaySec=10min`, `Persistent=true`.
 - docs/OpenSpec conservan trazabilidad histórica: no unit/timer in Phase 18.3 y runner/timer en Phase 18.4.

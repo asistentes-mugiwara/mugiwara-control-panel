@@ -21,7 +21,7 @@ Contract:
   - enables and starts mugiwara-backup-health-status.timer
   - runs npm run write:backup-health-status from /srv/crew-core/projects/mugiwara-control-panel
   - refreshes every 8 hours after boot with a randomized delay
-  - the service timeout is 120s
+  - the service timeout is 360s, preserving a 60-second margin above the producer's 300s checksum validation timeout
   - the producer observes the fixed backup artifact source and writes the fixed backup-health-status manifest
   - does not pass --output, --backups-dir or any alternate paths to the producer
   - does not run backups, system-backup.sh, tar, zstd, Drive upload tooling or rclone
