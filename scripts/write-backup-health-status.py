@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Sequence
 
 DEFAULT_BACKUPS_DIR = Path('/srv/crew-core/backups')
+DEFAULT_V2_SUMMARY = Path('/mnt/mugiwara-inspect/MUGIWARA_BACKUP_V2/health-summary.json')
 DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/backup-health-status.json')
 SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'last_success_at', 'checksum_present', 'retention_count')
 DEGRADED_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'checksum_present', 'retention_count')
@@ -36,16 +37,25 @@ def write_backup_health_status(
     *,
     backups_dir: Path = DEFAULT_BACKUPS_DIR,
     output_path: Path = DEFAULT_OUTPUT_PATH,
+    v2_summary_path: Path = DEFAULT_V2_SUMMARY,
     now: str | datetime | None = None,
 ) -> dict[str, object]:
     source_dir = backups_dir.resolve()
     output = output_path.resolve()
     updated_at = _safe_timestamp(now)
 
-    state = _inspect_backup_artifacts(source_dir)
+    using_v2 = v2_summary_path.is_file()
+    state = _inspect_v2_summary(v2_summary_path.resolve()) if using_v2 else _inspect_backup_artifacts(source_dir)
+    retention_count = state.get('retention_count')
+    checksum_present = state.get('checksum_present')
+    if not isinstance(retention_count, int) or isinstance(retention_count, bool):
+        retention_count = 0
+    if not isinstance(checksum_present, bool):
+        checksum_present = False
     status = _derive_status(
-        retention_count=state['retention_count'],
-        checksum_present=state['checksum_present'],
+        retention_count=retention_count,
+        checksum_present=checksum_present,
+        expected_retention_count=2 if using_v2 else EXPECTED_RETENTION_COUNT,
     )
 
     manifest: dict[str, object] = {
@@ -58,8 +68,31 @@ def write_backup_health_status(
     manifest['checksum_present'] = state['checksum_present']
     manifest['retention_count'] = state['retention_count']
 
-    _write_atomic_json(output, manifest)
+    _write_atomic_json(output, manifest, expected_retention_count=2 if using_v2 else EXPECTED_RETENTION_COUNT)
     return manifest
+
+
+def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
+    """Consume only Backup V2's sanitized aggregate health contract."""
+    try:
+        payload = json.loads(summary_path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError):
+        return {'retention_count': 0, 'checksum_present': False, 'last_success_at': None}
+    core_count = payload.get('core_complete_sets')
+    database_count = payload.get('database_complete_sets')
+    success = (
+        payload.get('result') == 'success'
+        and payload.get('checksum_present') is True
+        and payload.get('drive_core_published') is True
+        and isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 1
+        and isinstance(database_count, int) and not isinstance(database_count, bool) and database_count >= 1
+        and isinstance(payload.get('last_success_at'), str)
+    )
+    return {
+        'retention_count': core_count if isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 0 else 0,
+        'checksum_present': success,
+        'last_success_at': payload.get('last_success_at') if success else None,
+    }
 
 
 def _inspect_backup_artifacts(backups_dir: Path) -> dict[str, object]:
@@ -108,12 +141,12 @@ def _checksum_is_present_and_valid(archive: Path) -> bool:
     return result.returncode == 0
 
 
-def _derive_status(*, retention_count: int, checksum_present: bool) -> str:
+def _derive_status(*, retention_count: int, checksum_present: bool, expected_retention_count: int = EXPECTED_RETENTION_COUNT) -> str:
     if retention_count <= 0:
         return 'failed'
     if checksum_present is not True:
         return 'warning'
-    if retention_count < EXPECTED_RETENTION_COUNT:
+    if retention_count < expected_retention_count:
         return 'warning'
     return 'success'
 
@@ -135,7 +168,7 @@ def _timestamp_from_epoch(epoch_seconds: float) -> str:
     return datetime.fromtimestamp(epoch_seconds, timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
 
 
-def _write_atomic_json(output: Path, manifest: dict[str, object]) -> None:
+def _write_atomic_json(output: Path, manifest: dict[str, object], *, expected_retention_count: int = EXPECTED_RETENTION_COUNT) -> None:
     keys = tuple(manifest.keys())
     if keys not in (SAFE_MANIFEST_KEYS, DEGRADED_MANIFEST_KEYS):
         raise BackupHealthStatusProducerError('unsafe manifest shape')
@@ -149,7 +182,7 @@ def _write_atomic_json(output: Path, manifest: dict[str, object]) -> None:
     if isinstance(retention_count, bool) or not isinstance(retention_count, int) or retention_count < 0:
         raise BackupHealthStatusProducerError('unsafe retention semantics')
     if manifest.get('status') == 'success':
-        if manifest.get('checksum_present') is not True or retention_count < EXPECTED_RETENTION_COUNT:
+        if manifest.get('checksum_present') is not True or retention_count < expected_retention_count:
             raise BackupHealthStatusProducerError('unsafe green backup semantics')
 
     output.parent.mkdir(mode=0o750, parents=True, exist_ok=True)

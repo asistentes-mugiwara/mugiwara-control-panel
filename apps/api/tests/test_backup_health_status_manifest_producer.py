@@ -222,3 +222,37 @@ def test_backup_health_status_producer_cli_returns_nonzero_after_writing_degrade
     manifest = json.loads(output.read_text(encoding='utf-8'))
     assert manifest['status'] == 'warning'
     assert manifest['retention_count'] == 1
+
+
+def test_backup_health_status_producer_prefers_sanitized_v2_summary(tmp_path):
+    producer = _load_producer_module()
+    legacy = tmp_path / 'legacy'
+    legacy.mkdir()
+    v2_summary = tmp_path / 'health-summary.json'
+    v2_summary.write_text(
+        '{"status":"success","result":"success","updated_at":"2026-07-26T10:00:00Z",'
+        '"last_success_at":"2026-07-26T09:30:00Z","checksum_present":true,'
+        '"retention_count":2,"core_complete_sets":2,"database_complete_sets":8,'
+        '"drive_core_published":true,"private_path":"/do/not/expose","hash":"deadbeef"}',
+        encoding='utf-8',
+    )
+    output = tmp_path / 'status.json'
+
+    result = producer.write_backup_health_status(
+        backups_dir=legacy,
+        v2_summary_path=v2_summary,
+        output_path=output,
+        now='2026-07-26T10:05:00Z',
+    )
+
+    assert result == {
+        'status': 'success',
+        'result': 'success',
+        'updated_at': '2026-07-26T10:05:00Z',
+        'last_success_at': '2026-07-26T09:30:00Z',
+        'checksum_present': True,
+        'retention_count': 2,
+    }
+    serialized = output.read_text(encoding='utf-8')
+    assert 'private_path' not in serialized
+    assert 'deadbeef' not in serialized
