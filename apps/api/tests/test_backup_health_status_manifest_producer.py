@@ -317,3 +317,43 @@ def test_backup_health_status_v2_namespace_without_summary_cannot_fall_back_gree
         now='2026-07-26T10:05:00Z',
     )
     assert result['status'] != 'success'
+
+
+def test_backup_health_status_v2_stale_future_or_invalid_timestamps_never_stay_green(tmp_path):
+    producer = _load_producer_module()
+    base = {
+        'status': 'success',
+        'result': 'success',
+        'updated_at': '2026-07-26T10:00:00Z',
+        'last_success_at': '2026-07-26T09:00:00Z',
+        'checksum_present': True,
+        'retention_count': 2,
+        'core_complete_sets': 2,
+        'database_complete_sets': 1,
+        'core_fresh': True,
+        'database_fresh': True,
+        'drive_core_published': True,
+        'offline_recovery_key_attested': True,
+        'sla_hours': 36,
+    }
+    cases = (
+        ('stale', {}, '2026-08-10T10:00:00Z'),
+        ('future-updated', {'updated_at': '2026-07-27T10:00:00Z'}, '2026-07-26T10:05:00Z'),
+        ('future-success', {'last_success_at': '2026-07-27T09:00:00Z'}, '2026-07-26T10:05:00Z'),
+        ('naive', {'updated_at': '2026-07-26T10:00:00'}, '2026-07-26T10:05:00Z'),
+        ('invalid', {'last_success_at': 'not-a-timestamp'}, '2026-07-26T10:05:00Z'),
+    )
+    for name, changes, now in cases:
+        summary = tmp_path / name / 'health-summary.json'
+        summary.parent.mkdir()
+        payload = dict(base)
+        payload.update(changes)
+        summary.write_text(json.dumps(payload), encoding='utf-8')
+        result = producer.write_backup_health_status(
+            backups_dir=tmp_path / 'legacy',
+            v2_summary_path=summary,
+            output_path=tmp_path / f'{name}.json',
+            now=now,
+        )
+        assert result['status'] != 'success', name
+        assert 'last_success_at' not in result

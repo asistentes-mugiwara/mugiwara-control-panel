@@ -27,6 +27,7 @@ EXPECTED_RETENTION_COUNT = 4
 # Backups are currently ~14 GiB. On a busy host, validating SHA-256 can exceed
 # one minute even when the archive and checksum are healthy.
 CHECKSUM_VALIDATION_TIMEOUT_SECONDS = 300
+MAX_V2_HEALTH_AGE_SECONDS = 36 * 60 * 60
 
 
 class BackupHealthStatusProducerError(RuntimeError):
@@ -45,7 +46,11 @@ def write_backup_health_status(
     updated_at = _safe_timestamp(now)
 
     using_v2 = v2_summary_path.is_file() or v2_summary_path.parent.is_dir()
-    state = _inspect_v2_summary(v2_summary_path.resolve()) if using_v2 else _inspect_backup_artifacts(source_dir)
+    state = (
+        _inspect_v2_summary(v2_summary_path.resolve(), now=updated_at)
+        if using_v2
+        else _inspect_backup_artifacts(source_dir)
+    )
     retention_count = state.get('retention_count')
     checksum_present = state.get('checksum_present')
     if not isinstance(retention_count, int) or isinstance(retention_count, bool):
@@ -72,7 +77,7 @@ def write_backup_health_status(
     return manifest
 
 
-def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
+def _inspect_v2_summary(summary_path: Path, *, now: str) -> dict[str, object]:
     """Consume only Backup V2's sanitized aggregate health contract."""
     try:
         payload = json.loads(summary_path.read_text(encoding='utf-8'))
@@ -80,6 +85,17 @@ def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
         return {'retention_count': 0, 'checksum_present': False, 'last_success_at': None}
     core_count = payload.get('core_complete_sets')
     database_count = payload.get('database_complete_sets')
+    reference = _parse_aware_utc(now)
+    summary_updated = _parse_aware_utc(payload.get('updated_at'))
+    last_success = _parse_aware_utc(payload.get('last_success_at'))
+    timestamps_fresh = bool(
+        reference
+        and summary_updated
+        and last_success
+        and last_success <= summary_updated
+        and 0 <= (reference - summary_updated).total_seconds() <= MAX_V2_HEALTH_AGE_SECONDS
+        and 0 <= (reference - last_success).total_seconds() <= MAX_V2_HEALTH_AGE_SECONDS
+    )
     success = (
         payload.get('result') == 'success'
         and payload.get('checksum_present') is True
@@ -88,6 +104,7 @@ def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
         and payload.get('database_fresh') is True
         and payload.get('offline_recovery_key_attested') is True
         and payload.get('sla_hours') == 36
+        and timestamps_fresh
         and isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 2
         and isinstance(database_count, int) and not isinstance(database_count, bool) and database_count >= 1
         and isinstance(payload.get('last_success_at'), str)
@@ -97,6 +114,18 @@ def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
         'checksum_present': success,
         'last_success_at': payload.get('last_success_at') if success else None,
     }
+
+
+def _parse_aware_utc(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(value.replace('Z', '+00:00') if value.endswith('Z') else value)
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        return None
+    return moment.astimezone(timezone.utc)
 
 
 def _inspect_backup_artifacts(backups_dir: Path) -> dict[str, object]:
