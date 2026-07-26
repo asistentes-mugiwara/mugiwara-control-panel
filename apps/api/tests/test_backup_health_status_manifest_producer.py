@@ -233,7 +233,9 @@ def test_backup_health_status_producer_prefers_sanitized_v2_summary(tmp_path):
         '{"status":"success","result":"success","updated_at":"2026-07-26T10:00:00Z",'
         '"last_success_at":"2026-07-26T09:30:00Z","checksum_present":true,'
         '"retention_count":2,"core_complete_sets":2,"database_complete_sets":8,'
-        '"core_fresh":true,"database_fresh":true,"offline_recovery_key_attested":true,'
+        '"core_fresh":true,"database_fresh":true,'
+        '"recovery_key_custody":"drive_password_encrypted_verified",'
+        '"recovery_key_drive_verified":true,'
         '"sla_hours":36,"drive_core_published":true,'
         '"private_path":"/do/not/expose","hash":"deadbeef"}',
         encoding='utf-8',
@@ -274,7 +276,8 @@ def test_backup_health_status_v2_never_green_when_any_required_gate_is_missing(t
         'core_fresh': True,
         'database_fresh': True,
         'drive_core_published': True,
-        'offline_recovery_key_attested': True,
+        'recovery_key_custody': 'drive_password_encrypted_verified',
+        'recovery_key_drive_verified': True,
         'sla_hours': 36,
     }
     cases = (
@@ -283,7 +286,7 @@ def test_backup_health_status_v2_never_green_when_any_required_gate_is_missing(t
         ('core_fresh', False),
         ('database_fresh', False),
         ('drive_core_published', False),
-        ('offline_recovery_key_attested', False),
+        ('recovery_key_drive_verified', False),
         ('checksum_present', False),
     )
     for key, value in cases:
@@ -333,7 +336,8 @@ def test_backup_health_status_v2_stale_future_or_invalid_timestamps_never_stay_g
         'core_fresh': True,
         'database_fresh': True,
         'drive_core_published': True,
-        'offline_recovery_key_attested': True,
+        'recovery_key_custody': 'drive_password_encrypted_verified',
+        'recovery_key_drive_verified': True,
         'sla_hours': 36,
     }
     cases = (

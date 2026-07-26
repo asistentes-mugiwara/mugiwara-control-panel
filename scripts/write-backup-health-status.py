@@ -45,7 +45,12 @@ def write_backup_health_status(
     output = output_path.resolve()
     updated_at = _safe_timestamp(now)
 
-    using_v2 = v2_summary_path.is_file() or v2_summary_path.parent.is_dir()
+    v2_explicit_or_production = (
+        v2_summary_path != DEFAULT_V2_SUMMARY or backups_dir == DEFAULT_BACKUPS_DIR
+    )
+    using_v2 = v2_explicit_or_production and (
+        v2_summary_path.is_file() or v2_summary_path.parent.is_dir()
+    )
     state = (
         _inspect_v2_summary(v2_summary_path.resolve(), now=updated_at)
         if using_v2
@@ -102,7 +107,8 @@ def _inspect_v2_summary(summary_path: Path, *, now: str) -> dict[str, object]:
         and payload.get('drive_core_published') is True
         and payload.get('core_fresh') is True
         and payload.get('database_fresh') is True
-        and payload.get('offline_recovery_key_attested') is True
+        and payload.get('recovery_key_custody') == 'drive_password_encrypted_verified'
+        and payload.get('recovery_key_drive_verified') is True
         and payload.get('sla_hours') == 36
         and timestamps_fresh
         and isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 2
