@@ -233,7 +233,9 @@ def test_backup_health_status_producer_prefers_sanitized_v2_summary(tmp_path):
         '{"status":"success","result":"success","updated_at":"2026-07-26T10:00:00Z",'
         '"last_success_at":"2026-07-26T09:30:00Z","checksum_present":true,'
         '"retention_count":2,"core_complete_sets":2,"database_complete_sets":8,'
-        '"drive_core_published":true,"private_path":"/do/not/expose","hash":"deadbeef"}',
+        '"core_fresh":true,"database_fresh":true,"offline_recovery_key_attested":true,'
+        '"sla_hours":36,"drive_core_published":true,'
+        '"private_path":"/do/not/expose","hash":"deadbeef"}',
         encoding='utf-8',
     )
     output = tmp_path / 'status.json'
@@ -256,3 +258,62 @@ def test_backup_health_status_producer_prefers_sanitized_v2_summary(tmp_path):
     serialized = output.read_text(encoding='utf-8')
     assert 'private_path' not in serialized
     assert 'deadbeef' not in serialized
+
+
+def test_backup_health_status_v2_never_green_when_any_required_gate_is_missing(tmp_path):
+    producer = _load_producer_module()
+    base = {
+        'status': 'success',
+        'result': 'success',
+        'updated_at': '2026-07-26T10:00:00Z',
+        'last_success_at': '2026-07-26T09:00:00Z',
+        'checksum_present': True,
+        'retention_count': 2,
+        'core_complete_sets': 2,
+        'database_complete_sets': 1,
+        'core_fresh': True,
+        'database_fresh': True,
+        'drive_core_published': True,
+        'offline_recovery_key_attested': True,
+        'sla_hours': 36,
+    }
+    cases = (
+        ('core_complete_sets', 1),
+        ('database_complete_sets', 0),
+        ('core_fresh', False),
+        ('database_fresh', False),
+        ('drive_core_published', False),
+        ('offline_recovery_key_attested', False),
+        ('checksum_present', False),
+    )
+    for key, value in cases:
+        summary = tmp_path / key / 'health-summary.json'
+        summary.parent.mkdir()
+        payload = dict(base)
+        payload[key] = value
+        summary.write_text(json.dumps(payload), encoding='utf-8')
+        result = producer.write_backup_health_status(
+            backups_dir=tmp_path / 'legacy',
+            v2_summary_path=summary,
+            output_path=tmp_path / f'{key}.json',
+            now='2026-07-26T10:05:00Z',
+        )
+        assert result['status'] != 'success', key
+        assert 'last_success_at' not in result
+
+
+def test_backup_health_status_v2_namespace_without_summary_cannot_fall_back_green(tmp_path):
+    producer = _load_producer_module()
+    legacy = tmp_path / 'legacy'
+    legacy.mkdir()
+    for idx in range(4):
+        _write_backup_pair(legacy, f'mugiwara-backup-{idx}.tar.zst')
+    missing_summary = tmp_path / 'MUGIWARA_BACKUP_V2' / 'health-summary.json'
+    missing_summary.parent.mkdir()
+    result = producer.write_backup_health_status(
+        backups_dir=legacy,
+        v2_summary_path=missing_summary,
+        output_path=tmp_path / 'status.json',
+        now='2026-07-26T10:05:00Z',
+    )
+    assert result['status'] != 'success'

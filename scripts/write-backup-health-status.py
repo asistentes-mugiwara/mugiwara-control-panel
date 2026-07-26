@@ -44,7 +44,7 @@ def write_backup_health_status(
     output = output_path.resolve()
     updated_at = _safe_timestamp(now)
 
-    using_v2 = v2_summary_path.is_file()
+    using_v2 = v2_summary_path.is_file() or v2_summary_path.parent.is_dir()
     state = _inspect_v2_summary(v2_summary_path.resolve()) if using_v2 else _inspect_backup_artifacts(source_dir)
     retention_count = state.get('retention_count')
     checksum_present = state.get('checksum_present')
@@ -84,7 +84,11 @@ def _inspect_v2_summary(summary_path: Path) -> dict[str, object]:
         payload.get('result') == 'success'
         and payload.get('checksum_present') is True
         and payload.get('drive_core_published') is True
-        and isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 1
+        and payload.get('core_fresh') is True
+        and payload.get('database_fresh') is True
+        and payload.get('offline_recovery_key_attested') is True
+        and payload.get('sla_hours') == 36
+        and isinstance(core_count, int) and not isinstance(core_count, bool) and core_count >= 2
         and isinstance(database_count, int) and not isinstance(database_count, bool) and database_count >= 1
         and isinstance(payload.get('last_success_at'), str)
     )
