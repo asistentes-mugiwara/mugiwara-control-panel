@@ -2,7 +2,7 @@
 
 > El puente de mando privado de Mugiwara/Hermes: una consola para mirar el barco, leer sus señales y navegar el sistema sin abrir la sala de máquinas.
 
-`mugiwara-control-panel` es el **control plane privado** de Mugiwara/Hermes. Su código puede enseñarse; su operación real, sus datos vivos y sus llaves se quedan bajo cubierta.
+`mugiwara-control-panel` es el **control plane privado** de Mugiwara/Hermes. Este repositorio ofrece código público saneado; su operación, configuración, datos y acceso permanecen privados.
 
 La idea es sencilla: cuando una tripulación de agentes crece, no basta con tener buenos perfiles. Hace falta una consola que responda rápido a tres preguntas:
 
@@ -38,7 +38,7 @@ La UI enseña estados y rutas de lectura. La seguridad vive detrás: backend, al
 
 ## 🖼️ Capturas del panel
 
-Las capturas siguientes muestran la línea visual y la estructura real de páginas del panel en un corte concreto. No son mockups: enseñan el estado del producto con sus módulos, jerarquía y microcopy operativo, sin publicar secretos, credenciales ni configuración runtime.
+Las capturas siguientes son imágenes estáticas revisadas que muestran la línea visual y la estructura de páginas del panel en un corte histórico. No son telemetría, healthchecks ni evidencia de actividad actual. En particular, las métricas, el uptime y los estados visibles en la captura de Inicio **no representan el estado actual del sistema**. No se publican secretos, credenciales ni configuración runtime.
 
 | Inicio | Mugiwaras |
 |---|---|
@@ -110,7 +110,7 @@ npm run verify:usage-server-only
 
 Ver [`docs/runtime-config.md`](docs/runtime-config.md).
 
-Resumen actual:
+Resumen documental:
 
 - `/`, `/memory`, `/mugiwaras`, `/skills`, `/vault`, `/healthcheck`, `/usage` y `/git` dependen de fuentes server-only o BFF seguro donde aplica; `/dashboard` redirige a `/`.
 - `/skills` expone al navegador solo endpoints BFF same-origin bajo `/api/control-panel/skills/**`; la URL real del backend no entra en el bundle cliente.
@@ -118,22 +118,19 @@ Resumen actual:
 
 ## 🔗 Proyecto hermano
 
-El escaparate público del sistema Mugiwara/Hermes vive en:
+El perfil y el escaparate arquitectónico del sistema Mugiwara/Hermes están en:
 
+- [`asistentes-mugiwara`](https://github.com/asistentes-mugiwara) — perfil público del ecosistema
 - [`mugiwara-no-hermes`](https://github.com/asistentes-mugiwara/mugiwara-no-hermes)
+- [Caso Mugiwara en el portfolio de Pablo Laya](https://prodelaya.dev/#case-mugi)
 
 Allí se explica el modelo público de arquitectura, memoria, gobierno y frontera entre sistema vivo y escaparate. Este repo implementa una pieza concreta de ese ecosistema: la consola privada de observabilidad y navegación.
 
 ## 🧠 OpenCode + Engram
 
-Siempre abrir OpenCode desde la raíz del proyecto:
+Los flujos de software asistido y memoria técnica parten de la raíz del repositorio para conservar el contexto del proyecto.
 
-```bash
-cd /srv/crew-core/projects/mugiwara-control-panel
-opencode
-```
-
-Esto garantiza contexto correcto para agentes SDD y actualización de Engram en el espacio adecuado.
+Esta práctica mantiene alineados el trabajo, la documentación y la memoria técnica sin exponer detalles de la operación privada.
 
 ## 👑 Cierre
 
