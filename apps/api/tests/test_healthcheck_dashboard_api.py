@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
@@ -661,10 +662,17 @@ def test_cronjobs_manifest_adapter_models_empty_missing_or_unreadable_registry(t
     _assert_no_sensitive_host_output(payload)
 
 
-def test_gateway_status_manifest_adapter_maps_all_active_gateways_to_safe_pass(tmp_path):
+def test_gateway_status_manifest_adapter_maps_expected_gateway_states_to_safe_pass(tmp_path):
     manifest = tmp_path / 'gateway-status.json'
     manifest.write_text(
-        '{"status":"success","updated_at":"2026-04-24T07:55:00Z","gateways":{"luffy":{"active":true,"pid":1234,"unit_content":"Environment=SYNTHETIC_TOKEN","journal":"secret raw_output"},"zoro":{"active":true},"nami":{"active":true},"usopp":{"active":true},"sanji":{"active":true},"chopper":{"active":true},"robin":{"active":true},"franky":{"active":true},"brook":{"active":true},"jinbe":{"active":true}}}',
+        json.dumps({'status': 'success', 'updated_at': '2026-04-24T07:55:00Z', 'gateways': {
+            **{slug: {'active': True, 'expected_active': True} for slug in
+               ('luffy', 'zoro', 'nami', 'sanji', 'chopper', 'robin', 'franky')},
+            **{slug: {'active': False, 'expected_active': False} for slug in
+               ('usopp', 'jinbe', 'brook')},
+            'luffy': {'active': True, 'expected_active': True, 'pid': 1234,
+                      'unit_content': 'Environment=SYNTHETIC_TOKEN', 'journal': 'secret raw_output'},
+        }}),
         encoding='utf-8',
     )
 
@@ -708,6 +716,37 @@ def test_gateway_status_manifest_adapter_degrades_inactive_and_partial_gateways_
     assert {'hermes-gateways.global', 'gateway.zoro.process', 'gateway.franky.process'}.issubset(
         {signal['check_id'] for signal in payload['signals']}
     )
+    _assert_no_sensitive_host_output(payload)
+
+
+def test_gateway_status_manifest_adapter_distinguishes_planned_inactive_from_accidental_active(tmp_path):
+    manifest = tmp_path / 'gateway-status.json'
+    gateways = {slug: {'active': True, 'expected_active': True} for slug in
+                ('luffy', 'zoro', 'nami', 'sanji', 'chopper', 'robin', 'franky')}
+    gateways.update({slug: {'active': False, 'expected_active': False} for slug in
+                     ('usopp', 'jinbe', 'brook')})
+    manifest.write_text(json.dumps({'status': 'success', 'updated_at': '2026-04-24T07:55:00Z',
+                                    'gateways': gateways}), encoding='utf-8')
+    snapshots = GatewayStatusManifestAdapter(manifest_path=manifest).snapshots(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots(snapshots).get_workspace()
+    assert all(module['status'] == 'pass' for module in payload['modules'])
+    assert next(module for module in payload['modules'] if module['module_id'] == 'gateway.usopp')['summary'] == 'Gateway desactivado por decisión según manifiesto seguro.'
+    gateways['usopp']['active'] = True
+    manifest.write_text(json.dumps({'status': 'failed', 'updated_at': '2026-04-24T07:55:00Z',
+                                    'gateways': gateways}), encoding='utf-8')
+    snapshots = GatewayStatusManifestAdapter(manifest_path=manifest).snapshots(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots(snapshots).get_workspace()
+    assert next(module for module in payload['modules'] if module['module_id'] == 'gateway.usopp')['status'] == 'fail'
+    assert next(module for module in payload['modules'] if module['module_id'] == 'hermes-gateways')['status'] == 'fail'
+    _assert_no_sensitive_host_output(payload)
+
+    gateways['usopp']['active'] = False
+    gateways['zoro'] = {'active': False, 'expected_active': False}
+    manifest.write_text(json.dumps({'status': 'success', 'updated_at': '2026-04-24T07:55:00Z',
+                                    'gateways': gateways}), encoding='utf-8')
+    snapshots = GatewayStatusManifestAdapter(manifest_path=manifest).snapshots(now='2026-04-24T08:00:00Z')
+    payload = HealthcheckService.from_source_snapshots(snapshots).get_workspace()
+    assert next(module for module in payload['modules'] if module['module_id'] == 'gateway.zoro')['status'] == 'fail'
     _assert_no_sensitive_host_output(payload)
 
 

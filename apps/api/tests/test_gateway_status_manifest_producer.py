@@ -36,7 +36,8 @@ class FakeSystemctl:
 def test_gateway_status_manifest_producer_writes_minimal_safe_atomic_json(tmp_path):
     producer = _load_producer_module()
     output = tmp_path / 'runtime' / 'healthcheck' / 'gateway-status.json'
-    fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    fake_systemctl = FakeSystemctl({slug: slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS
+                                   for slug in producer.MUGIWARA_GATEWAY_SLUGS})
 
     result = producer.write_gateway_status(
         output_path=output,
@@ -49,7 +50,9 @@ def test_gateway_status_manifest_producer_writes_minimal_safe_atomic_json(tmp_pa
     assert result['updated_at'] == '2026-04-25T21:00:00Z'
     assert set(result) == {'status', 'result', 'updated_at', 'gateways'}
     assert set(result['gateways']) == set(producer.MUGIWARA_GATEWAY_SLUGS)
-    assert all(entry == {'active': True} for entry in result['gateways'].values())
+    assert all(entry['active'] == entry['expected_active'] for entry in result['gateways'].values())
+    assert all(entry['expected_active'] == (slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS)
+               for slug, entry in result['gateways'].items())
     assert len(fake_systemctl.commands) == len(producer.MUGIWARA_GATEWAY_SLUGS)
 
     manifest = json.loads(output.read_text(encoding='utf-8'))
@@ -78,7 +81,8 @@ def test_gateway_status_manifest_producer_writes_minimal_safe_atomic_json(tmp_pa
 def test_gateway_status_manifest_producer_degrades_inactive_gateway_without_leaking_unit_details(tmp_path):
     producer = _load_producer_module()
     output = tmp_path / 'runtime' / 'healthcheck' / 'gateway-status.json'
-    fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    fake_systemctl = FakeSystemctl({slug: slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS
+                                   for slug in producer.MUGIWARA_GATEWAY_SLUGS})
     fake_systemctl.active_by_slug['zoro'] = False
 
     result = producer.write_gateway_status(
@@ -89,8 +93,8 @@ def test_gateway_status_manifest_producer_degrades_inactive_gateway_without_leak
 
     assert result['status'] == 'failed'
     assert result['result'] == 'failed'
-    assert result['gateways']['zoro'] == {'active': False}
-    assert result['gateways']['luffy'] == {'active': True}
+    assert result['gateways']['zoro'] == {'active': False, 'expected_active': True}
+    assert result['gateways']['luffy'] == {'active': True, 'expected_active': True}
     serialized = output.read_text(encoding='utf-8')
     assert 'hermes-gateway-zoro.service' not in serialized
     assert 'inactive' not in serialized
@@ -98,10 +102,26 @@ def test_gateway_status_manifest_producer_degrades_inactive_gateway_without_leak
     assert 'stdout' not in serialized
 
 
+def test_gateway_status_manifest_producer_accepts_only_intentionally_inactive_gateways(tmp_path):
+    producer = _load_producer_module()
+    fake = FakeSystemctl({slug: slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS
+                          for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    result = producer.write_gateway_status(output_path=tmp_path / 'gateway-status.json',
+                                           now='2026-04-25T21:05:00Z', systemctl_runner=fake)
+    assert result['status'] == 'success'
+    for slug in producer.INTENTIONALLY_INACTIVE_GATEWAYS:
+        assert result['gateways'][slug] == {'active': False, 'expected_active': False}
+    fake.active_by_slug['usopp'] = True
+    unexpected = producer.write_gateway_status(output_path=tmp_path / 'gateway-status.json',
+                                                now='2026-04-25T21:06:00Z', systemctl_runner=fake)
+    assert unexpected['status'] == 'failed'
+
+
 def test_gateway_status_manifest_producer_cli_accepts_safe_manual_output_and_now(tmp_path):
     producer = _load_producer_module()
     output = tmp_path / 'gateway-status.json'
-    fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    fake_systemctl = FakeSystemctl({slug: slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS
+                                   for slug in producer.MUGIWARA_GATEWAY_SLUGS})
 
     exit_code = producer.main(['--output', str(output), '--now', '2026-04-25T21:10:00Z'], systemctl_runner=fake_systemctl)
 
@@ -114,7 +134,8 @@ def test_gateway_status_manifest_producer_cli_accepts_safe_manual_output_and_now
 def test_gateway_status_manifest_producer_fsyncs_parent_directory_after_replace(tmp_path, monkeypatch):
     producer = _load_producer_module()
     output = tmp_path / 'runtime' / 'healthcheck' / 'gateway-status.json'
-    fake_systemctl = FakeSystemctl({slug: True for slug in producer.MUGIWARA_GATEWAY_SLUGS})
+    fake_systemctl = FakeSystemctl({slug: slug not in producer.INTENTIONALLY_INACTIVE_GATEWAYS
+                                   for slug in producer.MUGIWARA_GATEWAY_SLUGS})
     opened_dirs: list[str] = []
     fsynced_fds: list[int] = []
     closed_fds: list[int] = []

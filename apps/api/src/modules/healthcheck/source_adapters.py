@@ -604,6 +604,7 @@ class GatewayStatusManifestAdapter:
     """Fixed, allowlisted reader for Franky-owned Hermes gateway status manifests."""
 
     global_source_id = 'hermes-gateways'
+    intentionally_inactive_sources = frozenset({'gateway.usopp', 'gateway.jinbe', 'gateway.brook'})
 
     def __init__(
         self,
@@ -680,9 +681,27 @@ class GatewayStatusManifestAdapter:
 
         explicit_status = self._safe_result(entry.get('status')) or self._safe_result(entry.get('result'))
         active = self._safe_bool(entry.get('active'))
+        declared_expected_active = self._safe_bool(entry.get('expected_active'))
+        planned_inactive = source_id in self.intentionally_inactive_sources
         thresholds = HEALTHCHECK_SOURCE_FRESHNESS_THRESHOLDS[source_id]
 
-        if explicit_status in {'error', 'failed', 'fail'} or active is False:
+        if planned_inactive and declared_expected_active is False and active is False:
+            if age_minutes >= thresholds['fail_after_minutes']:
+                status, severity, freshness_state = 'stale', 'high', 'stale'
+                summary, warning = 'Estado del gateway desactivado sin actualización reciente.', 'Manifiesto antiguo.'
+            elif age_minutes >= thresholds['warn_after_minutes']:
+                status, severity, freshness_state = 'warn', 'medium', 'stale'
+                summary, warning = 'Estado del gateway desactivado próximo a stale.', 'Manifiesto próximo a stale.'
+            else:
+                status, severity, freshness_state = 'pass', 'low', 'fresh'
+                summary, warning = 'Gateway desactivado por decisión según manifiesto seguro.', 'Sin alerta activa.'
+        elif planned_inactive or declared_expected_active is False:
+            status = 'fail'
+            severity = 'high'
+            summary = 'Gateway no coincide con el estado autorizado.'
+            warning = 'Estado de gateway inesperado.'
+            freshness_state = 'stale'
+        elif explicit_status in {'error', 'failed', 'fail'} or active is False:
             status = 'fail'
             severity = 'high'
             summary = 'Gateway no activo según manifiesto seguro.'

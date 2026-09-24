@@ -30,8 +30,9 @@ MUGIWARA_GATEWAY_SLUGS: tuple[str, ...] = (
     'brook',
     'jinbe',
 )
+INTENTIONALLY_INACTIVE_GATEWAYS = frozenset({'usopp', 'jinbe', 'brook'})
 SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'gateways')
-SAFE_GATEWAY_ENTRY_KEYS = ('active',)
+SAFE_GATEWAY_ENTRY_KEYS = ('active', 'expected_active')
 SystemctlRunner = Callable[[list[str]], subprocess.CompletedProcess[str]]
 
 
@@ -51,9 +52,12 @@ def write_gateway_status(
 
     gateways: dict[str, dict[str, bool]] = {}
     for slug in MUGIWARA_GATEWAY_SLUGS:
-        gateways[slug] = {'active': _gateway_is_active(slug, runner)}
+        gateways[slug] = {
+            'active': _gateway_is_active(slug, runner),
+            'expected_active': slug not in INTENTIONALLY_INACTIVE_GATEWAYS,
+        }
 
-    status = 'success' if all(entry['active'] for entry in gateways.values()) else 'failed'
+    status = 'success' if all(entry['active'] == entry['expected_active'] for entry in gateways.values()) else 'failed'
     manifest: dict[str, object] = {
         'status': status,
         'result': status,
@@ -148,8 +152,8 @@ def _validate_manifest_shape(manifest: dict[str, object]) -> None:
     for entry in gateways.values():
         if not isinstance(entry, dict) or tuple(entry.keys()) != SAFE_GATEWAY_ENTRY_KEYS:
             raise GatewayStatusProducerError('unsafe gateway entry shape')
-        if not isinstance(entry['active'], bool):
-            raise GatewayStatusProducerError('unsafe gateway active value')
+        if not all(isinstance(entry[key], bool) for key in SAFE_GATEWAY_ENTRY_KEYS):
+            raise GatewayStatusProducerError('unsafe gateway boolean value')
 
 
 def main(argv: Sequence[str] | None = None, *, systemctl_runner: SystemctlRunner | None = None) -> int:

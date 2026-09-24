@@ -253,7 +253,8 @@ for (const snippet of requiredProjectHealthProducerSnippets) {
 const requiredGatewayStatusProducerSnippets = [
   "DEFAULT_OUTPUT_PATH = Path('/srv/crew-core/runtime/healthcheck/gateway-status.json')",
   "SAFE_MANIFEST_KEYS = ('status', 'result', 'updated_at', 'gateways')",
-  "SAFE_GATEWAY_ENTRY_KEYS = ('active',)",
+  "SAFE_GATEWAY_ENTRY_KEYS = ('active', 'expected_active')",
+  "INTENTIONALLY_INACTIVE_GATEWAYS = frozenset({'usopp', 'jinbe', 'brook'})",
   "['systemctl', '--user', 'is-active', unit_name]",
   "os.replace(temp_path, output)",
   "os.chmod(output, 0o640)",
@@ -415,7 +416,7 @@ const requiredDocSnippets = [
   'Phase 15.3b reads a fixed local backup status manifest and exposes only timestamp/result/checksum/retention-derived summary fields',
   'Phase 15.4a reads a fixed Zoro-owned repo-local status manifest and exposes only timestamp/result plus boolean workspace/main/sync semantics',
   'Phase 15.5a also allows the fixed `gateway-status` manifest reader',
-  'it consumes only `updated_at` and boolean/enum active state',
+  'it consumes only `updated_at` and allowlisted boolean active/expected-active state',
   'Phase 15.5b adds `scripts/write-gateway-status.py` as the reviewed producer',
   'only checks allowlisted `hermes-gateway-<slug>.service` active state',
   'mugiwara-gateway-status.timer',
