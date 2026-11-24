@@ -4,6 +4,8 @@
 
 `mugiwara-control-panel` es el **control plane privado** de Mugiwara/Hermes. Este repositorio ofrece código público saneado; su operación, configuración, datos y acceso permanecen privados.
 
+**Para revisar el diseño:** empieza por la [revisión visual](#revisión-visual), con dos recorridos que puedes seguir sin acceder a la consola privada.
+
 La idea es sencilla: cuando una tripulación de agentes crece, no basta con tener buenos perfiles. Hace falta una consola que responda rápido a tres preguntas:
 
 1. **qué está pasando** en el sistema,
@@ -36,25 +38,12 @@ Quiere sentirse como:
 
 La UI enseña estados y rutas de lectura. La seguridad vive detrás: backend, allowlists, saneado, server-only y deny-by-default.
 
-## 🖼️ Capturas del panel
+## Revisión visual
 
-Las capturas siguientes son imágenes estáticas revisadas que muestran la línea visual y la estructura de páginas del panel en un corte histórico. No son telemetría, healthchecks ni evidencia de actividad actual. En particular, las métricas, el uptime y los estados visibles en la captura de Inicio **no representan el estado actual del sistema**. No se publican secretos, credenciales ni configuración runtime.
+Estos recorridos describen el diseño documentado. Sirven para revisar la navegación, la jerarquía y los estados de la interfaz; no muestran datos reales ni acreditan el funcionamiento del panel.
 
-| Inicio | Mugiwaras |
-|---|---|
-| ![Inicio navegable del Mugiwara Control Panel](public-assets/screenshots/control-panel-home.png) | ![Página de Mugiwaras](public-assets/screenshots/control-panel-mugiwaras.png) |
-
-| Skills | Memory |
-|---|---|
-| ![Catálogo de skills](public-assets/screenshots/control-panel-skills.png) | ![Página de memoria](public-assets/screenshots/control-panel-memory.png) |
-
-| Vault | Healthcheck |
-|---|---|
-| ![Navegador de vault](public-assets/screenshots/control-panel-vault.png) | ![Healthcheck](public-assets/screenshots/control-panel-healthcheck.png) |
-
-| Repos Git | Uso |
-|---|---|
-| ![Repos Git](public-assets/screenshots/control-panel-git.png) | ![Uso](public-assets/screenshots/control-panel-usage.png) |
+1. **Inicio → Mugiwaras: entender quién hace qué.** En el esquema de Inicio, busca el acceso a la tripulación entre las tarjetas de navegación. En el diseño de las fichas, fíjate en cómo se separan nombre, rol y estado: el rol explica la responsabilidad; el estado no define el rol. Si no hay fichas visibles, el contrato de estados de Mugiwaras distingue una lista vacía de un fallo de carga.
+2. **Inicio → Healthcheck: distinguir qué requiere atención.** Desde la tarjeta de Healthcheck, el diseño de la vista lleva del resumen a las comprobaciones y después a la bitácora. El contrato de estados de Healthcheck separa el estado actual, su causa y los eventos históricos. La pregunta clave: ¿se distingue un dato desactualizado de una fuente no disponible, sin confundir un evento pasado con una incidencia activa?
 
 ## 🧱 Arquitectura en corto
 
